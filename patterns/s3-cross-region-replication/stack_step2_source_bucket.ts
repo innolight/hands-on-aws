@@ -17,9 +17,10 @@ export class S3CrossRegionReplicationStackStep2 extends cdk.Stack {
     });
 
     const sourceBucket = new s3.Bucket(this, 'SourceBucket', {
+      bucketName: `${cdk.Aws.ACCOUNT_ID}-cross-region-replication-source-bucket`,
       // Enable versioning (Required for replication)
       versioned: true,
-      bucketName: `${cdk.Aws.ACCOUNT_ID}-cross-region-replication-source-bucket`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       //  !! Change the following in production.
       // This deletes the bucket when the stack is deleted (for easy cleanup).
       removalPolicy: cdk.RemovalPolicy.DESTROY,

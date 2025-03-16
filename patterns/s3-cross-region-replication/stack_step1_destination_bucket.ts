@@ -10,7 +10,9 @@ export class S3CrossRegionReplicationStackStep1 extends cdk.Stack {
 
     const destinationBucket = new s3.Bucket(this, 'DestinationBucket', {
       bucketName: `${cdk.Aws.ACCOUNT_ID}-cross-region-replication-destination-bucket`,
+      // Enable versioning (Required for replication)
       versioned: true,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       //  !! Change the following in production.
       // This deletes the bucket when the stack is deleted (for easy cleanup).
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -24,6 +26,8 @@ export class S3CrossRegionReplicationStackStep1 extends cdk.Stack {
     });
 
     // Allow Role to replicate to this bucket
+    // Todo: study alternative approach to attach replication Policy to role instead of resource
+    // https://aws.plainenglish.io/s3-cross-region-replication-with-aws-cdk-39d5dd3ecee7
     destinationBucket.addReplicationPolicy(replicationRole.roleArn)
 
     // 🔹 Outputs

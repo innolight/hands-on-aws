@@ -47,8 +47,8 @@ export class S3EventsNotification extends cdk.Stack {
 
     // Create the S3 bucket with encryption enabled
     const bucket = new s3.Bucket(this, 'S3Bucket', {
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       bucketName: `s3-events-notification-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       //  !! Change the following in production.
       // This deletes the bucket when the stack is deleted (for easy cleanup).
       removalPolicy: cdk.RemovalPolicy.DESTROY,
