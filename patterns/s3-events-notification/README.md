@@ -9,6 +9,7 @@ Pattern Description:
 Notes:
 - SQS queue can directly receive events notification from S3.
 - SNS is used here as fan-out pattern to send messages to multiple SQS subscribers.
+- _CDK quirk_: The output Cloudformation contains a lambda to apply bucket notification ([discussion](https://github.com/aws/aws-cdk/issues/9890))
 
 Commands play with stack:
 - `cdk deploy S3EventsNotification` to deploy the stack
