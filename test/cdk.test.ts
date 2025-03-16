@@ -3,11 +3,11 @@
 // import * as Cdk from '../lib/cdk-stack';
 
 // example test. To run these tests, uncomment this file along with the
-// example resource in lib/cdk-stack.ts
+// example resource in lib/s3EventsNotification.ts
 test('SQS Queue Created', () => {
 //   const app = new cdk.App();
 //     // WHEN
-//   const stack = new Cdk.CdkStack(app, 'MyTestStack');
+//   const stack = new Cdk.S3EventsNotification(app, 'MyTestStack');
 //     // THEN
 //   const template = Template.fromStack(stack);
 

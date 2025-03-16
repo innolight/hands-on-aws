@@ -1,0 +1,11 @@
+### Upload File to S3
+POST localhost:3000/s3-file-uploads
+Content-Type: application/json
+
+{
+  "message": "hello world"
+}
+
+
+### SQS-notifications
+GET localhost:3000/sqs/s3-events
