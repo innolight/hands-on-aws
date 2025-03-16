@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
-import { S3EventsNotification } from '../patterns/s3-events-notification/stack';
+import {S3EventsNotification, s3EventsNotificationStackName} from '../patterns/s3-events-notification/stack';
 
 const app = new cdk.App();
 
-new S3EventsNotification(app, 'S3EventsNotification', {
+new S3EventsNotification(app, s3EventsNotificationStackName, {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */

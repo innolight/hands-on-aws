@@ -1,10 +1,14 @@
-# Welcome to your CDK TypeScript project
+# AWS Patterns
 
-This is a blank project for CDK development with TypeScript.
+In this project, I try to gain deep and hands-on knowledge of architecting application in AWS by using CDK to implement
+popular architectural patterns in AWS.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Patterns
 
-## Useful commands
+Discover AWS patterns in folder [patterns](./patterns):
+- [`s3-events-notification`](./patterns/s3-events-notification): S3 → SNS → SQS → SQS (DLQ) 
+
+## Development
 
 * `npm run build`   compile typescript to js
 * `npm run watch`   watch for changes and compile

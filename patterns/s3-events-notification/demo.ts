@@ -1,23 +1,23 @@
 import express from "express";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } from "@aws-sdk/client-sqs";
+import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
+import {DeleteMessageCommand, ReceiveMessageCommand, SQSClient} from "@aws-sdk/client-sqs";
 import dotenv from "dotenv";
-import {getStackOutputs} from "../../utils/stackoutput";
-import {stackName} from "./stack";
+import {getStackOutputs} from "../../utils";
+import {s3EventsNotificationStackName} from "./stack";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const s3Client = new S3Client({ region: process.env.AWS_REGION });
-const sqsClient = new SQSClient({ region: process.env.AWS_REGION });
+const s3Client = new S3Client({region: process.env.AWS_REGION});
+const sqsClient = new SQSClient({region: process.env.AWS_REGION});
 
 let BUCKET_NAME, SQS_QUEUE_URL;
 (async () => {
-  const result = await getStackOutputs(stackName)
-  console.log(`StackOutput for ${stackName}:`, result)
+  const result = await getStackOutputs(s3EventsNotificationStackName)
+  console.log(`StackOutput for ${s3EventsNotificationStackName}:`, result)
   BUCKET_NAME = result["S3BucketName"];
-  SQS_QUEUE_URL=result["SQSQueueUrl"]
+  SQS_QUEUE_URL = result["SQSQueueUrl"]
 })()
 
 app.use(express.json());
@@ -38,10 +38,10 @@ app.post("/s3-file-uploads", async (req, res) => {
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
-    res.json({ message: "File uploaded successfully", key });
+    res.json({message: "File uploaded successfully", key});
   } catch (error) {
     console.error("Error uploading file:", error);
-    res.status(500).json({ error: "Error uploading file" });
+    res.status(500).json({error: "Error uploading file"});
   }
 });
 
@@ -70,11 +70,11 @@ app.get("/sqs/s3-events", async (req, res) => {
         status: "Message processed and deleted"
       });
     } else {
-      res.json({ message: "No messages available" });
+      res.json({message: "No messages available"});
     }
   } catch (error) {
     console.error("Error reading message from queue:", error);
-    res.status(500).json({ error: "Error reading message" });
+    res.status(500).json({error: "Error reading message"});
   }
 });
 
