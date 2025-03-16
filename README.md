@@ -7,6 +7,7 @@ popular architectural patterns in AWS.
 
 Discover AWS patterns in folder [patterns](./patterns):
 - [`s3-events-notification`](./patterns/s3-events-notification): S3 → SNS → SQS → SQS (DLQ) 
+- [`s3-cross-region-replication](./patterns/s3-cross-region-replication): S3 → S3 (another region); Multi-region Access Point for S3
 
 ## Development
 
