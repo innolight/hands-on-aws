@@ -1,0 +1,191 @@
+Parameters:
+  replicationRoleArn:
+    Type: String
+    Description: The ARN of the replication role in the source account
+  destinationBucketArn:
+    Type: String
+    Description: The ARN of the replication role in the source account
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+Resources:
+  SourceBucketDDD2130A:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Join:
+          - ""
+          - - Ref: AWS::AccountId
+            - -cross-region-replication-source-bucket
+      ReplicationConfiguration:
+        Role:
+          Ref: replicationRoleArn
+        Rules:
+          - DeleteMarkerReplication:
+              Status: Disabled
+            Destination:
+              Bucket:
+                Ref: destinationBucketArn
+            Filter: {}
+            Id: SourceToDestination
+            Priority: 1
+            Status: Enabled
+      Tags:
+        - Key: aws-cdk:auto-delete-objects
+          Value: "true"
+      VersioningConfiguration:
+        Status: Enabled
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3CrossRegionReplicationStackStep2/SourceBucket/Resource
+  SourceBucketPolicy703DFBF9:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: SourceBucketDDD2130A
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:List*
+              - s3:PutBucketPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::GetAtt:
+                  - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+                  - Arn
+            Resource:
+              - Fn::GetAtt:
+                  - SourceBucketDDD2130A
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - SourceBucketDDD2130A
+                        - Arn
+                    - /*
+          - Action:
+              - s3:GetBucket*
+              - s3:GetObject*
+              - s3:List*
+            Effect: Allow
+            Principal:
+              AWS:
+                Ref: replicationRoleArn
+            Resource:
+              - Fn::GetAtt:
+                  - SourceBucketDDD2130A
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - SourceBucketDDD2130A
+                        - Arn
+                    - /*
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: S3CrossRegionReplicationStackStep2/SourceBucket/Policy/Resource
+  SourceBucketAutoDeleteObjectsCustomResourceC68FC040:
+    Type: Custom::S3AutoDeleteObjects
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F
+          - Arn
+      BucketName:
+        Ref: SourceBucketDDD2130A
+    DependsOn:
+      - SourceBucketPolicy703DFBF9
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3CrossRegionReplicationStackStep2/SourceBucket/AutoDeleteObjectsCustomResource/Default
+  CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: S3CrossRegionReplicationStackStep2/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role
+  CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip
+      Timeout: 900
+      MemorySize: 128
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+          - Arn
+      Runtime: nodejs20.x
+      Description:
+        Fn::Join:
+          - ""
+          - - "Lambda function for auto-deleting objects in "
+            - Ref: SourceBucketDDD2130A
+            - " S3 bucket."
+    DependsOn:
+      - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+    Metadata:
+      aws:cdk:path: S3CrossRegionReplicationStackStep2/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler
+      aws:asset:path: asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6
+      aws:asset:property: Code
+  ReplicationRolePolicyS3CrossRegionReplicationStackStep2ReplicationRoleAD376BE119D36037:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetBucket*
+              - s3:GetObject*
+              - s3:List*
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - SourceBucketDDD2130A
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - SourceBucketDDD2130A
+                        - Arn
+                    - /*
+        Version: "2012-10-17"
+      PolicyName: PolicyS3CrossRegionReplicationStackStep2ReplicationRoleAD376BE1
+      Roles:
+        - Fn::Select:
+            - 1
+            - Fn::Split:
+                - /
+                - Fn::Select:
+                    - 5
+                    - Fn::Split:
+                        - ":"
+                        - Ref: replicationRoleArn
+    Metadata:
+      aws:cdk:path: S3CrossRegionReplicationStackStep2/ReplicationRole/PolicyS3CrossRegionReplicationStackStep2ReplicationRoleAD376BE1/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/32OQW/CMAyFfws+opCtsMPU22DnUcFuFZpMYligaVDiFKGo/32iYQjtsINl6z37e57K4rWQxQjPYaL0cdKYrUxrRnUUi11boUdLTF7gOXylMJNpHtWRuE7QkQ/GtaShZB9JwHZwPtASlDAGAZ6s67CpXGPUBUrQFNi7CwjAyO6dGmJabg+kOGRGv7mG5gSRWz6u040+kB/Xst8Lg1am+/JpGO6v9CIBMqP6/nQr1xCUNYxh85+s9ZqRyVJ7fa5O/San3vJ6sYiBnV1RcNErGg6v/q/wx6+864wmP8dA4i0E4jXj3rR78UgQDzXQlpFPkXvROk3yEJ666Uy+yOfRIRgz8bFlY0mucv8BFL7p6coBAAA=
+    Metadata:
+      aws:cdk:path: S3CrossRegionReplicationStackStep2/CDKMetadata/Default
+Outputs:
+  SourceBucketName:
+    Value:
+      Ref: SourceBucketDDD2130A
+
