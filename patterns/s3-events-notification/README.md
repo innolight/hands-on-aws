@@ -2,18 +2,21 @@
 
 Pattern Description:
 - S3 Bucket to store objects
-- Configure bucket to send events notification to SNS topic
-- SQS subscribes to SNS topic
-- SQS has another SQS as DLQ for unprocessed message
+- SNS topic to receive [Events Notification](https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventNotifications.html) from bucket
+- SQS to subscribe to SNS topic
+- DLQ SQS to store unprocessed SQS message
+
+Notes:
+- SQS queue can directly receive events notification from S3.
+- SNS is used here as fan-out pattern to send messages to multiple SQS subscribers.
 
 Commands play with stack:
 - `cdk deploy S3EventsNotification` to deploy the stack
-- `ts-node patterns/s3-events-notification/demo_server.ts` to run example application with the following endpoints
+- `ts-node patterns/s3-events-notification/demo_server.ts` to run example application with the following [endpoints](./demo_requests.http)
   - `POST /s3-file-uploads`: Upload json file to S3
   - `GET /sqs/s3-events`: Poll 1 events from the SQS queue
 - `cdk destroy S3EventsNotification`: Destroy the stack to avoid unexpected cloud cost
 
 Development guide:
-- Run `cdk synth > patterns/s3-events-notification/cf.yaml` after you have updated the [stack.ts](./stack.ts) to
-document the output Cloud Formation for study. 
+- `cdk synth > patterns/s3-events-notification/cf.yaml`
 
