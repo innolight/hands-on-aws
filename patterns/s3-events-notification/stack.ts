@@ -8,7 +8,7 @@ import * as s3Notifications from 'aws-cdk-lib/aws-s3-notifications';
 
 export const s3EventsNotificationStackName = "S3EventsNotification";
 
-// S3EventsNotification: S3  --> events (created, removed) --> SNS --> SQS --> SQS (DLQ - Dead-Letter-Queue)
+// S3EventsNotification implement patterns: S3  --> events (created, removed) --> SNS --> SQS --> SQS (DLQ - Dead-Letter-Queue)
 export class S3EventsNotification extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);

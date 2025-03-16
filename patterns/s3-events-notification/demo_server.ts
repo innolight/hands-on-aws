@@ -1,11 +1,8 @@
 import express from "express";
 import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {DeleteMessageCommand, ReceiveMessageCommand, SQSClient} from "@aws-sdk/client-sqs";
-import dotenv from "dotenv";
 import {getStackOutputs} from "../../utils";
 import {s3EventsNotificationStackName} from "./stack";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
