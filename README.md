@@ -8,7 +8,7 @@ popular architectural patterns in AWS.
 Discover AWS patterns in folder [patterns](./patterns):
 
 
-- [ ] `s3-polished-configuration`: S3 with encryption, versioning enabled, lifecycle rule, data archiver with Glacier
+- [x] [`s3-polished-configuration`](./patterns/s3-polished-configuration): S3 with encryption, versioning enabled, lifecycle rule, data archiver with Glacier
 - [x] [`s3-events-notification`](./patterns/s3-events-notification): S3 → SNS → SQS → SQS (DLQ) 
 - [x] [`s3-cross-region-replication`](./patterns/s3-cross-region-replication): S3 → S3 (another region); Multi-region Access Point for S3
 - [ ] `s3-static-website-cloudfront`: S3 hosting a static website, using CloudFront for global delivery
