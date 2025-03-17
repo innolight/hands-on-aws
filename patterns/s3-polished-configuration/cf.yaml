@@ -1,0 +1,93 @@
+Resources:
+  PolishedS3Bucket06848259:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: polished-s3-bucket-495599779087-eu-central-1
+      IntelligentTieringConfigurations:
+        - Id: IntelligentTiering
+          Status: Enabled
+          TagFilters:
+            - Key: key
+              Value: value
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 365
+      LifecycleConfiguration:
+        Rules:
+          - Id: MoveToGlacierTiers
+            Prefix: object_prefix_filter/
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER
+                TransitionInDays: 1095
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: 1825
+          - ExpirationInDays: 730
+            Id: DeleteCertainFiles
+            ObjectSizeGreaterThan: 1024
+            Prefix: logs/
+            Status: Enabled
+            TagFilters:
+              - Key: tag_key
+                Value: tag_value
+          - ExpirationDate: "2030-01-31T22:00:00Z"
+            Id: DeleteEverythingIn2030
+            Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3PolishedConfigurationStack/PolishedS3Bucket/Resource
+  PolishedS3BucketPolicy890346F5:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: PolishedS3Bucket06848259
+      PolicyDocument:
+        Statement:
+          - Action: s3:*
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+            Effect: Deny
+            Principal:
+              AWS: "*"
+            Resource:
+              - Fn::GetAtt:
+                  - PolishedS3Bucket06848259
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - PolishedS3Bucket06848259
+                        - Arn
+                    - /*
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: S3PolishedConfigurationStack/PolishedS3Bucket/Policy/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/6WSTW/CMAyGfws5otAN2GHixmDjwhii3BBCaeoW0zSp8gF0iP8+lQDdpE3T2MnRa+ex/cqdoP3YDtoNtjMtHmctgVFwCC3jGWU7szLd4PDkeAZ2cSDR6TFhOZAeaRJKIqF4NnWRQN7nHIw561vQBpWEmPSsdkAJyERpDmE4rhWuy8KikqRHwu7qtT/pj56HhBKUFoTAFKSdI2iU6UDJBFOnWVVuSG9xILIewrLUaxmUl/5MOJ8+Lilhmq9xC37CCjnHvM4KTICXXMDMCfAgjM8ckCwS9RaFhgT3l7aaSYPniSoW/fmjijbAbYjvMNLALOj5mslz6VcoS19QWNC/M2FfoHdkyGy9joZcbZmYKoG8siMGY7UqTygWx+PP2/5n2ZPcJMs/c2/34uaW31lV05Z0kEh/49QHb9714C/eXst8/lgJb84Wzh6pVDEEG3O37XSDh+C+sTGILe2kxRyCmY8f9Td5ZWsDAAA=
+    Metadata:
+      aws:cdk:path: S3PolishedConfigurationStack/CDKMetadata/Default
+Outputs:
+  BucketName:
+    Value:
+      Ref: PolishedS3Bucket06848259
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
