@@ -1,8 +1,8 @@
-*.js
-!jest.config.js
 .idea
-*.d.ts
 node_modules
+
+# TypeScript build output
+dist
 
 # CDK asset staging directory
 .cdk.staging
