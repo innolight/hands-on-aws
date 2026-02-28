@@ -19,5 +19,5 @@ Commands play with stack:
 - `cdk destroy S3EventsNotification`: Destroy the stack to avoid unexpected cloud cost
 
 Development guide:
-- `cdk synth > patterns/s3-events-notification/cf.yaml`
+- `npx cdk synth S3EventsNotification > patterns/s3-events-notification/cloud_formation.yaml`
 
