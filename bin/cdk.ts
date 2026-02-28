@@ -7,6 +7,7 @@ import {
 } from "../patterns/s3-cross-region-replication/stack_step2_source_bucket";
 import {S3PolishedConfigurationStack} from "../patterns/s3-polished-configuration/stack";
 import {S3StaticWebsiteCloudfrontStack, s3StaticWebsiteCloudfrontStackName} from "../patterns/s3-static-website-cloudfront/stack";
+import {S3LambdaRekognitionDynamodbStack, s3LambdaRekognitionDynamodbStackName} from '../patterns/s3-lambda-rekognition-dynamodb/stack';
 
 const app = new cdk.App();
 
@@ -39,5 +40,9 @@ new S3PolishedConfigurationStack(app, 'S3PolishedConfigurationStack', {
 })
 
 new S3StaticWebsiteCloudfrontStack(app, s3StaticWebsiteCloudfrontStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+})
+
+new S3LambdaRekognitionDynamodbStack(app, s3LambdaRekognitionDynamodbStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
 })

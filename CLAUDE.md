@@ -42,6 +42,26 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 
 **Multi-step patterns:** Some patterns require deploying stacks in a specific order across regions (e.g., `s3-cross-region-replication` deploys a destination bucket to `eu-west-1` first, then a source bucket to the default region).
 
+**README.md structure** — each pattern README should follow this order:
+1. **Pattern Description** — bullet list of components and data flow; link each AWS service/concept to its official docs
+2. **Cost** — table with columns: Resource | Idle | ~N unit/month | Cost driver; include region and workload assumption in the header; state the dominant cost driver
+3. **Notes** — non-obvious decisions, production caveats, alternatives considered
+4. **Commands to play with stack** — deploy, interact (upload/query/etc.), observe (logs), destroy, and `cdk synth` to capture CloudFormation yaml
+
+**stack.ts commenting conventions** — comments are educational, not decorative. Each comment should teach something a reader couldn't immediately infer from the code:
+
+- **Class-level comment**: one line describing the data flow, e.g. `// upload image to S3 → Lambda → Rekognition detectLabels → DynamoDB`
+- **Construct comments**: explain *why* a config option was chosen, not what it does. Examples:
+  - `// PAY_PER_REQUEST avoids provisioned capacity costs for sporadic workloads`
+  - `// externalModules: ['@aws-sdk/*'] — Lambda Node 20 runtime ships SDK v3; bundling it adds size with no benefit`
+- **Alternative comments**: when a real alternative exists and the tradeoff matters, state it. Example:
+  - `// Alternative: EventBridge — more flexible fan-out, but adds latency (~seconds vs ~milliseconds) for a single-consumer case`
+- **Production caveat comments**: flag non-production settings inline with `// !! Change the following in production.`
+- **IAM comments**: explain why a permission is needed, especially non-obvious ones. Example:
+  - `// Rekognition accesses S3 directly using the Lambda role — role needs GetObject`
+  - `// Rekognition does not support resource-level permissions, so '*' is required`
+- **Don't comment** self-evident code (e.g. `// create bucket`, `// outputs`).
+
 **Stack conventions:**
 - Stacks use `removalPolicy: DESTROY` and `autoDeleteObjects: true` for easy cleanup — note these as non-production settings when adding new patterns
 - Stack outputs (`CfnOutput`) are the mechanism for passing resource info to demo servers via `getStackOutputs`

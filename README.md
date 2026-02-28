@@ -12,7 +12,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`s3-events-notification`](./patterns/s3-events-notification): S3 → SNS → SQS → SQS (DLQ) 
 - [x] [`s3-cross-region-replication`](./patterns/s3-cross-region-replication): S3 → S3 (another region); Multi-region Access Point for S3
 - [x] `s3-static-website-cloudfront`: S3 hosting a HTTPS static website, using CloudFront for global delivery
-- [ ] `s3-lambda-rekognition-dynamodb`: image processing pipeline and metadata storage
+- [x] [`s3-lambda-rekognition-dynamodb`](./patterns/s3-lambda-rekognition-dynamodb): image processing pipeline and metadata storage
 - [ ] `s3-behind-sftp`: SFTP access to S3 using AWS Transfer 
 - [ ] `dynamodb-global-database`: Dynamodb Global Database (multi-write architecture)
 - [ ] `dynamodb-to-s3`: Dynamodb → S3 with Zero-ETL
