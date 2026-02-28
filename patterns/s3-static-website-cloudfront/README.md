@@ -9,6 +9,16 @@
   - Also invalidates the CloudFront cache (`/*`) so changes are visible immediately
   - For a real project, replace `Source.data()` with `Source.asset('./frontend/dist')` to deploy a build directory
 
+**Cost** (us-east-1, PriceClass_100):
+
+| Resource | Idle | ~10K visitors/month | Cost driver |
+|---|---|---|---|
+| S3 storage | ~$0.00 | ~$0.00 | $0.023/GB — negligible for static files |
+| CloudFront transfer | $0.00 | ~$0.01–0.05 | $0.085/GB out — scales with page size × visits |
+| CloudFront requests | $0.00 | ~$0.01 | $0.0100/10K HTTPS requests |
+| Lambda (deploy-time) | $0.00 | $0.00 | Runs only during `cdk deploy`; sub-second duration |
+| OAC | $0.00 | $0.00 | Free |
+
 **Notes**:
 - OAC replaces the legacy OAI (Origin Access Identity). OAC supports all S3 regions and SSE-KMS encryption.
 - S3 static website hosting (`websiteIndexDocument`) is intentionally NOT enabled — it's incompatible with OAC, which requires the S3 REST API endpoint. CloudFront `defaultRootObject` replaces it.
