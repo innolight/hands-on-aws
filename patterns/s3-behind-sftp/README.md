@@ -28,14 +28,19 @@ Data flow: `SFTP client → Transfer Family public endpoint → IAM role → S3 
 
 ## Notes
 
-- **SERVICE_MANAGED limit**: supports up to 100 users per server. For more users, password auth, or federated identity, use `identityProviderType: 'AWS_LAMBDA'` backed by Secrets Manager.
 - **LOGICAL mapping = virtual chroot**: the S3 bucket name and full path are hidden from the SFTP client. The user only sees the directory tree rooted at their prefix.
 - **`s3:ListBucket` on bucket ARN**: IAM does not support prefix-level `ListBucket`. Granting it on a prefix silently returns empty directory listings instead of an error — a common misconfiguration.
 - **Server startup latency**: Transfer Family takes ~60 seconds to reach `ONLINE` state after first deploy. The sftp command will fail with a connection error until then.
-- **Production alternatives**:
+- **Production consideration**:
   - `endpointType: 'VPC'` with `VpcEndpointDetails` — private traffic, Elastic IPs for stable DNS, security groups for IP allowlisting
   - Custom hostname via Route53 CNAME pointing at the Transfer Family endpoint
   - `identityProviderType: 'AWS_LAMBDA'` with Secrets Manager for password-based auth or LDAP/AD integration
+- **Limitations of this implementation**:
+  1. **No stable hostname** — the AWS-assigned name changes on every redeploy. Fix: Route53 CNAME or VPC endpoint with Elastic IPs.
+  2. **Public endpoint** — no IP allowlisting; traffic goes over the internet. Fix: `endpointType: 'VPC'` with security groups.
+  3. **Shared IAM role** — prefix isolation relies solely on the LOGICAL mapping. A misconfigured mapping gives a user access to the entire bucket.
+  4. **SSH key rotation requires redeploy** — keys are CloudFormation parameters; updating one means running `cdk deploy` again.
+  5. **100-user limit** — `SERVICE_MANAGED` caps at 100 users per server. Fix: `identityProviderType: 'AWS_LAMBDA'` backed by Secrets Manager.
 
 ## Commands to play with stack
 

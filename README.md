@@ -13,7 +13,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`s3-cross-region-replication`](./patterns/s3-cross-region-replication): S3 → S3 (another region); Multi-region Access Point for S3
 - [x] [`s3-static-website-cloudfront`](./patterns/s3-static-website-cloudfront): S3 hosting a HTTPS static website, using CloudFront for global delivery
 - [x] [`s3-lambda-rekognition-dynamodb`](./patterns/s3-lambda-rekognition-dynamodb): image processing pipeline and metadata storage
-- [ ] `s3-behind-sftp`: SFTP access to S3 using AWS Transfer 
+- [x] [`s3-behind-sftp`](./patterns/s3-behind-sftp/): SFTP access to S3 using AWS Transfer 
 - [ ] `dynamodb-global-database`: Dynamodb Global Database (multi-write architecture)
 - [ ] `dynamodb-to-s3`: Dynamodb → S3 with Zero-ETL
 - [ ] `dynamodb-kinesis`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → AWS OpenSearch | S3
