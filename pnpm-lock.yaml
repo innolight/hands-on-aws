@@ -17,6 +17,9 @@ importers:
       '@aws-sdk/client-sqs':
         specifier: ^3.758.0
         version: 3.758.0
+      '@aws-sdk/util-dynamodb':
+        specifier: ^3.996.1
+        version: 3.996.1(@aws-sdk/client-dynamodb@3.1000.0)
       aws-cdk-lib:
         specifier: 2.181.1
         version: 2.181.1(constructs@10.4.2)
@@ -311,6 +314,12 @@ packages:
   '@aws-sdk/util-arn-parser@3.723.0':
     resolution: {integrity: sha512-ZhEfvUwNliOQROcAk34WJWVYTlTa4694kSVhDSjW6lE1bMataPnIN8A0ycukEzBXmd8ZSoBcQLn6lKGl7XIJ5w==}
     engines: {node: '>=18.0.0'}
+
+  '@aws-sdk/util-dynamodb@3.996.1':
+    resolution: {integrity: sha512-5Vle00DrIcao9x5UuhkEprIQiMuhVvrxSLQwEhTb1sfWvdrLphcW4LqAtOkWSHpWF9ZdQQVKXvAOjKNV8LSlrw==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@aws-sdk/client-dynamodb': ^3.997.0
 
   '@aws-sdk/util-endpoints@3.743.0':
     resolution: {integrity: sha512-sN1l559zrixeh5x+pttrnd0A3+r34r0tmPkJ/eaaMaAzXqsmKU/xYre9K3FNnsSS1J1k4PEfk/nHDTVUgFYjnw==}
@@ -3328,6 +3337,11 @@ snapshots:
 
   '@aws-sdk/util-arn-parser@3.723.0':
     dependencies:
+      tslib: 2.8.1
+
+  '@aws-sdk/util-dynamodb@3.996.1(@aws-sdk/client-dynamodb@3.1000.0)':
+    dependencies:
+      '@aws-sdk/client-dynamodb': 3.1000.0
       tslib: 2.8.1
 
   '@aws-sdk/util-endpoints@3.743.0':

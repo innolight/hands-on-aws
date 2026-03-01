@@ -9,6 +9,7 @@ import {S3PolishedConfigurationStack} from "../patterns/s3-polished-configuratio
 import {S3StaticWebsiteCloudfrontStack, s3StaticWebsiteCloudfrontStackName} from "../patterns/s3-static-website-cloudfront/stack";
 import {S3LambdaRekognitionDynamodbStack, s3LambdaRekognitionDynamodbStackName} from '../patterns/s3-lambda-rekognition-dynamodb/stack';
 import {S3BehindSftpStack, s3BehindSftpStackName} from '../patterns/s3-behind-sftp/stack';
+import {DynamodbGlobalDatabaseStack, dynamodbGlobalDatabaseStackName} from '../patterns/dynamodb-global-database/stack';
 
 const app = new cdk.App();
 
@@ -49,5 +50,9 @@ new S3LambdaRekognitionDynamodbStack(app, s3LambdaRekognitionDynamodbStackName, 
 })
 
 new S3BehindSftpStack(app, s3BehindSftpStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+})
+
+new DynamodbGlobalDatabaseStack(app, dynamodbGlobalDatabaseStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
 })
