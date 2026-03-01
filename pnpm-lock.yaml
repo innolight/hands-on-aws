@@ -14,6 +14,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.758.0
         version: 3.758.0
+      '@aws-sdk/client-s3vectors':
+        specifier: ^3.1000.0
+        version: 3.1000.0
       '@aws-sdk/client-sqs':
         specifier: ^3.758.0
         version: 3.758.0
@@ -21,11 +24,14 @@ importers:
         specifier: ^3.996.1
         version: 3.996.1(@aws-sdk/client-dynamodb@3.1000.0)
       aws-cdk-lib:
-        specifier: 2.181.1
-        version: 2.181.1(constructs@10.4.2)
+        specifier: 2.240.0
+        version: 2.240.0(constructs@10.4.2)
       constructs:
         specifier: ^10.0.0
         version: 10.4.2
+      csv-parse:
+        specifier: ^6.1.0
+        version: 6.1.0
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7
@@ -52,8 +58,8 @@ importers:
         specifier: 22.7.9
         version: 22.7.9
       aws-cdk:
-        specifier: 2.1004.0
-        version: 2.1004.0
+        specifier: 2.1108.0
+        version: 2.1108.0
       esbuild:
         specifier: ^0.27.3
         version: 0.27.3
@@ -76,14 +82,15 @@ packages:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
 
-  '@aws-cdk/asset-awscli-v1@2.2.227':
-    resolution: {integrity: sha512-BAZwZGtX166K9KRYnRBbRj/fU0FY00LOnki11OsDQMfZ9H6tno+LIhv/ZY5U4LGIaI8yP881pAhbrVxpKQnYLg==}
+  '@aws-cdk/asset-awscli-v1@2.2.263':
+    resolution: {integrity: sha512-X9JvcJhYcb7PHs8R7m4zMablO5C9PGb/hYfLnxds9h/rKJu6l7MiXE/SabCibuehxPnuO/vk+sVVJiUWrccarQ==}
 
   '@aws-cdk/asset-node-proxy-agent-v6@2.1.0':
     resolution: {integrity: sha512-7bY3J8GCVxLupn/kNmpPc5VJz8grx+4RKfnnJiO1LG+uxkZfANZG3RMHhE+qQxxwkyQ9/MfPtTpf748UhR425A==}
 
-  '@aws-cdk/cloud-assembly-schema@39.2.20':
-    resolution: {integrity: sha512-RI7S8jphGA8mak154ElnEJQPNTTV4PZmA7jgqnBBHQGyOPJIXxtACubNQ5m4YgjpkK3UJHsWT+/cOAfM/Au/Wg==}
+  '@aws-cdk/cloud-assembly-schema@50.4.0':
+    resolution: {integrity: sha512-9Cplwc5C+SNe3hMfqZET7gXeM68tiH2ytQytCi+zz31Bn7O3GAgAnC2dYe+HWnZAgVH788ZkkBwnYXkeqx7v4g==}
+    engines: {node: '>= 18.0.0'}
     bundledDependencies:
       - jsonschema
       - semver
@@ -126,6 +133,10 @@ packages:
   '@aws-sdk/client-s3@3.758.0':
     resolution: {integrity: sha512-f8SlhU9/93OC/WEI6xVJf/x/GoQFj9a/xXK6QCtr5fvCjfSLgMVFmKTiIl/tgtDRzxUDc8YS6EGtbHjJ3Y/atg==}
     engines: {node: '>=18.0.0'}
+
+  '@aws-sdk/client-s3vectors@3.1000.0':
+    resolution: {integrity: sha512-aLqKSwH6FiVJDZNe7O2nEGLDJa7Z35Ynr3XIgyjyWjzEU6fD/lT/5HAWSeX9a3HHYMlrDwz3JGV5so7yyCKGhw==}
+    engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-sqs@3.758.0':
     resolution: {integrity: sha512-AJ+FxzCkzHuS9ewoPi820dMsoPzq5wj8UvTvDaxwUfIM1LiWAhpSvr+mF7MuplIc6liU6hCndCqGO7lxLVxvrQ==}
@@ -1302,13 +1313,14 @@ packages:
   async@3.2.6:
     resolution: {integrity: sha512-htCUDlxyyCLMgaM3xXg0C0LW2xqfuQ6p05pCEIsXuyQ+a1koYKTuBMzRNwmybfLgvJDMd0r1LTn4+E0Ti6C2AA==}
 
-  aws-cdk-lib@2.181.1:
-    resolution: {integrity: sha512-PDxYiqzet17tigJ8icjzoZIzmcdusQfKNnwpRzcGu5//n3YqlKf/vGEkQuU0xcgt4lBMX4Yjuqfsl8wYidCESw==}
-    engines: {node: '>= 14.15.0'}
+  aws-cdk-lib@2.240.0:
+    resolution: {integrity: sha512-3dXmUnPB5kK0VgrNHOlV3jiQM4Dungukk/CV91nclO2lgNcrGyigauJdzmz9sOmI1gbKJJ2SRAotaXityzZMRw==}
+    engines: {node: '>= 18.0.0'}
     peerDependencies:
-      constructs: ^10.0.0
+      constructs: ^10.5.0
     bundledDependencies:
       - '@balena/dockerignore'
+      - '@aws-cdk/cloud-assembly-api'
       - case
       - fs-extra
       - ignore
@@ -1320,9 +1332,9 @@ packages:
       - yaml
       - mime-types
 
-  aws-cdk@2.1004.0:
-    resolution: {integrity: sha512-3E5ICmSc7ZCZCwLX7NY+HFmmdUYgRaL+67h/BDoDQmkhx9StC8wG4xgzHFY9k8WQS0+ib/MP28f2d9yzHtQLlQ==}
-    engines: {node: '>= 14.15.0'}
+  aws-cdk@2.1108.0:
+    resolution: {integrity: sha512-FHnyhnYZoRc2W0C9mNzhNn6fO2vH4xNINsKfJaA7AFDuymgQ39JhEnrM4AHaoikIBqXYeNLWElvvkusY9l3ulw==}
+    engines: {node: '>= 18.0.0'}
     hasBin: true
 
   babel-jest@29.7.0:
@@ -1480,6 +1492,9 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  csv-parse@6.1.0:
+    resolution: {integrity: sha512-CEE+jwpgLn+MmtCpVcPtiCZpVtB6Z2OKPTr34pycYYoL7sxdOkXDdQ4lRiw6ioC0q6BLqhc6cKweCVvral8yhw==}
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -1659,11 +1674,6 @@ packages:
 
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
-
-  fsevents@2.3.2:
-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
-    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
-    os: [darwin]
 
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
@@ -2470,11 +2480,11 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.8
       '@jridgewell/trace-mapping': 0.3.25
 
-  '@aws-cdk/asset-awscli-v1@2.2.227': {}
+  '@aws-cdk/asset-awscli-v1@2.2.263': {}
 
   '@aws-cdk/asset-node-proxy-agent-v6@2.1.0': {}
 
-  '@aws-cdk/cloud-assembly-schema@39.2.20': {}
+  '@aws-cdk/cloud-assembly-schema@50.4.0': {}
 
   '@aws-crypto/crc32@5.2.0':
     dependencies:
@@ -2719,6 +2729,50 @@ snapshots:
       '@smithy/util-stream': 4.1.2
       '@smithy/util-utf8': 4.0.0
       '@smithy/util-waiter': 4.0.2
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - aws-crt
+
+  '@aws-sdk/client-s3vectors@3.1000.0':
+    dependencies:
+      '@aws-crypto/sha256-browser': 5.2.0
+      '@aws-crypto/sha256-js': 5.2.0
+      '@aws-sdk/core': 3.973.15
+      '@aws-sdk/credential-provider-node': 3.972.14
+      '@aws-sdk/middleware-host-header': 3.972.6
+      '@aws-sdk/middleware-logger': 3.972.6
+      '@aws-sdk/middleware-recursion-detection': 3.972.6
+      '@aws-sdk/middleware-user-agent': 3.972.15
+      '@aws-sdk/region-config-resolver': 3.972.6
+      '@aws-sdk/types': 3.973.4
+      '@aws-sdk/util-endpoints': 3.996.3
+      '@aws-sdk/util-user-agent-browser': 3.972.6
+      '@aws-sdk/util-user-agent-node': 3.973.0
+      '@smithy/config-resolver': 4.4.9
+      '@smithy/core': 3.23.6
+      '@smithy/fetch-http-handler': 5.3.11
+      '@smithy/hash-node': 4.2.10
+      '@smithy/invalid-dependency': 4.2.10
+      '@smithy/middleware-content-length': 4.2.10
+      '@smithy/middleware-endpoint': 4.4.20
+      '@smithy/middleware-retry': 4.4.37
+      '@smithy/middleware-serde': 4.2.11
+      '@smithy/middleware-stack': 4.2.10
+      '@smithy/node-config-provider': 4.3.10
+      '@smithy/node-http-handler': 4.4.12
+      '@smithy/protocol-http': 5.3.10
+      '@smithy/smithy-client': 4.12.0
+      '@smithy/types': 4.13.0
+      '@smithy/url-parser': 4.2.10
+      '@smithy/util-base64': 4.3.1
+      '@smithy/util-body-length-browser': 4.2.1
+      '@smithy/util-body-length-node': 4.2.2
+      '@smithy/util-defaults-mode-browser': 4.3.36
+      '@smithy/util-defaults-mode-node': 4.2.39
+      '@smithy/util-endpoints': 3.3.1
+      '@smithy/util-middleware': 4.2.10
+      '@smithy/util-retry': 4.2.10
+      '@smithy/util-utf8': 4.2.1
       tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
@@ -4620,16 +4674,14 @@ snapshots:
 
   async@3.2.6: {}
 
-  aws-cdk-lib@2.181.1(constructs@10.4.2):
+  aws-cdk-lib@2.240.0(constructs@10.4.2):
     dependencies:
-      '@aws-cdk/asset-awscli-v1': 2.2.227
+      '@aws-cdk/asset-awscli-v1': 2.2.263
       '@aws-cdk/asset-node-proxy-agent-v6': 2.1.0
-      '@aws-cdk/cloud-assembly-schema': 39.2.20
+      '@aws-cdk/cloud-assembly-schema': 50.4.0
       constructs: 10.4.2
 
-  aws-cdk@2.1004.0:
-    optionalDependencies:
-      fsevents: 2.3.2
+  aws-cdk@2.1108.0: {}
 
   babel-jest@29.7.0(@babel/core@7.26.10):
     dependencies:
@@ -4822,6 +4874,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  csv-parse@6.1.0: {}
 
   debug@2.6.9:
     dependencies:
@@ -5022,9 +5076,6 @@ snapshots:
   fresh@0.5.2: {}
 
   fs.realpath@1.0.0: {}
-
-  fsevents@2.3.2:
-    optional: true
 
   fsevents@2.3.3:
     optional: true

@@ -1,0 +1,43 @@
+Resources:
+  VectorBucket:
+    Type: AWS::S3Vectors::VectorBucket
+    Properties:
+      VectorBucketName: food-reviews-vectors-495599779087-eu-central-1
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3Vectors/VectorBucket
+  VectorIndex:
+    Type: AWS::S3Vectors::Index
+    Properties:
+      DataType: float32
+      Dimension: 1536
+      DistanceMetric: cosine
+      IndexName: food-reviews
+      MetadataConfiguration:
+        NonFilterableMetadataKeys:
+          - Text
+      VectorBucketName:
+        Ref: VectorBucket
+    DependsOn:
+      - VectorBucket
+    Metadata:
+      aws:cdk:path: S3Vectors/VectorIndex
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/yXGQQqDMBAAwLd4T7YhSh+gp54KLfQqabJCTLuKu9GC+HepnmYs2MqAKdzC2oekP/EN61OcT8ot3HI5o5dhYlibjl7H6+wTimo6ulHA3/bfPcuYZVM0BISeL7Ot4Aqm6DlGPWWS+EV4nO6ExZkrcwAAAA==
+    Metadata:
+      aws:cdk:path: S3Vectors/CDKMetadata/Default
+Outputs:
+  VectorBucketName:
+    Value:
+      Ref: VectorBucket
+  IndexName:
+    Value:
+      Ref: VectorIndex
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

@@ -10,6 +10,7 @@ import {S3StaticWebsiteCloudfrontStack, s3StaticWebsiteCloudfrontStackName} from
 import {S3LambdaRekognitionDynamodbStack, s3LambdaRekognitionDynamodbStackName} from '../patterns/s3-lambda-rekognition-dynamodb/stack';
 import {S3BehindSftpStack, s3BehindSftpStackName} from '../patterns/s3-behind-sftp/stack';
 import {DynamodbGlobalDatabaseStack, dynamodbGlobalDatabaseStackName} from '../patterns/dynamodb-global-database/stack';
+import {S3VectorsStack, s3VectorsStackName} from '../patterns/s3-vectors/stack';
 
 const app = new cdk.App();
 
@@ -54,5 +55,9 @@ new S3BehindSftpStack(app, s3BehindSftpStackName, {
 })
 
 new DynamodbGlobalDatabaseStack(app, dynamodbGlobalDatabaseStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+})
+
+new S3VectorsStack(app, s3VectorsStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
 })

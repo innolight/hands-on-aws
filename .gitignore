@@ -8,3 +8,6 @@ dist
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# Large dataset files
+patterns/s3-vectors/data/*.csv
