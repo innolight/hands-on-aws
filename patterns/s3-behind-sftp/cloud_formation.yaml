@@ -1,0 +1,295 @@
+Resources:
+  SftpBucketCE9DC1B4:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Join:
+          - ""
+          - - s3-sftp-
+            - Ref: AWS::AccountId
+            - "-"
+            - Ref: AWS::Region
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: aws-cdk:auto-delete-objects
+          Value: "true"
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3BehindSftp/SftpBucket/Resource
+  SftpBucketPolicy6D55F811:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: SftpBucketCE9DC1B4
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:List*
+              - s3:PutBucketPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::GetAtt:
+                  - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+                  - Arn
+            Resource:
+              - Fn::GetAtt:
+                  - SftpBucketCE9DC1B4
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - SftpBucketCE9DC1B4
+                        - Arn
+                    - /*
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: S3BehindSftp/SftpBucket/Policy/Resource
+  SftpBucketAutoDeleteObjectsCustomResourceB2E7632F:
+    Type: Custom::S3AutoDeleteObjects
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F
+          - Arn
+      BucketName:
+        Ref: SftpBucketCE9DC1B4
+    DependsOn:
+      - SftpBucketPolicy6D55F811
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3BehindSftp/SftpBucket/AutoDeleteObjectsCustomResource/Default
+  CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: S3BehindSftp/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role
+  CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip
+      Timeout: 900
+      MemorySize: 128
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+          - Arn
+      Runtime: nodejs20.x
+      Description:
+        Fn::Join:
+          - ""
+          - - "Lambda function for auto-deleting objects in "
+            - Ref: SftpBucketCE9DC1B4
+            - " S3 bucket."
+    DependsOn:
+      - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+    Metadata:
+      aws:cdk:path: S3BehindSftp/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler
+      aws:asset:path: asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6
+      aws:asset:property: Code
+  AccessLogs8B620ECA:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/transfer/s3-sftp
+      RetentionInDays: 7
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3BehindSftp/AccessLogs/Resource
+  LoggingRole0BCFB29B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: transfer.amazonaws.com
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: S3BehindSftp/LoggingRole/Resource
+  LoggingRoleDefaultPolicy7C1A4368:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - AccessLogs8B620ECA
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: LoggingRoleDefaultPolicy7C1A4368
+      Roles:
+        - Ref: LoggingRole0BCFB29B
+    Metadata:
+      aws:cdk:path: S3BehindSftp/LoggingRole/DefaultPolicy/Resource
+  SftpServer:
+    Type: AWS::Transfer::Server
+    Properties:
+      EndpointType: PUBLIC
+      IdentityProviderType: SERVICE_MANAGED
+      LoggingRole:
+        Fn::GetAtt:
+          - LoggingRole0BCFB29B
+          - Arn
+      Protocols:
+        - SFTP
+    Metadata:
+      aws:cdk:path: S3BehindSftp/SftpServer
+  UserRoleB7C3739B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: transfer.amazonaws.com
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: S3BehindSftp/UserRole/Resource
+  UserRoleDefaultPolicyBC5E062B:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:Abort*
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:GetObject*
+              - s3:List*
+              - s3:PutObject
+              - s3:PutObjectLegalHold
+              - s3:PutObjectRetention
+              - s3:PutObjectTagging
+              - s3:PutObjectVersionTagging
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - SftpBucketCE9DC1B4
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - SftpBucketCE9DC1B4
+                        - Arn
+                    - /*
+          - Action: s3:ListBucket
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - SftpBucketCE9DC1B4
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: UserRoleDefaultPolicyBC5E062B
+      Roles:
+        - Ref: UserRoleB7C3739B
+    Metadata:
+      aws:cdk:path: S3BehindSftp/UserRole/DefaultPolicy/Resource
+  AliceUser:
+    Type: AWS::Transfer::User
+    Properties:
+      HomeDirectoryMappings:
+        - Entry: /
+          Target:
+            Fn::Join:
+              - ""
+              - - /
+                - Ref: SftpBucketCE9DC1B4
+                - /alice
+      HomeDirectoryType: LOGICAL
+      Role:
+        Fn::GetAtt:
+          - UserRoleB7C3739B
+          - Arn
+      ServerId:
+        Fn::GetAtt:
+          - SftpServer
+          - ServerId
+      SshPublicKeys:
+        - Ref: SshPublicKeyAlice
+      UserName: alice
+    Metadata:
+      aws:cdk:path: S3BehindSftp/AliceUser
+  BobUser:
+    Type: AWS::Transfer::User
+    Properties:
+      HomeDirectoryMappings:
+        - Entry: /
+          Target:
+            Fn::Join:
+              - ""
+              - - /
+                - Ref: SftpBucketCE9DC1B4
+                - /bob
+      HomeDirectoryType: LOGICAL
+      Role:
+        Fn::GetAtt:
+          - UserRoleB7C3739B
+          - Arn
+      ServerId:
+        Fn::GetAtt:
+          - SftpServer
+          - ServerId
+      SshPublicKeys:
+        - Ref: SshPublicKeyBob
+      UserName: bob
+    Metadata:
+      aws:cdk:path: S3BehindSftp/BobUser
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/82ST2sbMRDFP0vmGGS1Tkpb9ma7EAKhWez0ZELRaseubK1kNCMHI/a7l13tBpM00EMOOWmYp3m/pz9Xcvp9KqcX6okmut5PrKlkWrHSe6Ge6Heia5nmUe+R1wmqvvipGoQCLkFAZb3el7GyRs+0RqKhH7DxR2VLb40+QQE1Egd/AgEqsv+BFhnvqx1qJig4RGwfxWLjMkjkJQ8/U3vn821Zb4X1W5Lpzm9vgo+HdQI7lGc5AzI6Nt5B8e3tdNl9dGqFUY1MS29xnUARxQbr+QmKBIdgnDYHZWda++h4oOQ93cBMZ1gXuRUJVF0/+HKcGsHr1D72KrPSf26dNQ6fNbiE/xA/Zqre96Xd27D+2ruAYnjzLvfIePCd8gr9ul3XK1aMDbruU2Xsuxn9u90HH/8hB+Vog0GmxcatMBwxdPIvwtC2YhGJfbNE8jFo7GH9qYfGC70M/mhqDHNFKGZEyCtWW+O24txBjC6lCqpBzsD7yIfIrXC+RrmjT8erL/Kr/HyxI2MmITo2DcplXv8Cr+CNGv4DAAA=
+    Metadata:
+      aws:cdk:path: S3BehindSftp/CDKMetadata/Default
+Parameters:
+  SshPublicKeyAlice:
+    Type: String
+    Description: SSH public key for alice (contents of sftp_alice.pub)
+  SshPublicKeyBob:
+    Type: String
+    Description: SSH public key for bob (contents of sftp_bob.pub)
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+Outputs:
+  BucketName:
+    Value:
+      Ref: SftpBucketCE9DC1B4
+  SftpEndpoint:
+    Value:
+      Fn::Join:
+        - ""
+        - - Fn::GetAtt:
+              - SftpServer
+              - ServerId
+          - .server.transfer.
+          - Ref: AWS::Region
+          - .amazonaws.com
+

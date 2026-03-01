@@ -56,6 +56,21 @@ CDK automatically resolves `CDK_DEFAULT_ACCOUNT` and `CDK_DEFAULT_REGION` from y
 export CDK_DEFAULT_REGION=eu-central-1
 ```
 
+### CDK Construct Levels
+
+CDK organizes cloud resources into three levels of abstraction called **constructs**:
+
+| Level | Name | What it is | Example |
+|---|---|---|---|
+| **L1** | CFN Resources | 1:1 mapping to CloudFormation resources. Prefixed with `Cfn`. No defaults — you configure every property yourself. | `CfnBucket`, `CfnFunction` |
+| **L2** | Curated Constructs | AWS-vetted wrappers around L1. Provide sensible defaults, helper methods (e.g., `bucket.grantRead(lambda)`), and a higher-level API. Most of what you'll use day-to-day. | `s3.Bucket`, `lambda.Function` |
+| **L3** | Patterns | Opinionated multi-resource compositions. Wire together several L2 constructs into a common architecture. | `LambdaRestApi` (API Gateway + Lambda), `S3BucketDeployment` (S3 + Lambda + Custom Resource) |
+
+**When to use which:**
+- **Start with L2** — covers ~90% of cases with good defaults and grant helpers that auto-generate least-privilege IAM policies.
+- **Drop to L1** when you need a property that L2 doesn't expose yet (use `node.defaultChild` to escape-hatch from L2 to L1).
+- **Use L3** when a well-known pattern exists and you don't need to customize the wiring between resources.
+
 ### Project Structure
 
 ```
