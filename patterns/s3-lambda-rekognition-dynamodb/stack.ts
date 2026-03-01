@@ -6,6 +6,8 @@ import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as s3Notifications from 'aws-cdk-lib/aws-s3-notifications';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambdaDestinations from 'aws-cdk-lib/aws-lambda-destinations';
 import * as path from 'path';
 
 export const s3LambdaRekognitionDynamodbStackName = 'S3LambdaRekognitionDynamodb';
@@ -75,6 +77,21 @@ export class S3LambdaRekognitionDynamodbStack extends cdk.Stack {
       resources: ['*'],
     }));
 
+    // Async invocation failure destination. S3 event notifications always invoke
+    // Lambda asynchronously — Lambda retries twice on failure, then drops the event
+    // silently unless a destination is configured. This SQS queue captures events
+    // that failed all 3 attempts, enabling investigation and reprocessing.
+    const dlq = new sqs.Queue(this, 'FailedProcessingQueue', {
+      queueName: 'image-rekognition-dlq',
+      retentionPeriod: cdk.Duration.days(14),
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    imageProcessor.configureAsyncInvoke({
+      retryAttempts: 2,
+      onFailure: new lambdaDestinations.SqsDestination(dlq),
+    });
+
     // S3 event notification: invoke Lambda whenever an object is created.
     // One notification configuration is added per suffix because S3 only allows
     // a single suffix filter per notification config.
@@ -93,5 +110,6 @@ export class S3LambdaRekognitionDynamodbStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'BucketName', {value: bucket.bucketName});
     new cdk.CfnOutput(this, 'TableName', {value: table.tableName});
     new cdk.CfnOutput(this, 'FunctionName', {value: imageProcessor.functionName});
+    new cdk.CfnOutput(this, 'DLQUrl', {value: dlq.queueUrl});
   }
 }
