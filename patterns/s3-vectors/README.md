@@ -31,7 +31,22 @@ Data flow: `CSV embeddings → PutVectors (batches of 50) → S3 Vector Index �
 - **S3 Vectors vs OpenSearch k-NN**: S3 Vectors is simpler and cheaper for pure vector search workloads. OpenSearch adds full-text search, faceting, and hybrid search but costs significantly more (~$0.09/hour for a minimal domain vs pennies/month for S3 Vectors).
 - **L1 constructs only**: as of CDK v2.240, `aws-s3vectors` exposes only L1 constructs (`CfnVectorBucket`, `CfnIndex`). No L2 wrappers exist yet, so you configure every property manually.
 - **Filterable vs non-filterable metadata**: all metadata keys are filterable by default. Declare keys as `nonFilterableMetadataKeys` in the index schema to store them without indexing — lower cost, no filter support. `Text` is declared non-filterable here since filtering on full review text is not useful.
-- **Deletion**: VectorBucket deletion fails if the bucket is non-empty. The demo server's `POST /load` is idempotent but you must delete all vectors (or the index) before destroying the stack.
+- **ANN search — approximate, not exact**: `QueryVectors` uses approximate nearest-neighbour (ANN) search targeting ~90–97% recall. Results are not guaranteed to be the true closest K vectors. In practice a small fraction of queries return K-1 results rather than K — don't assert exact result counts in application logic. For exact-match retrieval by known key, use `GetVectors` instead.
+- **Index immutability**: dimension count, distance metric, and `nonFilterableMetadataKeys` are fixed at creation time and **cannot be changed**. Modifying any of them requires recreating the index and re-ingesting all vectors. Plan these carefully before a production deployment.
+- **Filter DSL operators**: the demo only exercises `$gte`. Full operator set:
+
+  | Category | Operators |
+  |---|---|
+  | Comparison | `$eq` (default when no operator given), `$ne`, `$gt`, `$gte`, `$lt`, `$lte` |
+  | Array | `$in`, `$nin` |
+  | Field | `$exists` |
+  | Logical | `$and`, `$or` |
+
+  Only filterable metadata keys can appear in filter expressions. Syntax is MongoDB-style, e.g. `{Score: {'$gte': 4}, ProductId: {'$in': ['B001', 'B002']}}`.
+
+- **PutVectors batch size**: the demo sends 50 vectors per request; the API maximum is 500. For bulk ingestion at scale, increase batch size to 500 — the per-index write ceiling is 1,000 requests/sec or 2,500 vectors/sec.
+- **`POST /load` is idempotent**: `PutVectors` uses each row's CSV index as the vector key. Putting a vector with an existing key overwrites the stored data and metadata in place — no duplicate accumulates.
+- **`QueryVectors` IAM**: when `returnMetadata: true` or a filter is present, `QueryVectors` also requires `s3vectors:GetVectors`. The stack's IAM policy grants both; a narrower read-only policy must include both permissions explicitly.
 - **Alternative: pgvector on RDS** — good if you're already on Postgres and want to co-locate vector search with relational queries. Higher operational overhead, not serverless.
 
 ## Commands to play with stack
@@ -78,6 +93,12 @@ curl -s -X POST http://localhost:3000/query \
 
 ```bash
 npx cdk synth S3Vectors > patterns/s3-vectors/cloud_formation.yaml
+```
+
+- **Delete all vectors** (required before destroy — VectorBucket must be empty):
+
+```bash
+curl -s -X DELETE http://localhost:3000/vectors | jq
 ```
 
 - **Destroy**:
