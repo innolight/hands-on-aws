@@ -9,7 +9,7 @@ import {
 } from '@aws-sdk/client-s3vectors';
 import {getStackOutputs} from '../../utils';
 import {s3VectorsStackName} from './stack';
-import {parseCSV} from './csv_parser';
+import {CSV_PATH, parseCSV} from './csv_parser';
 
 // Similarity search: load pre-computed food review embeddings → PutVectors →
 // QueryVectors to find nearest neighbours by cosine distance
@@ -43,7 +43,7 @@ let INDEX_NAME: string;
 app.post('/load', async (_req, res) => {
   try {
     console.log('Parsing CSV...');
-    const rows = await parseCSV();
+    const rows = await parseCSV(CSV_PATH);
     console.log(`Parsed ${rows.length} rows. Uploading in batches of ${BATCH_SIZE}...`);
 
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
