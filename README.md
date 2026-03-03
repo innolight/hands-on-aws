@@ -18,7 +18,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`s3-vectors`](./patterns/s3-vectors/): S3 Vector Bucket + Index for similarity search on food reviews
 - [ ] `dynamodb-to-s3`: Dynamodb → S3 with Zero-ETL
 - [ ] `dynamodb-kinesis-s3`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → S3 | AWS OpenSearch
-- [ ] `dynamodb-lambda`: Dynamodb → Dynamodb Stream → Lambda
+- [x] [`dynamodb-lambda`](./patterns/dynamodb-lambda): Dynamodb → Dynamodb Stream → Lambda
 - [ ] `dynamodb-behind-api-gateway`: API Gateway → Dynamodb
 - [ ] `dynamodb-behind-alb`: Application Load Balancer (API) → Dynamodb
 - [ ] `ecs-on-fargate`: deployment of Elastic Container Service (container orchestration platform from Amazon)
