@@ -60,10 +60,20 @@ This pattern implements Change Data Capture (CDC) using DynamoDB Streams. When a
    ```
 
 6. **Observe Logs**:
-   - Check the Lambda logs in CloudWatch to see the "Old Image" and "New Image" being processed.
-   - For the failure trigger, you will see the Lambda retrying and then eventually the record landing in the SQS DLQ.
+   - Check the Lambda logs in real-time:
+     ```bash
+     aws logs tail /aws/lambda/orders-stream-processor --since 5m --follow
+     ```
+   - For the failure trigger, you will see the Lambda retrying (3 total attempts) and then eventually the record landing in the SQS DLQ.
 
-7. **Clean up**:
+7. **Check DLQ for failed events**:
+   - If a record fails all retries, it moves to the DLQ:
+     ```bash
+     DLQ_URL=$(aws cloudformation describe-stacks --stack-name DynamoDBLambda --query "Stacks[0].Outputs[?OutputKey=='DLQUrl'].OutputValue" --output text)
+     aws sqs receive-message --queue-url $DLQ_URL
+     ```
+
+8. **Clean up**:
    ```bash
    npx cdk destroy DynamoDBLambda
    ```
