@@ -16,7 +16,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`s3-behind-sftp`](./patterns/s3-behind-sftp/): SFTP access to S3 using AWS Transfer 
 - [x] [`dynamodb-global-database`](./patterns/dynamodb-global-database/): Dynamodb Global Database (multi-write architecture)
 - [x] [`s3-vectors`](./patterns/s3-vectors/): S3 Vector Bucket + Index for similarity search on food reviews
-- [ ] `dynamodb-to-s3`: Dynamodb → S3 with Zero-ETL
+- [ ] `dynamodb-to-s3-zero-etl`: Dynamodb → S3 with Zero-ETL
 - [ ] `dynamodb-kinesis-s3`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → S3 | AWS OpenSearch
 - [x] [`dynamodb-lambda`](./patterns/dynamodb-lambda): Dynamodb → Dynamodb Stream → Lambda
 - [ ] `dynamodb-behind-api-gateway`: API Gateway → Dynamodb
