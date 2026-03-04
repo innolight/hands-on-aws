@@ -12,6 +12,7 @@ import {S3BehindSftpStack, s3BehindSftpStackName} from '../patterns/s3-behind-sf
 import {DynamodbGlobalDatabaseStack, dynamodbGlobalDatabaseStackName} from '../patterns/dynamodb-global-database/stack';
 import {S3VectorsStack, s3VectorsStackName} from '../patterns/s3-vectors/stack';
 import {DynamoDBLambdaStack, dynamodbLambdaStackName} from '../patterns/dynamodb-lambda/stack';
+import {DynamodbToS3Stack, dynamodbToS3StackName} from '../patterns/dynamodb-to-s3/stack';
 
 const app = new cdk.App();
 
@@ -64,5 +65,9 @@ new S3VectorsStack(app, s3VectorsStackName, {
 })
 
 new DynamoDBLambdaStack(app, dynamodbLambdaStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+})
+
+new DynamodbToS3Stack(app, dynamodbToS3StackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
 })

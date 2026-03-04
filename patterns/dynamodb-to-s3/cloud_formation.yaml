@@ -1,0 +1,412 @@
+Resources:
+  DemoTableEE720AED:
+    Type: AWS::DynamoDB::GlobalTable
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      Replicas:
+        - PointInTimeRecoverySpecification:
+            PointInTimeRecoveryEnabled: true
+          Region: eu-central-1
+      TableName: zero-etl-demo
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: DynamodbToS3/DemoTable/Resource
+  DynamodbResourcePolicyA6B606DB:
+    Type: Custom::AWS
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - AWS679f53fac002430cb0da5b7982bd22872D164C4C
+          - Arn
+      Create:
+        Fn::Join:
+          - ""
+          - - '{"service":"DynamoDB","action":"putResourcePolicy","parameters":{"ResourceArn":"'
+            - Fn::GetAtt:
+                - DemoTableEE720AED
+                - Arn
+            - '","Policy":"{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"glue.amazonaws.com\"},\"Action\":[\"dynamodb:ExportTableToPointInTime\",\"dynamodb:DescribeTable\",\"dynamodb:DescribeExport\",\"dynamodb:Scan\",\"dynamodb:DescribeContinuousBackups\"],\"Resource\":\"'
+            - Fn::GetAtt:
+                - DemoTableEE720AED
+                - Arn
+            - \"}]}"},"physicalResourceId":{"id":"
+            - Fn::GetAtt:
+                - DemoTableEE720AED
+                - Arn
+            - '"}}'
+      Delete:
+        Fn::Join:
+          - ""
+          - - '{"service":"DynamoDB","action":"deleteResourcePolicy","parameters":{"ResourceArn":"'
+            - Fn::GetAtt:
+                - DemoTableEE720AED
+                - Arn
+            - '"}}'
+      InstallLatestAwsSdk: false
+    DependsOn:
+      - DynamodbResourcePolicyCustomResourcePolicyAE6F29D3
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: DynamodbToS3/DynamodbResourcePolicy/Resource/Default
+  DynamodbResourcePolicyCustomResourcePolicyAE6F29D3:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - dynamodb:DeleteResourcePolicy
+              - dynamodb:PutResourcePolicy
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - DemoTableEE720AED
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: DynamodbResourcePolicyCustomResourcePolicyAE6F29D3
+      Roles:
+        - Ref: AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2
+    Metadata:
+      aws:cdk:path: DynamodbToS3/DynamodbResourcePolicy/CustomResourcePolicy/Resource
+  AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: DynamodbToS3/AWS679f53fac002430cb0da5b7982bd2287/ServiceRole/Resource
+  AWS679f53fac002430cb0da5b7982bd22872D164C4C:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: 56f7467bbde8a5efebcf57ae9e460027607099bab9f844669dcf5d800172ee5a.zip
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2
+          - Arn
+      Runtime: nodejs22.x
+      Timeout: 120
+    DependsOn:
+      - AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2
+    Metadata:
+      aws:cdk:path: DynamodbToS3/AWS679f53fac002430cb0da5b7982bd2287/Resource
+      aws:asset:path: asset.56f7467bbde8a5efebcf57ae9e460027607099bab9f844669dcf5d800172ee5a
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  TableBucket:
+    Type: AWS::S3Tables::TableBucket
+    Properties:
+      TableBucketName: zero-etl-demo-495599779087-eu-central-1-v5
+    Metadata:
+      aws:cdk:path: DynamodbToS3/TableBucket
+  GlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: "495599779087"
+      DatabaseInput:
+        LocationUri:
+          Fn::GetAtt:
+            - TableBucket
+            - TableBucketARN
+        Name: zero_etl_demo_db_v5
+    Metadata:
+      aws:cdk:path: DynamodbToS3/GlueDatabase
+  GlueTargetRoleE3C8432B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+        Version: "2012-10-17"
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action: s3tables:*
+                Effect: Allow
+                Resource:
+                  - Fn::GetAtt:
+                      - TableBucket
+                      - TableBucketARN
+                  - Fn::Join:
+                      - ""
+                      - - Fn::GetAtt:
+                            - TableBucket
+                            - TableBucketARN
+                        - /*
+              - Action:
+                  - s3tables:GetTableBucket
+                  - s3tables:ListTableBuckets
+                Effect: Allow
+                Resource: "*"
+              - Action: cloudwatch:PutMetricData
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: AWS/Glue/ZeroETL
+                Effect: Allow
+                Resource: "*"
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource: arn:aws:logs:*:*:log-group:/aws/glue/*
+            Version: "2012-10-17"
+          PolicyName: S3TablesBucketAccess
+    Metadata:
+      aws:cdk:path: DynamodbToS3/GlueTargetRole/Resource
+  GlueCatalogPolicy4226FFE8:
+    Type: Custom::AWS
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - AWS679f53fac002430cb0da5b7982bd22872D164C4C
+          - Arn
+      Create:
+        Fn::Join:
+          - ""
+          - - '{"service":"Glue","action":"putResourcePolicy","parameters":{"PolicyInJson":"{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"glue.amazonaws.com\"},\"Action\":\"glue:AuthorizeInboundIntegration\",\"Resource\":[\"arn:aws:glue:eu-central-1:495599779087:catalog\",\"arn:aws:glue:eu-central-1:495599779087:database/'
+            - Ref: GlueDatabase
+            - \"]},{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::495599779087:root\"},\"Action\":\"glue:CreateInboundIntegration\",\"Resource\":[\"arn:aws:glue:eu-central-1:495599779087:catalog\",\"arn:aws:glue:eu-central-1:495599779087:database/
+            - Ref: GlueDatabase
+            - \"]}]}","EnableHybrid":"TRUE"},"physicalResourceId":{"id":"glue-catalog-policy-495599779087"}}
+      Delete: '{"service":"Glue","action":"deleteResourcePolicy","parameters":{}}'
+      InstallLatestAwsSdk: false
+    DependsOn:
+      - GlueCatalogPolicyCustomResourcePolicyC690FC38
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: DynamodbToS3/GlueCatalogPolicy/Resource/Default
+  GlueCatalogPolicyCustomResourcePolicyC690FC38:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - glue:DeleteResourcePolicy
+              - glue:PutResourcePolicy
+            Effect: Allow
+            Resource: arn:aws:glue:eu-central-1:495599779087:catalog
+        Version: "2012-10-17"
+      PolicyName: GlueCatalogPolicyCustomResourcePolicyC690FC38
+      Roles:
+        - Ref: AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2
+    Metadata:
+      aws:cdk:path: DynamodbToS3/GlueCatalogPolicy/CustomResourcePolicy/Resource
+  ZeroEtlIntegration:
+    Type: AWS::Glue::Integration
+    Properties:
+      IntegrationName: dynamodb-to-s3tables-v5
+      SourceArn:
+        Fn::GetAtt:
+          - DemoTableEE720AED
+          - Arn
+      TargetArn:
+        Fn::Join:
+          - ""
+          - - arn:aws:glue:eu-central-1:495599779087:database/
+            - Ref: GlueDatabase
+    DependsOn:
+      - DynamodbResourcePolicyCustomResourcePolicyAE6F29D3
+      - DynamodbResourcePolicyA6B606DB
+      - GlueCatalogPolicyCustomResourcePolicyC690FC38
+      - GlueCatalogPolicy4226FFE8
+      - GlueDatabase
+    Metadata:
+      aws:cdk:path: DynamodbToS3/ZeroEtlIntegration
+  SourceResourceProp:
+    Type: AWS::Glue::IntegrationResourceProperty
+    Properties:
+      ResourceArn:
+        Fn::GetAtt:
+          - DemoTableEE720AED
+          - Arn
+    DependsOn:
+      - ZeroEtlIntegration
+    Metadata:
+      aws:cdk:path: DynamodbToS3/SourceResourceProp
+  TargetResourceProp:
+    Type: AWS::Glue::IntegrationResourceProperty
+    Properties:
+      ResourceArn:
+        Fn::Join:
+          - ""
+          - - arn:aws:glue:eu-central-1:495599779087:database/
+            - Ref: GlueDatabase
+      TargetProcessingProperties:
+        RoleArn:
+          Fn::GetAtt:
+            - GlueTargetRoleE3C8432B
+            - Arn
+    DependsOn:
+      - ZeroEtlIntegration
+    Metadata:
+      aws:cdk:path: DynamodbToS3/TargetResourceProp
+  AthenaResultsBucket879938FA:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: aws-cdk:auto-delete-objects
+          Value: "true"
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: DynamodbToS3/AthenaResultsBucket/Resource
+  AthenaResultsBucketPolicyD63DEF63:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: AthenaResultsBucket879938FA
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:List*
+              - s3:PutBucketPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::GetAtt:
+                  - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+                  - Arn
+            Resource:
+              - Fn::GetAtt:
+                  - AthenaResultsBucket879938FA
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - AthenaResultsBucket879938FA
+                        - Arn
+                    - /*
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: DynamodbToS3/AthenaResultsBucket/Policy/Resource
+  AthenaResultsBucketAutoDeleteObjectsCustomResourceD2206C34:
+    Type: Custom::S3AutoDeleteObjects
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F
+          - Arn
+      BucketName:
+        Ref: AthenaResultsBucket879938FA
+    DependsOn:
+      - AthenaResultsBucketPolicyD63DEF63
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: DynamodbToS3/AthenaResultsBucket/AutoDeleteObjectsCustomResource/Default
+  CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: DynamodbToS3/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role
+  CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip
+      Timeout: 900
+      MemorySize: 128
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+          - Arn
+      Runtime: nodejs22.x
+      Description:
+        Fn::Join:
+          - ""
+          - - "Lambda function for auto-deleting objects in "
+            - Ref: AthenaResultsBucket879938FA
+            - " S3 bucket."
+    DependsOn:
+      - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+    Metadata:
+      aws:cdk:path: DynamodbToS3/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler
+      aws:asset:path: asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6
+      aws:asset:property: Code
+  AthenaWorkGroup:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      Name: zero-etl-demo
+      RecursiveDeleteOption: true
+      WorkGroupConfiguration:
+        EngineVersion:
+          SelectedEngineVersion: Athena engine version 3
+        ResultConfiguration:
+          OutputLocation:
+            Fn::Join:
+              - ""
+              - - s3://
+                - Ref: AthenaResultsBucket879938FA
+                - /results/
+    Metadata:
+      aws:cdk:path: DynamodbToS3/AthenaWorkGroup
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/91US08bMRD+LfiIjIsC6iG3JKgIVS1RgtrDKkKz9mQx8dorP4K21v73yt5dElBBrXqperLn4W++mfHMhE0uz9n5CTy5My52Z0qWLK498B2FJ3cfRauhNqJk8Q5Khd8mRSQ+3b5CjWRKTgklDVgvvTT6M7ZkGok+mHzbpOuadJQ4Y/37HqVUSupqhDVS+xt9J2tcITd7tC2ZehuQEou12YNaGiV5S6ZEoPPWtKTb0MVWXytTgsp8O6qgLgWwuJa6UuiN/hQ0T2SLSEKQYgjWuy2DbYwbqdVYG9uu5Y9nrrJGE/wgWaNGgzLVtTWhGcTtEOKoRvuGH27rUGr0blBwI0avB9BCoR0DBJ0iZqmjkYAQX9CDAA9kWiSXVI3Nr03klGTLf5/jhh519J9KJ3/GkVxHJdQs9l+2iMR58FijHjCHBNdH2iJ2m/fU3gN/uDOrnFMx9vsN9R+E+33cnGCfEU36IhJwLtQo5nnMGys1lw2oGecm6LELvU96MMulGRiRGjRUKDKgxEzpha6d2cH3iNGNVlLjuAle0X3L+Bck5QEyc3xudHLtqLu4B+fQOzZLB3UXLM4D36Gfg0PaX4v45gajBII3V6jQ4235iDy1Jo1AH6R/P8A8/6Uyi0dcju2JU97Yji22Om/FAaVSAVlcbPUVeCgTvcVW32iPlYWU8itxhc4Ey3FpTYPWtx0F/4AaEux3Y3d5nDrKg/OmvreDt2OzJ7fIuhGAvhTHUc7jnCs5+uUSrj1UUlevHi2t2UuBdj7Qvg2+Cb6j2ghkj+7DfnLJPrLzk0cn5dkwlWzVnz8ByShYifQGAAA=
+    Metadata:
+      aws:cdk:path: DynamodbToS3/CDKMetadata/Default
+Outputs:
+  TableName:
+    Value:
+      Ref: DemoTableEE720AED
+  TableBucketArn:
+    Value:
+      Fn::GetAtt:
+        - TableBucket
+        - TableBucketARN
+  AthenaWorkGroupName:
+    Value: zero-etl-demo
+  AthenaResultsBucket:
+    Value:
+      Ref: AthenaResultsBucket879938FA
+  IntegrationName:
+    Value: dynamodb-to-s3tables-v5
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
