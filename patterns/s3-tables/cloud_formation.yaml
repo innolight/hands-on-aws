@@ -1,0 +1,192 @@
+Resources:
+  TableBucket:
+    Type: AWS::S3Tables::TableBucket
+    Properties:
+      TableBucketName: sales-demo-495599779087-eu-central-1
+    Metadata:
+      aws:cdk:path: S3Tables/TableBucket
+  Namespace:
+    Type: AWS::S3Tables::Namespace
+    Properties:
+      Namespace: sales_ns
+      TableBucketARN:
+        Fn::GetAtt:
+          - TableBucket
+          - TableBucketARN
+    Metadata:
+      aws:cdk:path: S3Tables/Namespace
+  SalesTable:
+    Type: AWS::S3Tables::Table
+    Properties:
+      IcebergMetadata:
+        IcebergSchema:
+          SchemaFieldList:
+            - Name: sale_date
+              Required: true
+              Type: string
+            - Name: product
+              Required: true
+              Type: string
+            - Name: category
+              Required: true
+              Type: string
+            - Name: region
+              Required: true
+              Type: string
+            - Name: quantity
+              Required: true
+              Type: int
+            - Name: unit_price
+              Required: true
+              Type: double
+            - Name: total_amount
+              Required: true
+              Type: double
+      Namespace: sales_ns
+      OpenTableFormat: ICEBERG
+      TableBucketARN:
+        Fn::GetAtt:
+          - TableBucket
+          - TableBucketARN
+      TableName: sales
+    DependsOn:
+      - Namespace
+    Metadata:
+      aws:cdk:path: S3Tables/SalesTable
+  AthenaResultsBucket879938FA:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: aws-cdk:auto-delete-objects
+          Value: "true"
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3Tables/AthenaResultsBucket/Resource
+  AthenaResultsBucketPolicyD63DEF63:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: AthenaResultsBucket879938FA
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:List*
+              - s3:PutBucketPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::GetAtt:
+                  - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+                  - Arn
+            Resource:
+              - Fn::GetAtt:
+                  - AthenaResultsBucket879938FA
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - AthenaResultsBucket879938FA
+                        - Arn
+                    - /*
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: S3Tables/AthenaResultsBucket/Policy/Resource
+  AthenaResultsBucketAutoDeleteObjectsCustomResourceD2206C34:
+    Type: Custom::S3AutoDeleteObjects
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F
+          - Arn
+      BucketName:
+        Ref: AthenaResultsBucket879938FA
+    DependsOn:
+      - AthenaResultsBucketPolicyD63DEF63
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3Tables/AthenaResultsBucket/AutoDeleteObjectsCustomResource/Default
+  CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: S3Tables/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role
+  CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip
+      Timeout: 900
+      MemorySize: 128
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+          - Arn
+      Runtime: nodejs22.x
+      Description:
+        Fn::Join:
+          - ""
+          - - "Lambda function for auto-deleting objects in "
+            - Ref: AthenaResultsBucket879938FA
+            - " S3 bucket."
+    DependsOn:
+      - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+    Metadata:
+      aws:cdk:path: S3Tables/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler
+      aws:asset:path: asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6
+      aws:asset:property: Code
+  AthenaWorkGroup:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      Name: s3-tables-demo
+      RecursiveDeleteOption: true
+      WorkGroupConfiguration:
+        EngineVersion:
+          SelectedEngineVersion: Athena engine version 3
+        ResultConfiguration:
+          OutputLocation:
+            Fn::Join:
+              - ""
+              - - s3://
+                - Ref: AthenaResultsBucket879938FA
+                - /results/
+    Metadata:
+      aws:cdk:path: S3Tables/AthenaWorkGroup
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/12NzWrDMBCEnyV7DLJqnNCDb40DvTUhKfRgSpHldSr/SEa7cgjG714cN1B6mt39ZmYTmWxjGa/UlSJdNlFrCjmeWelGqCt9jbRhVbRIcswq+z6Pu6AbZJFV9k11SL3SKB5sErSR4+LIR/DYuUG1R9cafYMUSiT27gYCVGC3xxYZD0WNmglS9gGnz7nq98MiSzgfobivkMIa/toWPgnF32iVzCr74Xzz6l3oJ5EFYtedkFzwGnNYwz35OPzjR+8GU6LfKULxQoR8ZnUx9jJnDoH7wJOwrkRZ09OQbOWzjFc1GRP5YNl0KE+L/gBk5mVPVQEAAA==
+    Metadata:
+      aws:cdk:path: S3Tables/CDKMetadata/Default
+Outputs:
+  TableBucketName:
+    Value: sales-demo-495599779087-eu-central-1
+  Namespace:
+    Value: sales_ns
+  TableName:
+    Value: sales
+  AthenaWorkGroupName:
+    Value: s3-tables-demo
+  AthenaResultsBucket:
+    Value:
+      Ref: AthenaResultsBucket879938FA
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

@@ -13,6 +13,8 @@ import {DynamodbGlobalDatabaseStack, dynamodbGlobalDatabaseStackName} from '../p
 import {S3VectorsStack, s3VectorsStackName} from '../patterns/s3-vectors/stack';
 import {DynamoDBLambdaStack, dynamodbLambdaStackName} from '../patterns/dynamodb-lambda/stack';
 import {DynamodbToS3Stack, dynamodbToS3StackName} from '../patterns/dynamodb-to-s3-zero-etl/stack';
+import {S3TablesStack, s3TablesStackName} from '../patterns/s3-tables/stack';
+import {S3TablesLakeFormationSetupStack, s3TablesLakeFormationSetupStackName} from '../patterns/s3-tables/setup_stack';
 
 const app = new cdk.App();
 
@@ -69,5 +71,13 @@ new DynamoDBLambdaStack(app, dynamodbLambdaStackName, {
 })
 
 new DynamodbToS3Stack(app, dynamodbToS3StackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+})
+
+new S3TablesLakeFormationSetupStack(app, s3TablesLakeFormationSetupStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+})
+
+new S3TablesStack(app, s3TablesStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
 })
