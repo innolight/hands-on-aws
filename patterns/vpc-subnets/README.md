@@ -37,6 +37,9 @@ Region (e.g. us-east-1)         ← a second region; VPCs don't span regions
 └── VPC ...
 ```
 
+Notes:
+- `/20` subnets = 4,096 IPs each. AWS reserves 5 IPs per subnet, leaving 4,091 usable.
+
 | Boundary | Spans |
 |---|---|
 | AWS Account | Multiple regions |
@@ -51,22 +54,6 @@ What crosses boundaries:
 - [VPC Peering](https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html) / [Transit Gateway](https://docs.aws.amazon.com/vpc/latest/tgw/what-is-transit-gateway.html) connect VPCs (same or different accounts/regions)
 - **Route Tables are subnet-scoped** — that's what makes Public/Private/Isolated different from each other, not the subnet type itself
 
-### Subnet CIDR layout (`/16` VPC, `/20` subnets = 4,096 IPs each)
-
-```
-VPC: 10.0.0.0/16
-├── Public AZ-a    10.0.0.0/20
-├── Public AZ-b    10.0.16.0/20
-├── Public AZ-c    10.0.32.0/20
-├── Private AZ-a   10.0.64.0/20
-├── Private AZ-b   10.0.80.0/20
-├── Private AZ-c   10.0.96.0/20
-├── Isolated AZ-a  10.0.128.0/20
-├── Isolated AZ-b  10.0.144.0/20
-└── Isolated AZ-c  10.0.160.0/20
-```
-
-AWS reserves 5 IPs per subnet, leaving 4,091 usable per subnet.
 
 ## Cost
 

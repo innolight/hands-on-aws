@@ -6,6 +6,8 @@ export const vpcSubnetsStackName = 'VpcSubnets';
 
 // 3-tier VPC: Public (IGW) → Private (NAT egress, optional) → Isolated (no internet)
 export class VpcSubnetsStack extends cdk.Stack {
+  public readonly vpc: ec2.Vpc;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -14,7 +16,7 @@ export class VpcSubnetsStack extends cdk.Stack {
     // natGateways=3 → one per AZ, eliminates cross-AZ NAT traffic cost in production.
     const natGateways = Number(this.node.tryGetContext('natGateways') ?? '0');
 
-    const vpc = new ec2.Vpc(this, 'Vpc', {
+    this.vpc = new ec2.Vpc(this, 'Vpc', {
       maxAzs: 3,
       natGateways,
       subnetConfiguration: [
@@ -33,13 +35,13 @@ export class VpcSubnetsStack extends cdk.Stack {
       ],
     });
 
-    new cdk.CfnOutput(this, 'VpcId', {value: vpc.vpcId});
-    new cdk.CfnOutput(this, 'VpcCidr', {value: vpc.vpcCidrBlock});
-    new cdk.CfnOutput(this, 'AvailabilityZones', {value: vpc.availabilityZones.join(', ')});
+    new cdk.CfnOutput(this, 'VpcId', {value: this.vpc.vpcId});
+    new cdk.CfnOutput(this, 'VpcCidr', {value: this.vpc.vpcCidrBlock});
+    new cdk.CfnOutput(this, 'AvailabilityZones', {value: this.vpc.availabilityZones.join(', ')});
     new cdk.CfnOutput(this, 'NatGatewayCount', {value: String(natGateways)});
-    new cdk.CfnOutput(this, 'PublicSubnetIds', {value: vpc.publicSubnets.map(s => s.subnetId).join(', ')});
+    new cdk.CfnOutput(this, 'PublicSubnetIds', {value: this.vpc.publicSubnets.map(s => s.subnetId).join(', ')});
     // privateSubnets = PRIVATE_WITH_EGRESS tier
-    new cdk.CfnOutput(this, 'PrivateSubnetIds', {value: vpc.privateSubnets.map(s => s.subnetId).join(', ')});
-    new cdk.CfnOutput(this, 'IsolatedSubnetIds', {value: vpc.isolatedSubnets.map(s => s.subnetId).join(', ')});
+    new cdk.CfnOutput(this, 'PrivateSubnetIds', {value: this.vpc.privateSubnets.map(s => s.subnetId).join(', ')});
+    new cdk.CfnOutput(this, 'IsolatedSubnetIds', {value: this.vpc.isolatedSubnets.map(s => s.subnetId).join(', ')});
   }
 }
