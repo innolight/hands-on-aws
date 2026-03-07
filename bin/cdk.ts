@@ -15,6 +15,9 @@ import {DynamoDBLambdaStack, dynamodbLambdaStackName} from '../patterns/dynamodb
 import {DynamodbToS3Stack, dynamodbToS3StackName} from '../patterns/dynamodb-to-s3-zero-etl/stack';
 import {S3TablesStack, s3TablesStackName} from '../patterns/s3-tables-bucket/stack';
 import {S3TablesLakeFormationSetupStack, s3TablesLakeFormationSetupStackName} from '../patterns/s3-tables-bucket/setup_stack';
+import {ElastiCacheValkeyStack, elasticacheValkeyActivePassiveStackName} from '../patterns/elasticache-valkey-active-passive/stack';
+import {VpcSubnetsStack, vpcSubnetsStackName} from '../patterns/vpc-subnets/stack';
+import {SsmBastionStack, ssmBastionStackName} from '../patterns/ssm-bastion/stack';
 
 const app = new cdk.App();
 
@@ -81,3 +84,18 @@ new S3TablesLakeFormationSetupStack(app, s3TablesLakeFormationSetupStackName, {
 new S3TablesStack(app, s3TablesStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
 })
+
+const vpcStack = new VpcSubnetsStack(app, vpcSubnetsStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+});
+
+const bastionStack = new SsmBastionStack(app, ssmBastionStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+});
+
+new ElastiCacheValkeyStack(app, elasticacheValkeyActivePassiveStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  bastionSG: bastionStack.bastionSG,
+});

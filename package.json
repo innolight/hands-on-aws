@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-athena": "^3.1000.0",
+    "@aws-sdk/client-secrets-manager": "^3.1000.0",
     "@aws-sdk/client-cloudformation": "^3.758.0",
     "@aws-sdk/client-s3": "^3.758.0",
     "@aws-sdk/client-s3vectors": "^3.1000.0",
@@ -35,6 +36,7 @@
     "constructs": "^10.0.0",
     "csv-parse": "^6.1.0",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "iovalkey": "^0.3.3"
   }
 }

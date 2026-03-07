@@ -7,35 +7,48 @@ popular architectural patterns in AWS.
 
 Discover AWS patterns in folder [patterns](./patterns):
 
-
+Datastore / S3:
 - [x] [`s3-polished-configuration`](./patterns/s3-polished-configuration): S3 with encryption, versioning enabled, lifecycle rule, data archiver with Glacier
 - [x] [`s3-events-notification`](./patterns/s3-events-notification): S3 → SNS → SQS → SQS (DLQ) 
 - [x] [`s3-cross-region-replication`](./patterns/s3-cross-region-replication): S3 → S3 (another region); Multi-region Access Point for S3
 - [x] [`s3-static-website-cloudfront`](./patterns/s3-static-website-cloudfront): S3 hosting a HTTPS static website, using CloudFront for global delivery
 - [x] [`s3-lambda-rekognition-dynamodb`](./patterns/s3-lambda-rekognition-dynamodb): image processing pipeline and metadata storage
 - [x] [`s3-behind-sftp`](./patterns/s3-behind-sftp/): SFTP access to S3 using AWS Transfer 
-- [x] [`dynamodb-global-database`](./patterns/dynamodb-global-database/): Dynamodb Global Database (multi-write architecture)
 - [x] [`s3-vectors-bucket`](./patterns/s3-vectors-bucket/): S3 Vector Bucket + Index for similarity search on food reviews
+- [ ] `s3-serverless-data-lake`: S3 (Storage) → AWS Glue (Data Catalog/Crawler) → Amazon Athena (Query Engine)
+
+Datastore / Dynamdob:
+- [x] [`dynamodb-global-database`](./patterns/dynamodb-global-database/): Dynamodb Global Database (multi-write architecture)
 - [ ] `dynamodb-to-s3-zero-etl`: Dynamodb → S3 with Zero-ETL
 - [ ] `dynamodb-kinesis-s3`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → S3 | AWS OpenSearch
 - [x] [`dynamodb-stream-lambda`](./patterns/dynamodb-stream-lambda): Dynamodb → Dynamodb Stream → Lambda
 - [ ] `dynamodb-behind-api-gateway`: API Gateway → Dynamodb
 - [ ] `dynamodb-behind-alb`: Application Load Balancer (API) → Dynamodb
-- [ ] `ecs-on-fargate`: deployment of Elastic Container Service (container orchestration platform from Amazon)
-- [ ] `eks`: Deployment of container to Kubernetes cluster using EKS (Elastic Kubernetes Service)
-- [ ] `event-bridge-lambda-job`: Lightweight job with event bridge triggering lambda function using cron schedule  
-- [ ] `msk-lambda`: Kafka cluster setup via Amazon Managed Streaming for Kafka (MSK), Lambda consumer
-- [ ] `vpc-networking`: VPC, subnets, NAT Gateway, Internet Gateway
-- [ ] `waf-shield-ddos-protection`: AWS WAF + Shield for DDoS protection on CloudFront
-- [ ] `sagemaker-pipeline-cdk`: Building an end-to-end ML pipeline with AWS SageMaker and CDK
-- [ ] `athena-query-s3`: AWS Athena querying structured/unstructured data from S3
-- [ ] `s3-serverless-data-lake`: S3 (Storage) → AWS Glue (Data Catalog/Crawler) → Amazon Athena (Query Engine)
-- [ ] `glue-etl-job`: AWS Glue ETL job that processes and transforms data in S3 to different format
+
+Datastore / Elasticache:
+- [x] [`elasticache-valkey-active-passive`](./patterns/elasticache-valkey-active-passive): ElastiCache Valkey replication group (1 primary + N replicas), RBAC, TLS, SSM port forwarding via ssm-bastion
+
+
+Datastore / RDS & Aurora:
 - [ ] `rds-backup-and-recovery`: Set up automated backups and point-in-time recovery for RDS
 - [ ] `rds-two-readable-standbys`: Multi-AZ deployment of RDS with 2 readable standby instance
 - [ ] `rds-aurora-cross-region-replication`: RDS Aurora Cross-Region replication + Write Forwarding
 - [ ] `rds-aurora-serverless-v2`: Deploying Aurora Serverless v2 with autoscaling
 - [ ] `rds-proxy`: RDS proxy in front of RDS
+
+Datastore / OpenSearch:
+- [ ] TBD
+
+Infrastructures:
+- [x] [`vpc-subnets`](./patterns/vpc-subnets): VPC with 3-tier subnet layout (public / private / isolated) across 3 AZs, configurable NAT Gateways
+- [x] [`ssm-bastion`](./patterns/ssm-bastion): EC2 bastion accessible via SSM Session Manager (no SSH, no inbound rules) — used for port forwarding to isolated resources
+- [ ] `ecs-on-fargate`: deployment of Elastic Container Service (container orchestration platform from Amazon)
+- [ ] `eks`: Deployment of container to Kubernetes cluster using EKS (Elastic Kubernetes Service)
+- [ ] `event-bridge-lambda-job`: Lightweight job with event bridge triggering lambda function using cron schedule  
+- [ ] `msk-lambda`: Kafka cluster setup via Amazon Managed Streaming for Kafka (MSK), Lambda consumer
+- [ ] `waf-shield-ddos-protection`: AWS WAF + Shield for DDoS protection on CloudFront
+- [ ] `sagemaker-pipeline`: Building an end-to-end ML pipeline with AWS SageMaker and CDK
+- [ ] `glue-etl-job`: AWS Glue ETL job that processes and transforms data in S3 to different format
 
 ## Development
 

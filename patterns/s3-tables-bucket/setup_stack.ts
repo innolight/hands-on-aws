@@ -57,9 +57,11 @@ export class S3TablesLakeFormationSetupStack extends cdk.Stack {
     // Lake Formation rejects temporary-credential ARNs (sts::assumed-role/...), so we can't
     // auto-discover the deployer via GetCallerIdentity inside a Lambda. Pass the permanent
     // IAM user/role ARN via CDK context: -c lfAdmin=arn:aws:iam::123456789012:user/MyUser
-    const lfAdminArn = this.node.tryGetContext('lfAdmin');
-    if (!lfAdminArn) {
-      throw new Error('Required context variable "lfAdmin" not set. Pass -c lfAdmin=<your IAM user/role ARN>');
+    const lfAdminArn = this.node.tryGetContext('lfAdmin') ?? 'PLACEHOLDER';
+    if (lfAdminArn === 'PLACEHOLDER') {
+      // Annotation instead of throw — lets other stacks synthesize unaffected.
+      // Deploy will fail; synth of this stack produces a warning-marked template.
+      cdk.Annotations.of(this).addError('Required context variable "lfAdmin" not set. Pass -c lfAdmin=<your IAM user/role ARN>');
     }
 
     // All AwsCustomResources in this stack share one singleton Lambda (AWS679f53...).
