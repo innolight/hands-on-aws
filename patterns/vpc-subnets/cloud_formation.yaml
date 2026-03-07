@@ -1,0 +1,511 @@
+Resources:
+  Vpc8378EB38:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/Resource
+  VpcPublicSubnet1Subnet5C2D37C4:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1a
+      CidrBlock: 10.0.0.0/20
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Public
+        - Key: aws-cdk:subnet-type
+          Value: Public
+        - Key: Name
+          Value: VpcSubnets/Vpc/PublicSubnet1
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet1/Subnet
+  VpcPublicSubnet1RouteTable6C95E38E:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/PublicSubnet1
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet1/RouteTable
+  VpcPublicSubnet1RouteTableAssociation97140677:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: VpcPublicSubnet1RouteTable6C95E38E
+      SubnetId:
+        Ref: VpcPublicSubnet1Subnet5C2D37C4
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet1/RouteTableAssociation
+  VpcPublicSubnet1DefaultRoute3DA9E72A:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: VpcIGWD7BA715C
+      RouteTableId:
+        Ref: VpcPublicSubnet1RouteTable6C95E38E
+    DependsOn:
+      - VpcVPCGWBF912B6E
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet1/DefaultRoute
+  VpcPublicSubnet2Subnet691E08A3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1b
+      CidrBlock: 10.0.16.0/20
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Public
+        - Key: aws-cdk:subnet-type
+          Value: Public
+        - Key: Name
+          Value: VpcSubnets/Vpc/PublicSubnet2
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet2/Subnet
+  VpcPublicSubnet2RouteTable94F7E489:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/PublicSubnet2
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet2/RouteTable
+  VpcPublicSubnet2RouteTableAssociationDD5762D8:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: VpcPublicSubnet2RouteTable94F7E489
+      SubnetId:
+        Ref: VpcPublicSubnet2Subnet691E08A3
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet2/RouteTableAssociation
+  VpcPublicSubnet2DefaultRoute97F91067:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: VpcIGWD7BA715C
+      RouteTableId:
+        Ref: VpcPublicSubnet2RouteTable94F7E489
+    DependsOn:
+      - VpcVPCGWBF912B6E
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet2/DefaultRoute
+  VpcPublicSubnet3SubnetBE12F0B6:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1c
+      CidrBlock: 10.0.32.0/20
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Public
+        - Key: aws-cdk:subnet-type
+          Value: Public
+        - Key: Name
+          Value: VpcSubnets/Vpc/PublicSubnet3
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet3/Subnet
+  VpcPublicSubnet3RouteTable93458DBB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/PublicSubnet3
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet3/RouteTable
+  VpcPublicSubnet3RouteTableAssociation1F1EDF02:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: VpcPublicSubnet3RouteTable93458DBB
+      SubnetId:
+        Ref: VpcPublicSubnet3SubnetBE12F0B6
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet3/RouteTableAssociation
+  VpcPublicSubnet3DefaultRoute4697774F:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: VpcIGWD7BA715C
+      RouteTableId:
+        Ref: VpcPublicSubnet3RouteTable93458DBB
+    DependsOn:
+      - VpcVPCGWBF912B6E
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet3/DefaultRoute
+  VpcPrivateSubnet1Subnet536B997A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1a
+      CidrBlock: 10.0.48.0/20
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Private
+        - Key: aws-cdk:subnet-type
+          Value: Private
+        - Key: Name
+          Value: VpcSubnets/Vpc/PrivateSubnet1
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet1/Subnet
+  VpcPrivateSubnet1RouteTableB2C5B500:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/PrivateSubnet1
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet1/RouteTable
+  VpcPrivateSubnet1RouteTableAssociation70C59FA6:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: VpcPrivateSubnet1RouteTableB2C5B500
+      SubnetId:
+        Ref: VpcPrivateSubnet1Subnet536B997A
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet1/RouteTableAssociation
+  VpcPrivateSubnet2Subnet3788AAA1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1b
+      CidrBlock: 10.0.64.0/20
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Private
+        - Key: aws-cdk:subnet-type
+          Value: Private
+        - Key: Name
+          Value: VpcSubnets/Vpc/PrivateSubnet2
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet2/Subnet
+  VpcPrivateSubnet2RouteTableA678073B:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/PrivateSubnet2
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet2/RouteTable
+  VpcPrivateSubnet2RouteTableAssociationA89CAD56:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: VpcPrivateSubnet2RouteTableA678073B
+      SubnetId:
+        Ref: VpcPrivateSubnet2Subnet3788AAA1
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet2/RouteTableAssociation
+  VpcPrivateSubnet3SubnetF258B56E:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1c
+      CidrBlock: 10.0.80.0/20
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Private
+        - Key: aws-cdk:subnet-type
+          Value: Private
+        - Key: Name
+          Value: VpcSubnets/Vpc/PrivateSubnet3
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet3/Subnet
+  VpcPrivateSubnet3RouteTableD98824C7:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/PrivateSubnet3
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet3/RouteTable
+  VpcPrivateSubnet3RouteTableAssociation16BDDC43:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: VpcPrivateSubnet3RouteTableD98824C7
+      SubnetId:
+        Ref: VpcPrivateSubnet3SubnetF258B56E
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet3/RouteTableAssociation
+  VpcIsolatedSubnet1SubnetE48C5737:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1a
+      CidrBlock: 10.0.96.0/20
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Isolated
+        - Key: aws-cdk:subnet-type
+          Value: Isolated
+        - Key: Name
+          Value: VpcSubnets/Vpc/IsolatedSubnet1
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IsolatedSubnet1/Subnet
+  VpcIsolatedSubnet1RouteTable4771E3E5:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/IsolatedSubnet1
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IsolatedSubnet1/RouteTable
+  VpcIsolatedSubnet1RouteTableAssociationD300FCBB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: VpcIsolatedSubnet1RouteTable4771E3E5
+      SubnetId:
+        Ref: VpcIsolatedSubnet1SubnetE48C5737
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IsolatedSubnet1/RouteTableAssociation
+  VpcIsolatedSubnet2Subnet16364B91:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1b
+      CidrBlock: 10.0.112.0/20
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Isolated
+        - Key: aws-cdk:subnet-type
+          Value: Isolated
+        - Key: Name
+          Value: VpcSubnets/Vpc/IsolatedSubnet2
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IsolatedSubnet2/Subnet
+  VpcIsolatedSubnet2RouteTable1D30AF7D:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/IsolatedSubnet2
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IsolatedSubnet2/RouteTable
+  VpcIsolatedSubnet2RouteTableAssociationF7B18CCA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: VpcIsolatedSubnet2RouteTable1D30AF7D
+      SubnetId:
+        Ref: VpcIsolatedSubnet2Subnet16364B91
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IsolatedSubnet2/RouteTableAssociation
+  VpcIsolatedSubnet3Subnet6840A2D4:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1c
+      CidrBlock: 10.0.128.0/20
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: aws-cdk:subnet-name
+          Value: Isolated
+        - Key: aws-cdk:subnet-type
+          Value: Isolated
+        - Key: Name
+          Value: VpcSubnets/Vpc/IsolatedSubnet3
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IsolatedSubnet3/Subnet
+  VpcIsolatedSubnet3RouteTableA34D73CB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/IsolatedSubnet3
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IsolatedSubnet3/RouteTable
+  VpcIsolatedSubnet3RouteTableAssociation04776B7F:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: VpcIsolatedSubnet3RouteTableA34D73CB
+      SubnetId:
+        Ref: VpcIsolatedSubnet3Subnet6840A2D4
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IsolatedSubnet3/RouteTableAssociation
+  VpcIGWD7BA715C:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/IGW
+  VpcVPCGWBF912B6E:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        Ref: VpcIGWD7BA715C
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/VPCGW
+  VpcRestrictDefaultSecurityGroupCustomResourceC73DA2BE:
+    Type: Custom::VpcRestrictDefaultSG
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E
+          - Arn
+      DefaultSecurityGroupId:
+        Fn::GetAtt:
+          - Vpc8378EB38
+          - DefaultSecurityGroup
+      Account: "495599779087"
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/RestrictDefaultSecurityGroupCustomResource/Default
+  CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: Inline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:AuthorizeSecurityGroupEgress
+                  - ec2:RevokeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupEgress
+                Resource:
+                  - Fn::Join:
+                      - ""
+                      - - arn:aws:ec2:eu-central-1:495599779087:security-group/
+                        - Fn::GetAtt:
+                            - Vpc8378EB38
+                            - DefaultSecurityGroup
+    Metadata:
+      aws:cdk:path: VpcSubnets/Custom::VpcRestrictDefaultSGCustomResourceProvider/Role
+  CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: 7fa1e366ee8a9ded01fc355f704cff92bfd179574e6f9cfee800a3541df1b200.zip
+      Timeout: 900
+      MemorySize: 128
+      Handler: __entrypoint__.handler
+      Role:
+        Fn::GetAtt:
+          - CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0
+          - Arn
+      Runtime: nodejs22.x
+      Description: Lambda function for removing all inbound/outbound rules from the VPC default security group
+    DependsOn:
+      - CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0
+    Metadata:
+      aws:cdk:path: VpcSubnets/Custom::VpcRestrictDefaultSGCustomResourceProvider/Handler
+      aws:asset:path: asset.7fa1e366ee8a9ded01fc355f704cff92bfd179574e6f9cfee800a3541df1b200
+      aws:asset:property: Code
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+2WwYrbMBCGn2V1XBQ3hCWH3Lw+FENLQrLsoWEpY3mSnY0tGc3IaWry7iW206Utu1Ao1AefNDOa/+eTYJBm0exuGk1v4MgTkx8mBWVRsxEwBw1H/opmFjWPldk2qoRv8XdWC3WrtLIgH0HwCKdrhUNmURJnd7QPHoScVYttoyyU+EvLw6m6FFYhK8gorQzl/jPwoW0663cUnmoQ/BtJyq4AwfwPzdP5SSc7+7hKdAeyaWXbRkENVEBGBcnpi7NX27oyad7HF6v7wplDn5dQdSZptbSfIFjzrBbiA2pFVT1PfmsHZtrbtKrncZ57ZF7axGN/Y/2BBkExGJBhUAwGZBgU3QR1c3OJ1i4IPkBW4Gv9tRYzO0Otwc9m3U/0P5+9HRQ8gOsdMUaMEWPEGDH+F0b7RKVW0Fu8flj7f1+fxSJgnku0ctZrZBe8QZ0EFlde0626Va3RG/sr72rK0d8Do46ZUTYCe7L7i2YZpApy1tblGL3wh3p2F82j6c0LE018sEIlRutu/QEQiX8bjAsAAA==
+    Metadata:
+      aws:cdk:path: VpcSubnets/CDKMetadata/Default
+Outputs:
+  VpcId:
+    Value:
+      Ref: Vpc8378EB38
+  VpcCidr:
+    Value:
+      Fn::GetAtt:
+        - Vpc8378EB38
+        - CidrBlock
+  AvailabilityZones:
+    Value: eu-central-1a, eu-central-1b, eu-central-1c
+  NatGatewayCount:
+    Value: "0"
+  PublicSubnetIds:
+    Value:
+      Fn::Join:
+        - ""
+        - - Ref: VpcPublicSubnet1Subnet5C2D37C4
+          - ", "
+          - Ref: VpcPublicSubnet2Subnet691E08A3
+          - ", "
+          - Ref: VpcPublicSubnet3SubnetBE12F0B6
+  PrivateSubnetIds:
+    Value:
+      Fn::Join:
+        - ""
+        - - Ref: VpcPrivateSubnet1Subnet536B997A
+          - ", "
+          - Ref: VpcPrivateSubnet2Subnet3788AAA1
+          - ", "
+          - Ref: VpcPrivateSubnet3SubnetF258B56E
+  IsolatedSubnetIds:
+    Value:
+      Fn::Join:
+        - ""
+        - - Ref: VpcIsolatedSubnet1SubnetE48C5737
+          - ", "
+          - Ref: VpcIsolatedSubnet2Subnet16364B91
+          - ", "
+          - Ref: VpcIsolatedSubnet3Subnet6840A2D4
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
