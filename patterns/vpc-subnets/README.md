@@ -8,6 +8,49 @@
 - **Isolated** subnets — no internet route in either direction; for databases and caches
 - NAT Gateway count controlled via `-c natGateways=N` (default: `0`)
 
+### AWS containment hierarchy
+
+```
+AWS Account
+└── Region (e.g. eu-central-1)
+    │
+    ├── VPC (spans the entire region, e.g. 10.0.0.0/16)
+    │   │
+    │   ├── Availability Zone A (eu-central-1a)
+    │   │   ├── Public Subnet    10.0.0.0/20
+    │   │   ├── Private Subnet   10.0.64.0/20
+    │   │   └── Isolated Subnet  10.0.128.0/20
+    │   │
+    │   ├── Availability Zone B (eu-central-1b)
+    │   │   ├── Public Subnet    10.0.16.0/20
+    │   │   ├── Private Subnet   10.0.80.0/20
+    │   │   └── Isolated Subnet  10.0.144.0/20
+    │   │
+    │   └── Availability Zone C (eu-central-1c)
+    │       ├── Public Subnet    10.0.32.0/20
+    │       ├── Private Subnet   10.0.96.0/20
+    │       └── Isolated Subnet  10.0.160.0/20
+    │
+    └── (another VPC — e.g. for a different environment)
+
+Region (e.g. us-east-1)         ← a second region; VPCs don't span regions
+└── VPC ...
+```
+
+| Boundary | Spans |
+|---|---|
+| AWS Account | Multiple regions |
+| Region | Multiple AZs (usually 3+); VPCs live here |
+| VPC | All AZs in its region; one CIDR block |
+| Subnet | Exactly **one** AZ; one CIDR sub-block of the VPC |
+| Resource (EC2, RDS…) | Exactly one subnet → one AZ |
+
+What crosses boundaries:
+- A VPC spans AZs, but subnets don't — that's why you create one subnet per tier per AZ
+- [Security Groups](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html) are VPC-scoped (span AZs); [NACLs](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html) are subnet-scoped
+- [VPC Peering](https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html) / [Transit Gateway](https://docs.aws.amazon.com/vpc/latest/tgw/what-is-transit-gateway.html) connect VPCs (same or different accounts/regions)
+- **Route Tables are subnet-scoped** — that's what makes Public/Private/Isolated different from each other, not the subnet type itself
+
 ### Subnet CIDR layout (`/16` VPC, `/20` subnets = 4,096 IPs each)
 
 ```
