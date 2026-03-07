@@ -10,11 +10,11 @@ import {S3StaticWebsiteCloudfrontStack, s3StaticWebsiteCloudfrontStackName} from
 import {S3LambdaRekognitionDynamodbStack, s3LambdaRekognitionDynamodbStackName} from '../patterns/s3-lambda-rekognition-dynamodb/stack';
 import {S3BehindSftpStack, s3BehindSftpStackName} from '../patterns/s3-behind-sftp/stack';
 import {DynamodbGlobalDatabaseStack, dynamodbGlobalDatabaseStackName} from '../patterns/dynamodb-global-database/stack';
-import {S3VectorsStack, s3VectorsStackName} from '../patterns/s3-vectors/stack';
-import {DynamoDBLambdaStack, dynamodbLambdaStackName} from '../patterns/dynamodb-lambda/stack';
+import {S3VectorsStack, s3VectorsStackName} from '../patterns/s3-vectors-bucket/stack';
+import {DynamoDBLambdaStack, dynamodbLambdaStackName} from '../patterns/dynamodb-stream-lambda/stack';
 import {DynamodbToS3Stack, dynamodbToS3StackName} from '../patterns/dynamodb-to-s3-zero-etl/stack';
-import {S3TablesStack, s3TablesStackName} from '../patterns/s3-tables/stack';
-import {S3TablesLakeFormationSetupStack, s3TablesLakeFormationSetupStackName} from '../patterns/s3-tables/setup_stack';
+import {S3TablesStack, s3TablesStackName} from '../patterns/s3-tables-bucket/stack';
+import {S3TablesLakeFormationSetupStack, s3TablesLakeFormationSetupStackName} from '../patterns/s3-tables-bucket/setup_stack';
 
 const app = new cdk.App();
 

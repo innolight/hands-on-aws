@@ -101,7 +101,7 @@ aws s3tables list-table-buckets # confirm table bucket created
 
 **Start demo server**
 ```bash
-AWS_REGION=eu-central-1 npx ts-node patterns/s3-tables/demo_server.ts
+AWS_REGION=eu-central-1 npx ts-node patterns/s3-tables-bucket/demo_server.ts
 ```
 
 **Load sample sales data (note the `loadedAt` timestamp)**
@@ -172,7 +172,7 @@ npx cdk destroy S3TablesLakeFormationSetup  -c lfAdmin=$LF_ADMIN  # if no longer
 
 **Synthesize CloudFormation**
 ```bash
-npx cdk synth S3Tables 2>/dev/null > patterns/s3-tables/cloud_formation.yaml
+npx cdk synth S3Tables 2>/dev/null > patterns/s3-tables-bucket/cloud_formation.yaml
 LF_ADMIN=$(aws sts get-caller-identity --query Arn --output text)
-npx cdk synth S3TablesLakeFormationSetup -c lfAdmin=$LF_ADMIN 2>/dev/null > patterns/s3-tables/setup_cloud_formation.yaml
+npx cdk synth S3TablesLakeFormationSetup -c lfAdmin=$LF_ADMIN 2>/dev/null > patterns/s3-tables-bucket/setup_cloud_formation.yaml
 ```

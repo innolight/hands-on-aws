@@ -15,10 +15,10 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`s3-lambda-rekognition-dynamodb`](./patterns/s3-lambda-rekognition-dynamodb): image processing pipeline and metadata storage
 - [x] [`s3-behind-sftp`](./patterns/s3-behind-sftp/): SFTP access to S3 using AWS Transfer 
 - [x] [`dynamodb-global-database`](./patterns/dynamodb-global-database/): Dynamodb Global Database (multi-write architecture)
-- [x] [`s3-vectors`](./patterns/s3-vectors/): S3 Vector Bucket + Index for similarity search on food reviews
+- [x] [`s3-vectors-bucket`](./patterns/s3-vectors-bucket/): S3 Vector Bucket + Index for similarity search on food reviews
 - [ ] `dynamodb-to-s3-zero-etl`: Dynamodb → S3 with Zero-ETL
 - [ ] `dynamodb-kinesis-s3`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → S3 | AWS OpenSearch
-- [x] [`dynamodb-lambda`](./patterns/dynamodb-lambda): Dynamodb → Dynamodb Stream → Lambda
+- [x] [`dynamodb-stream-lambda`](./patterns/dynamodb-stream-lambda): Dynamodb → Dynamodb Stream → Lambda
 - [ ] `dynamodb-behind-api-gateway`: API Gateway → Dynamodb
 - [ ] `dynamodb-behind-alb`: Application Load Balancer (API) → Dynamodb
 - [ ] `ecs-on-fargate`: deployment of Elastic Container Service (container orchestration platform from Amazon)
@@ -29,6 +29,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [ ] `waf-shield-ddos-protection`: AWS WAF + Shield for DDoS protection on CloudFront
 - [ ] `sagemaker-pipeline-cdk`: Building an end-to-end ML pipeline with AWS SageMaker and CDK
 - [ ] `athena-query-s3`: AWS Athena querying structured/unstructured data from S3
+- [ ] `s3-serverless-data-lake`: S3 (Storage) → AWS Glue (Data Catalog/Crawler) → Amazon Athena (Query Engine)
 - [ ] `glue-etl-job`: AWS Glue ETL job that processes and transforms data in S3 to different format
 - [ ] `rds-backup-and-recovery`: Set up automated backups and point-in-time recovery for RDS
 - [ ] `rds-two-readable-standbys`: Multi-AZ deployment of RDS with 2 readable standby instance

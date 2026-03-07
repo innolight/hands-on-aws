@@ -60,7 +60,7 @@ npx cdk deploy S3Vectors
 - **Run demo server** (deploy first):
 
 ```bash
-AWS_REGION=eu-central-1 npx ts-node patterns/s3-vectors/demo_server.ts
+AWS_REGION=eu-central-1 npx ts-node patterns/s3-vectors-bucket/demo_server.ts
 ```
 
 - **Load all 1,000 review vectors** (idempotent, ~20s):
@@ -92,7 +92,7 @@ curl -s -X POST http://localhost:3000/query \
 - **Capture CloudFormation template**:
 
 ```bash
-npx cdk synth S3Vectors > patterns/s3-vectors/cloud_formation.yaml
+npx cdk synth S3Vectors > patterns/s3-vectors-bucket/cloud_formation.yaml
 ```
 
 - **Delete all vectors** (required before destroy — VectorBucket must be empty):

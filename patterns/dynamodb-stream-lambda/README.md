@@ -41,7 +41,7 @@ This pattern implements Change Data Capture (CDC) using DynamoDB Streams. When a
 2. **Start the demo server**:
    ```bash
    # In a separate terminal
-   npx ts-node patterns/dynamodb-lambda/demo_server.ts
+   npx ts-node patterns/dynamodb-stream-lambda/demo_server.ts
    ```
 
 3. **Create an order (INSERT event)**:
