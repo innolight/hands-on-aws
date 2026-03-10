@@ -32,7 +32,32 @@ let cluster: Cluster;
   // Connect via the config endpoint — the Cluster client fetches the full slot map
   // via CLUSTER SLOTS and routes subsequent commands to the correct shard automatically.
   cluster = new Cluster([{host: configEndpoint, port: 6379}], {
-    redisOptions: {username: 'appuser', password, tls: {}},
+    redisOptions: {
+      // username & password required for RBAC
+      username: 'appuser', password, 
+      // tls is required when transitEncryptionEnabled = true
+      // tls: {} uses Node's default CA store, which trusts AWS's cert.
+      // Add servername if connecting via a local tunnel with a mismatched hostname.
+      tls: {}, 
+      // How long the client will wait before killing a socket due to inactivity.
+      connectTimeout: 5000,
+      // Max reconnection retry attempts due to lost connection. Default 20 can cause long hangs during outages.
+      // Tune together with retryDelayOnFailover to cover failover scenarios without downtime.
+      maxRetriesPerRequest: 2,
+      // offlineQueue controls whether commands are buffered while the client is disconnected
+      // offlineQueue = false -> commands fail immediately when disconnected instead of queuing them.
+      //  = true  -> risks unbounded memory growth if the queue fills during an extended outage.
+      offlineQueue: false,
+    },
+    // ms to wait before retrying a command after a MOVED redirect during failover.
+    retryDelayOnFailover: 300,
+    // ms to wait before retrying when the cluster reports CLUSTERDOWN.
+    retryDelayOnClusterDown: 300,
+    // Where to route read commands.
+    //    'master' = consistent reads from primary.
+    //    'slave' = lower latency if replicas exist; may return stale data.
+    //    'all' = round-robin between primary and replicas; may return stale data.
+    scaleReads: 'all',
   });
 
   app.listen(PORT, () => {
