@@ -1,0 +1,147 @@
+Resources:
+  DemoServerSG0DAA2EC7:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Demo server — no inbound; outbound to ElastiCache and AWS APIs only
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: AWS APIs
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyClusterApp/DemoServerSG/Resource
+  DemoServerSGtoElastiCacheValkeyClusterCacheSGBD9B46BC637939054040:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: Valkey cluster
+      DestinationSecurityGroupId:
+        Fn::ImportValue: ElastiCacheValkeyCluster:ExportsOutputFnGetAttCacheSGD31B448DGroupId8EFEF3E1
+      FromPort: 6379
+      GroupId:
+        Fn::GetAtt:
+          - DemoServerSG0DAA2EC7
+          - GroupId
+      IpProtocol: tcp
+      ToPort: 6379
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyClusterApp/DemoServerSG/to ElastiCacheValkeyClusterCacheSGBD9B46BC:6379
+  CacheAccessFromDemoServer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Valkey from demo server
+      FromPort: 6379
+      GroupId:
+        Fn::ImportValue: ElastiCacheValkeyCluster:ExportsOutputFnGetAttCacheSGD31B448DGroupId8EFEF3E1
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - DemoServerSG0DAA2EC7
+          - GroupId
+      ToPort: 6379
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyClusterApp/CacheAccessFromDemoServer
+  DemoServerRole2BC683E2:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonSSMManagedInstanceCore
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyClusterApp/DemoServerRole/Resource
+  DemoServerRoleDefaultPolicy2AC43FD6:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetBucket*
+              - s3:GetObject*
+              - s3:List*
+            Effect: Allow
+            Resource:
+              - arn:aws:s3:::cdk-hnb659fds-assets-495599779087-eu-central-1
+              - arn:aws:s3:::cdk-hnb659fds-assets-495599779087-eu-central-1/*
+          - Action:
+              - secretsmanager:DescribeSecret
+              - secretsmanager:GetSecretValue
+            Effect: Allow
+            Resource:
+              Fn::ImportValue: ElastiCacheValkeyCluster:ExportsOutputRefValkeySecret2AE7188E3DAD6B26
+          - Action: cloudformation:DescribeStacks
+            Effect: Allow
+            Resource: "*"
+        Version: "2012-10-17"
+      PolicyName: DemoServerRoleDefaultPolicy2AC43FD6
+      Roles:
+        - Ref: DemoServerRole2BC683E2
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyClusterApp/DemoServerRole/DefaultPolicy/Resource
+  DemoServerInstanceProfile78A8E468:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: DemoServerRole2BC683E2
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyClusterApp/DemoServer/InstanceProfile
+  DemoServerBBBB34B4:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: eu-central-1a
+      IamInstanceProfile:
+        Ref: DemoServerInstanceProfile78A8E468
+      ImageId:
+        Ref: SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter
+      InstanceType: t4g.nano
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - DemoServerSG0DAA2EC7
+            - GroupId
+      SubnetId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPublicSubnet1Subnet5C2D37C4FFA2B456
+      Tags:
+        - Key: Name
+          Value: ElastiCacheValkeyClusterApp/DemoServer
+      UserData:
+        Fn::Base64: |-
+          #!/bin/bash
+          dnf install -y nodejs20
+          ln -sf /usr/bin/node20 /usr/local/bin/node
+    DependsOn:
+      - DemoServerRoleDefaultPolicy2AC43FD6
+      - DemoServerRole2BC683E2
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyClusterApp/DemoServer/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/42TTW8aMRCGf0t8jIyLSNQDN2irilMQ0FMURcN42Dh47a3HBqHV/vfK+0FBpFFP9j4z43fGr3eiJo9jNb6DI49Q70fWbFW9joB7CUd+rQknql4TpmDi6WfwqXquxaFCMRX3QgpNjMFU0XjXE7DWH2fWPqW49clpMd2BZWpkLUDrH0Ug5lWyJKbPOb9upLgXLx+Fa4HgFs4aRx2JIZEU6J0jzIrcSyZnfida6PazOR/5Ir/t3FXrN6DTu8EL1/GF4wgO6Wpk08PNqaIelYBvxtGihGJAhwrXaesospjWgtttX7FMW2tQNFLwpWhfGLylYZB8Jb+YwneI0N/X38mG5hppoFT1ytvcJzCnkvT8lGWrYByaCuwM0ScXB4vanFwww7NzTR7DQUF66a1BQ9xacMlOs9DnDn5t/HKQ6DJyTR+NEfCts+8cO1v9afDzc/8dba8ljyU73D2wXmzjV354dRc93GKt1xEileQiX8n+L27b6Dq49GkZ/M5YaiQ/vAIzRVazvEh+UPOEe4pzyP9JC9cRCuOK9iQIUFKkIFfEPgWkTJ9SrFJspPOa1Dt/OUwe1Vc1vntnY0YhuWhKUqtu/QNReDz45AMAAA==
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyClusterApp/CDKMetadata/Default
+Parameters:
+  SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+Outputs:
+  DemoServerInstanceId:
+    Value:
+      Ref: DemoServerBBBB34B4
+  DemoServerAssetS3Url:
+    Value: s3://cdk-hnb659fds-assets-495599779087-eu-central-1/30bd3f3f103d9c84f2440ca8c54bd4fe67df06205f33d1e14bf3f032c79b97b4.zip
+

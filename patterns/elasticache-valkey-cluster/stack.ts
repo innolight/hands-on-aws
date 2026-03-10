@@ -3,42 +3,41 @@ import {Construct} from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elasticache from 'aws-cdk-lib/aws-elasticache';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
-import * as appscaling from 'aws-cdk-lib/aws-applicationautoscaling';
 
-export const elasticacheValkeyActivePassiveStackName = 'ElastiCacheValkeyActivePassive';
+export const elasticacheValkeyClusterStackName = 'ElastiCacheValkeyCluster';
 
-interface ElastiCacheValkeyStackProps extends cdk.StackProps {
+interface ElastiCacheValkeyClusterStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
   bastionSG: ec2.SecurityGroup;
 }
 
-// client -> SSM port forward -> EC2 bastion -> ElastiCache Valkey (TLS + RBAC) in isolated subnet
-export class ElastiCacheValkeyStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props: ElastiCacheValkeyStackProps) {
+// ElastiCache Valkey cluster (sharded, TLS + RBAC) in isolated subnet.
+// Access from application tier: add an ingress rule to cacheSG from the app SG.
+export class ElastiCacheValkeyClusterStack extends cdk.Stack {
+  public readonly cacheSG: ec2.SecurityGroup;
+  public readonly appUserSecret: secretsmanager.Secret;
+
+  constructor(scope: Construct, id: string, props: ElastiCacheValkeyClusterStackProps) {
     super(scope, id, props);
 
-    // minNodes = 1 → single node, no HA; minNodes > 1 → primary + (N-1) replicas
-    // minNodes === maxNodes → fixed size; minNodes < maxNodes → Application Auto Scaling manages replicas
-    const minNodes = Number(this.node.tryGetContext('minNodes') || '1');
-    const maxNodes = Number(this.node.tryGetContext('maxNodes') || String(minNodes));
-    const autoscalingEnabled = minNodes !== maxNodes;
-    // Multi-AZ + automatic failover needed even at minNodes=1 when autoscaling may add replicas.
-    const hasReplicas = maxNodes > 1;
+    // shards controls numNodeGroups — each shard owns a contiguous range of hash slots (0–16383).
+    // replicas controls replicasPerNodeGroup — replicas per shard for read scaling and HA.
+    const shards = Number(this.node.tryGetContext('shards') || '2');
+    const replicas = Number(this.node.tryGetContext('replicas') || '0');
 
-    // Cache only accepts connections from the bastion on the Valkey port.
-    const cacheSG = new ec2.SecurityGroup(this, 'CacheSG', {
+    // Exposed so the app stack can add its own ingress rule from the app server SG.
+    this.cacheSG = new ec2.SecurityGroup(this, 'CacheSG', {
       vpc: props.vpc,
       description: 'ElastiCache security group',
       allowAllOutbound: false,
     });
-    cacheSG.addIngressRule(props.bastionSG, ec2.Port.tcp(6379), 'Valkey from bastion');
+    this.cacheSG.addIngressRule(props.bastionSG, ec2.Port.tcp(6379), 'Valkey from bastion');
 
     const subnetGroup = new elasticache.CfnSubnetGroup(this, 'SubnetGroup', {
       description: 'Private isolated subnets for ElastiCache',
       subnetIds: props.vpc.isolatedSubnets.map(s => s.subnetId),
     });
 
-    
     // The default user must exist and be disabled. ElastiCache requires a default
     // user in every user group; disabling it forces all clients to authenticate
     // via named users (RBAC enforcement).
@@ -50,7 +49,7 @@ export class ElastiCacheValkeyStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
     const defaultUser = new elasticache.CfnUser(this, 'DefaultUser', {
-      userId: 'valkey-default',
+      userId: 'valkey-cluster-default',
       userName: 'default',
       engine: 'valkey',
       passwords: [defaultUserSecret.secretValue.unsafeUnwrap()],
@@ -59,7 +58,7 @@ export class ElastiCacheValkeyStack extends cdk.Stack {
     });
 
     // Valkey password constraints: no punctuation allowed.
-    const appUserSecret = new secretsmanager.Secret(this, 'ValkeySecret', {
+    this.appUserSecret = new secretsmanager.Secret(this, 'ValkeySecret', {
       description: 'Valkey RBAC password for appuser',
       generateSecretString: {
         excludePunctuation: true,
@@ -71,47 +70,45 @@ export class ElastiCacheValkeyStack extends cdk.Stack {
     // appuser has full command access (~* +@all). Password is resolved from
     // Secrets Manager at deploy time via dynamic reference.
     const appUser = new elasticache.CfnUser(this, 'AppUser', {
-      userId: 'valkey-appuser',
+      userId: 'valkey-cluster-appuser',
       userName: 'appuser',
       engine: 'valkey',
-      passwords: [appUserSecret.secretValue.unsafeUnwrap()],
+      passwords: [this.appUserSecret.secretValue.unsafeUnwrap()],
       accessString: 'on ~* +@all',
     });
 
     const userGroup = new elasticache.CfnUserGroup(this, 'UserGroup', {
-      userGroupId: 'valkey-usergroup',
+      userGroupId: 'valkey-cluster-usergroup',
       engine: 'valkey',
       userIds: [defaultUser.ref, appUser.ref],
     });
 
     const paramGroup = new elasticache.CfnParameterGroup(this, 'ParamGroup', {
       cacheParameterGroupFamily: 'valkey8',
-      description: 'Valkey tuning',
+      description: 'Valkey cluster tuning',
       properties: parameterGroupConfig,
-      
     });
 
-    // CfnReplicationGroup is used even for a single node because CfnCacheCluster
-    // does not support transitEncryptionEnabled, which is required for RBAC.
-    // numCacheClusters=1 with automaticFailoverEnabled=false → single primary, no replica.
+    // numNodeGroups + replicasPerNodeGroup enable cluster mode (sharding).
+    // numCacheClusters (non-cluster mode) and numNodeGroups are mutually exclusive.
+    // automaticFailoverEnabled is mandatory when numNodeGroups > 1.
     const replicationGroup = new elasticache.CfnReplicationGroup(this, 'ReplicationGroup', {
-      // Stable ID — avoids replacement when node count changes via autoscaling.
-      replicationGroupId: 'valkey-ap-demo',
-      replicationGroupDescription: 'Valkey active-passive replication group',
+      replicationGroupId: `valkey-sharded-${shards}s-${replicas}r`,
+      replicationGroupDescription: `Valkey cluster: ${shards} shards, ${replicas} replica(s) per shard`,
       engine: 'valkey',
       engineVersion: '8.2', // To use version 9 when available, which improve reliability during resharding scenario.
       cacheNodeType: 'cache.t4g.micro',
-      // clusterMode: 'disabled' — all 16383 hash slots owned by one primary (non-cluster mode).
-      // numCacheClusters controls primary + replica count; numNodeGroups is not used.
-      clusterMode: 'disabled',
-      // Start at minNodes; autoscaling adjusts replica count from there.
-      numCacheClusters: minNodes,
-      automaticFailoverEnabled: hasReplicas,
-      // Multi-AZ requires automatic failover and at least 2 total nodes.
-      multiAzEnabled: hasReplicas,
+      numNodeGroups: shards,
+      replicasPerNodeGroup: replicas,
+      // clusterMode is inferred from numNodeGroups being set, but stated explicitly for clarity.
+      clusterMode: 'enabled',
+      // Automatic failover is required for cluster mode (numNodeGroups > 1).
+      automaticFailoverEnabled: true,
+      // Multi-AZ spreads replicas across AZs; requires at least one replica per shard.
+      multiAzEnabled: replicas > 0,
       cacheSubnetGroupName: subnetGroup.ref,
       cacheParameterGroupName: paramGroup.ref,
-      securityGroupIds: [cacheSG.securityGroupId],
+      securityGroupIds: [this.cacheSG.securityGroupId],
       transitEncryptionEnabled: true,
       atRestEncryptionEnabled: true,
       userGroupIds: [userGroup.ref],
@@ -121,48 +118,25 @@ export class ElastiCacheValkeyStack extends cdk.Stack {
     });
     replicationGroup.addDependency(userGroup);
 
-    if (autoscalingEnabled) {
-      // elasticache:replication-group:Replicas counts replicas only (excludes primary).
-      // minNodes=2 → minCapacity=1 replica; maxNodes=5 → maxCapacity=4 replicas.
-      const target = new appscaling.ScalableTarget(this, 'ReplicaTarget', {
-        serviceNamespace: appscaling.ServiceNamespace.ELASTICACHE,
-        scalableDimension: 'elasticache:replication-group:Replicas',
-        resourceId: `replication-group/${replicationGroup.ref}`,
-        minCapacity: minNodes - 1,
-        maxCapacity: maxNodes - 1,
-      });
-
-      // Scale replicas when average CPU across all replicas exceeds 60%.
-      // ELASTICACHE_REPLICA_ENGINE_CPU_UTILIZATION tracks replica nodes only,
-      // avoiding primary CPU (which handles writes) from skewing the signal.
-      target.scaleToTrackMetric('ReplicaCPUTracking', {
-        targetValue: 60,
-        predefinedMetric: appscaling.PredefinedMetric.ELASTICACHE_REPLICA_ENGINE_CPU_UTILIZATION,
-      });
-    }
-
-    new cdk.CfnOutput(this, 'ValkeyPrimaryEndpoint', {
-      value: replicationGroup.attrPrimaryEndPointAddress,
-    });
-    // When minNodes=1 and autoscaling is off, reader endpoint resolves to the same node as primary.
-    new cdk.CfnOutput(this, 'ValkeyReaderEndpoint', {
-      value: replicationGroup.attrReaderEndPointAddress,
+    // attrConfigurationEndPointAddress is the single entry point for cluster-mode clients.
+    // Unlike non-cluster mode (primary + reader endpoints), the config endpoint routes
+    // to any node; the client then fetches the full slot map via CLUSTER SLOTS.
+    new cdk.CfnOutput(this, 'ValkeyConfigEndpoint', {
+      value: replicationGroup.attrConfigurationEndPointAddress,
     });
     new cdk.CfnOutput(this, 'ValkeyPort', {
-      value: replicationGroup.attrPrimaryEndPointPort,
-    });
-    new cdk.CfnOutput(this, 'MinNodes', {
-      value: String(minNodes),
-    });
-    new cdk.CfnOutput(this, 'MaxNodes', {
-      value: String(maxNodes),
-    });
-    new cdk.CfnOutput(this, 'AutoScalingEnabled', {
-      value: String(autoscalingEnabled),
+      value: replicationGroup.attrConfigurationEndPointPort,
     });
     new cdk.CfnOutput(this, 'ValkeySecretArn', {
-      value: appUserSecret.secretArn,
+      value: this.appUserSecret.secretArn,
     });
+    new cdk.CfnOutput(this, 'ShardCount', {
+      value: String(shards),
+    });
+    new cdk.CfnOutput(this, 'ReplicasPerShard', {
+      value: String(replicas),
+    });
+
   }
 }
 
@@ -219,6 +193,12 @@ const parameterGroupConfig = {
   // Gives replicas time to catch up after a brief disconnect without triggering
   // a full resync. Increase for high-write workloads where replicas fall behind quickly.
   'repl-backlog-size': '10485760',
+
+  // Allow reads on a shard even when it has lost contact with a majority of masters.
+  // Tradeoff: availability over consistency — clients may read stale data during a
+  // partition. The alternative (no) returns CLUSTERDOWN errors, rejecting all reads
+  // on affected shards. For a demo cache, availability is preferred.
+  'cluster-allow-reads-when-down': 'yes',
 
   // Note: appendonly/appendfsync are NOT configurable via ElastiCache parameter groups —
   // the API rejects them with "parameter cannot be modified". AOF is unsupported in ElastiCache.

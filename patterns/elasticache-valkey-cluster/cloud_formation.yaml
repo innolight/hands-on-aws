@@ -1,0 +1,177 @@
+Resources:
+  CacheSGD31B448D:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ElastiCache security group
+      SecurityGroupEgress:
+        - CidrIp: 255.255.255.255/32
+          Description: Disallow all traffic
+          FromPort: 252
+          IpProtocol: icmp
+          ToPort: 86
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/CacheSG/Resource
+  CacheSGfromSsmBastionBastionSG22FCCA7263799C497867:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Valkey from bastion
+      FromPort: 6379
+      GroupId:
+        Fn::GetAtt:
+          - CacheSGD31B448D
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::ImportValue: SsmBastion:ExportsOutputFnGetAttBastionSGEBD2A3B1GroupId0BE655F5
+      ToPort: 6379
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/CacheSG/from SsmBastionBastionSG22FCCA72:6379
+  SubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: Private isolated subnets for ElastiCache
+      SubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/SubnetGroup
+  DefaultUserSecret87579512:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      GenerateSecretString:
+        ExcludePunctuation: true
+        PasswordLength: 32
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/DefaultUserSecret/Resource
+  DefaultUser:
+    Type: AWS::ElastiCache::User
+    Properties:
+      AccessString: off ~* -@all
+      Engine: valkey
+      Passwords:
+        - Fn::Join:
+            - ""
+            - - "{{resolve:secretsmanager:"
+              - Ref: DefaultUserSecret87579512
+              - :SecretString:::}}
+      UserId: valkey-cluster-default
+      UserName: default
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/DefaultUser
+  ValkeySecret2AE7188E:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Valkey RBAC password for appuser
+      GenerateSecretString:
+        ExcludePunctuation: true
+        PasswordLength: 32
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/ValkeySecret/Resource
+  AppUser:
+    Type: AWS::ElastiCache::User
+    Properties:
+      AccessString: on ~* +@all
+      Engine: valkey
+      Passwords:
+        - Fn::Join:
+            - ""
+            - - "{{resolve:secretsmanager:"
+              - Ref: ValkeySecret2AE7188E
+              - :SecretString:::}}
+      UserId: valkey-cluster-appuser
+      UserName: appuser
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/AppUser
+  UserGroup:
+    Type: AWS::ElastiCache::UserGroup
+    Properties:
+      Engine: valkey
+      UserGroupId: valkey-cluster-usergroup
+      UserIds:
+        - Ref: DefaultUser
+        - Ref: AppUser
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/UserGroup
+  ParamGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Properties:
+      CacheParameterGroupFamily: valkey8
+      Description: Valkey cluster tuning
+      Properties:
+        maxmemory-policy: allkeys-lru
+        maxmemory-samples: "5"
+        lfu-decay-time: "1"
+        activedefrag: "no"
+        timeout: "0"
+        slowlog-log-slower-than: "5000"
+        slowlog-max-len: "128"
+        repl-backlog-size: "10485760"
+        cluster-allow-reads-when-down: "yes"
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/ParamGroup
+  ReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      AtRestEncryptionEnabled: true
+      AutomaticFailoverEnabled: true
+      CacheNodeType: cache.t4g.micro
+      CacheParameterGroupName:
+        Ref: ParamGroup
+      CacheSubnetGroupName:
+        Ref: SubnetGroup
+      Engine: valkey
+      EngineVersion: "8.0"
+      MultiAZEnabled: true
+      NumNodeGroups: 2
+      ReplicasPerNodeGroup: 1
+      ReplicationGroupDescription: "Valkey cluster: 2 shards, 1 replica(s) per shard"
+      ReplicationGroupId: valkey-sharded-2s-1r
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - CacheSGD31B448D
+            - GroupId
+      SnapshotRetentionLimit: 0
+      TransitEncryptionEnabled: true
+      UserGroupIds:
+        - Ref: UserGroup
+    DependsOn:
+      - UserGroup
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/ReplicationGroup
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/7WQTWsCMRCGf4tzlJiKSA97Kz2UQkFRehIpY3ZcozFZJhOthPz3sn7R4rmnGR7mZWaekR6Nh3rYw2McmHo3cHal81zQ7BQe41cmM9J5TiaxldMbh9QuMhxaAxX0QUFN0bBtxQZ/JehcOL44N0myCsnXUK3RRSoqA9b1u2+YYpwlR1AtukAuCvqwLEv1uvZ/Fj2Aa7gochjFGjQb0rmbSitPcg99RuJbvcMpMu5JfpEZtc4a7G4/s6IiGSaJe/TYEJ//ZpJFhoY8MQpdwFzY+gaqDPRtXKppmryRhBcLwokUtBjjMXD9Qb6RzdlNUcC0Dwd00+CsOUHV6RMOJ+jsPKr8960350xSStdPkrRJivKhJr2NT4fRWD/rYW8brR1w8mL3pGeX+gMtpgeVOgIAAA==
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyCluster/CDKMetadata/Default
+Outputs:
+  ValkeyConfigEndpoint:
+    Value:
+      Fn::GetAtt:
+        - ReplicationGroup
+        - ConfigurationEndPoint.Address
+  ValkeyPort:
+    Value:
+      Fn::GetAtt:
+        - ReplicationGroup
+        - ConfigurationEndPoint.Port
+  ValkeySecretArn:
+    Value:
+      Ref: ValkeySecret2AE7188E
+  ShardCount:
+    Value: "2"
+  ReplicasPerShard:
+    Value: "1"
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
