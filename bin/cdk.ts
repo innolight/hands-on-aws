@@ -105,7 +105,6 @@ new ElastiCacheValkeyStack(app, elasticacheValkeyActivePassiveStackName, {
 const clusterStack = new ElastiCacheValkeyClusterStack(app, elasticacheValkeyClusterStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
   vpc: vpcStack.vpc,
-  bastionSG: bastionStack.bastionSG,
 });
 
 new ElastiCacheValkeyClusterAppStack(app, elasticacheValkeyClusterAppStackName, {

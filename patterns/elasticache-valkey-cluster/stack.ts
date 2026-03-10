@@ -8,7 +8,6 @@ export const elasticacheValkeyClusterStackName = 'ElastiCacheValkeyCluster';
 
 interface ElastiCacheValkeyClusterStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
-  bastionSG: ec2.SecurityGroup;
 }
 
 // ElastiCache Valkey cluster (sharded, TLS + RBAC) in isolated subnet.
@@ -31,7 +30,6 @@ export class ElastiCacheValkeyClusterStack extends cdk.Stack {
       description: 'ElastiCache security group',
       allowAllOutbound: false,
     });
-    this.cacheSG.addIngressRule(props.bastionSG, ec2.Port.tcp(6379), 'Valkey from bastion');
 
     const subnetGroup = new elasticache.CfnSubnetGroup(this, 'SubnetGroup', {
       description: 'Private isolated subnets for ElastiCache',
@@ -89,19 +87,16 @@ export class ElastiCacheValkeyClusterStack extends cdk.Stack {
       properties: parameterGroupConfig,
     });
 
-    // numNodeGroups + replicasPerNodeGroup enable cluster mode (sharding).
-    // numCacheClusters (non-cluster mode) and numNodeGroups are mutually exclusive.
-    // automaticFailoverEnabled is mandatory when numNodeGroups > 1.
     const replicationGroup = new elasticache.CfnReplicationGroup(this, 'ReplicationGroup', {
-      replicationGroupId: `valkey-sharded-${shards}s-${replicas}r`,
+      replicationGroupId: `valkey-sharded-cluster`,
       replicationGroupDescription: `Valkey cluster: ${shards} shards, ${replicas} replica(s) per shard`,
       engine: 'valkey',
       engineVersion: '8.2', // To use version 9 when available, which improve reliability during resharding scenario.
       cacheNodeType: 'cache.t4g.micro',
-      numNodeGroups: shards,
-      replicasPerNodeGroup: replicas,
       // clusterMode is inferred from numNodeGroups being set, but stated explicitly for clarity.
       clusterMode: 'enabled',
+      numNodeGroups: shards,
+      replicasPerNodeGroup: replicas,
       // Automatic failover is required for cluster mode (numNodeGroups > 1).
       automaticFailoverEnabled: true,
       // Multi-AZ spreads replicas across AZs; requires at least one replica per shard.
@@ -117,6 +112,11 @@ export class ElastiCacheValkeyClusterStack extends cdk.Stack {
       snapshotRetentionLimit: 0,
     });
     replicationGroup.addDependency(userGroup);
+    // UseOnlineResharding tells CloudFormation to call ModifyReplicationGroupShardConfiguration
+    // instead of replacing the resource when numNodeGroups changes.
+    replicationGroup.cfnOptions.updatePolicy = {
+      useOnlineResharding: true,
+    };
 
     // attrConfigurationEndPointAddress is the single entry point for cluster-mode clients.
     // Unlike non-cluster mode (primary + reader endpoints), the config endpoint routes
@@ -202,4 +202,6 @@ const parameterGroupConfig = {
 
   // Note: appendonly/appendfsync are NOT configurable via ElastiCache parameter groups —
   // the API rejects them with "parameter cannot be modified". AOF is unsupported in ElastiCache.
+
+  'cluster-enabled': 'yes',
 };

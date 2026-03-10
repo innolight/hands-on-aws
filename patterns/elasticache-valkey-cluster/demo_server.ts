@@ -5,9 +5,9 @@ import {getStackOutputs} from '../../utils';
 import {elasticacheValkeyClusterStackName} from './stack';
 
 // Demo server for ElastiCache Valkey cluster (sharded) pattern.
-// Runs on the EC2 bastion — connects directly to the config endpoint from within the VPC.
-// No SSM tunnels or natMap needed: the Cluster client reaches all shard IPs directly,
-// and TLS works without servername override since the connection uses the real ElastiCache hostname.
+// Runs on a dedicated EC2 inside the VPC — connects directly to the config endpoint.
+// No SSM tunnels or natMap needed: the Cluster client reaches all shard nodes directly.
+// dnsLookup passes hostnames through without resolving to IPs, so TLS SNI matches the cert.
 //
 // On the bastion:
 //   aws s3 cp <DemoServerAssetS3Url> /tmp/bundle.zip && unzip /tmp/bundle.zip -d /tmp/demo/
@@ -32,15 +32,18 @@ let cluster: Cluster;
   // Connect via the config endpoint — the Cluster client fetches the full slot map
   // via CLUSTER SLOTS and routes subsequent commands to the correct shard automatically.
   cluster = new Cluster([{host: configEndpoint, port: 6379}], {
+    // dnsLookup overrides
+    // - Without it: dns.lookup() resolves the node hostname to an IP → TCP connects to the IP → TLS has no hostname for SNI → cert validation fails
+    // - With it: hostname passes through unchanged → TLS SNI uses the real hostname → cert matches → validation succeeds
+    dnsLookup: (address, callback) => callback(null, address),
     redisOptions: {
       // username & password required for RBAC
       username: 'appuser', password, 
-      // tls is required when transitEncryptionEnabled = true
       // tls: {} uses Node's default CA store, which trusts AWS's cert.
-      // Add servername if connecting via a local tunnel with a mismatched hostname.
-      tls: {}, 
-      // How long the client will wait before killing a socket due to inactivity.
-      connectTimeout: 5000,
+      tls: {},
+      socketTimeout: 1000,
+      commandTimeout: 1000,
+      connectTimeout: 2000,
       // Max reconnection retry attempts due to lost connection. Default 20 can cause long hangs during outages.
       // Tune together with retryDelayOnFailover to cover failover scenarios without downtime.
       maxRetriesPerRequest: 2,

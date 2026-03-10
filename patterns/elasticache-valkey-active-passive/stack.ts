@@ -102,7 +102,7 @@ export class ElastiCacheValkeyStack extends cdk.Stack {
       engineVersion: '8.2', // To use version 9 when available, which improve reliability during resharding scenario.
       cacheNodeType: 'cache.t4g.micro',
       // clusterMode: 'disabled' — all 16383 hash slots owned by one primary (non-cluster mode).
-      // numCacheClusters controls primary + replica count; numNodeGroups is not used.
+      // numCacheClusters controls primary + replica count; numNodeGroups must not be used.
       clusterMode: 'disabled',
       // Start at minNodes; autoscaling adjusts replica count from there.
       numCacheClusters: minNodes,

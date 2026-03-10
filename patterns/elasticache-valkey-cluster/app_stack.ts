@@ -25,7 +25,7 @@ export class ElastiCacheValkeyClusterAppStack extends cdk.Stack {
     // Outbound is restricted to what the demo server actually needs.
     const demoServerSG = new ec2.SecurityGroup(this, 'DemoServerSG', {
       vpc: props.vpc,
-      description: 'Demo server — no inbound; outbound to ElastiCache and AWS APIs only',
+      description: 'Demo server - no inbound; outbound to ElastiCache and AWS APIs only',
       allowAllOutbound: false,
     });
     // Reach all shard primaries and replicas via the Valkey port.
@@ -79,8 +79,8 @@ export class ElastiCacheValkeyClusterAppStack extends cdk.Stack {
     });
 
     // All three grants target demoServerRole, which lives in this stack — no cross-stack IAM cycle.
-    demoServerAsset.grantRead(demoServerRole);
-    props.appUserSecret.grantRead(demoServerRole);
+    demoServerAsset.grantRead(demoServerRole); // server can read S3
+    props.appUserSecret.grantRead(demoServerRole); // server can get password from Secrets Manager
     demoServerRole.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ['cloudformation:DescribeStacks'],
       resources: ['*'],
