@@ -3,6 +3,7 @@ import {Construct} from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elasticache from 'aws-cdk-lib/aws-elasticache';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as appscaling from 'aws-cdk-lib/aws-applicationautoscaling';
 
 export const elasticacheValkeyActivePassiveStackName = 'ElastiCacheValkeyActivePassive';
 
@@ -16,10 +17,13 @@ export class ElastiCacheValkeyStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ElastiCacheValkeyStackProps) {
     super(scope, id, props);
 
-    // nodes = 1 → single node, no HA
-    // nodes > 1 → primary + (N-1) replicas
-    const nodes = Number(this.node.tryGetContext('nodes') || '2');
-    const hasReplicas = nodes > 1;
+    // minNodes = 1 → single node, no HA; minNodes > 1 → primary + (N-1) replicas
+    // minNodes === maxNodes → fixed size; minNodes < maxNodes → Application Auto Scaling manages replicas
+    const minNodes = Number(this.node.tryGetContext('minNodes') || '1');
+    const maxNodes = Number(this.node.tryGetContext('maxNodes') || String(minNodes));
+    const autoscalingEnabled = minNodes !== maxNodes;
+    // Multi-AZ + automatic failover needed even at minNodes=1 when autoscaling may add replicas.
+    const hasReplicas = maxNodes > 1;
 
     // Cache only accepts connections from the bastion on the Valkey port.
     const cacheSG = new ec2.SecurityGroup(this, 'CacheSG', {
@@ -91,14 +95,16 @@ export class ElastiCacheValkeyStack extends cdk.Stack {
     // does not support transitEncryptionEnabled, which is required for RBAC.
     // numCacheClusters=1 with automaticFailoverEnabled=false → single primary, no replica.
     const replicationGroup = new elasticache.CfnReplicationGroup(this, 'ReplicationGroup', {
-      replicationGroupId: `valkey-cluster-demo-${nodes}-nodes`,
-      replicationGroupDescription: `Valkey ${nodes}-node replication group`,
+      // Stable ID — avoids replacement when node count changes via autoscaling.
+      replicationGroupId: 'valkey-ap-demo',
+      replicationGroupDescription: 'Valkey active-passive replication group',
       engine: 'valkey',
       engineVersion: '8.0',
       cacheNodeType: 'cache.t4g.micro',
-      numCacheClusters: nodes,
+      // Start at minNodes; autoscaling adjusts replica count from there.
+      numCacheClusters: minNodes,
       automaticFailoverEnabled: hasReplicas,
-      // Multi-AZ requires automatic failover and at least 2 replicas.
+      // Multi-AZ requires automatic failover and at least 2 total nodes.
       multiAzEnabled: hasReplicas,
       cacheSubnetGroupName: subnetGroup.ref,
       cacheParameterGroupName: paramGroup.ref,
@@ -112,18 +118,44 @@ export class ElastiCacheValkeyStack extends cdk.Stack {
     });
     replicationGroup.addDependency(userGroup);
 
+    if (autoscalingEnabled) {
+      // elasticache:replication-group:Replicas counts replicas only (excludes primary).
+      // minNodes=2 → minCapacity=1 replica; maxNodes=5 → maxCapacity=4 replicas.
+      const target = new appscaling.ScalableTarget(this, 'ReplicaTarget', {
+        serviceNamespace: appscaling.ServiceNamespace.ELASTICACHE,
+        scalableDimension: 'elasticache:replication-group:Replicas',
+        resourceId: `replication-group/${replicationGroup.ref}`,
+        minCapacity: minNodes - 1,
+        maxCapacity: maxNodes - 1,
+      });
+
+      // Scale replicas when average CPU across all replicas exceeds 60%.
+      // ELASTICACHE_REPLICA_ENGINE_CPU_UTILIZATION tracks replica nodes only,
+      // avoiding primary CPU (which handles writes) from skewing the signal.
+      target.scaleToTrackMetric('ReplicaCPUTracking', {
+        targetValue: 60,
+        predefinedMetric: appscaling.PredefinedMetric.ELASTICACHE_REPLICA_ENGINE_CPU_UTILIZATION,
+      });
+    }
+
     new cdk.CfnOutput(this, 'ValkeyPrimaryEndpoint', {
       value: replicationGroup.attrPrimaryEndPointAddress,
     });
-    // When nodes=1, the reader endpoint resolves to the same node as primary.
+    // When minNodes=1 and autoscaling is off, reader endpoint resolves to the same node as primary.
     new cdk.CfnOutput(this, 'ValkeyReaderEndpoint', {
       value: replicationGroup.attrReaderEndPointAddress,
     });
     new cdk.CfnOutput(this, 'ValkeyPort', {
       value: replicationGroup.attrPrimaryEndPointPort,
     });
-    new cdk.CfnOutput(this, 'NodeCount', {
-      value: String(nodes),
+    new cdk.CfnOutput(this, 'MinNodes', {
+      value: String(minNodes),
+    });
+    new cdk.CfnOutput(this, 'MaxNodes', {
+      value: String(maxNodes),
+    });
+    new cdk.CfnOutput(this, 'AutoScalingEnabled', {
+      value: String(autoscalingEnabled),
     });
     new cdk.CfnOutput(this, 'ValkeySecretArn', {
       value: appUserSecret.secretArn,

@@ -1,0 +1,263 @@
+Bundling asset S3LambdaRekognitionDynamodb/ImageProcessor/Code/Stage...
+
+  ...2185f5ad5db2119b499148ba0a25606d922c41d248011b64-building/index.js  2.4kb
+
+⚡ Done in 8ms
+[WARNING] aws-cdk-lib.aws_dynamodb.TableGrantsProps#encryptedResource is deprecated.
+  - Leave this field undefined. If the table is encrypted with a customer-managed KMS key, appropriate
+grants to the key will be automatically added.
+  This API will be removed in the next major release.
+[WARNING] aws-cdk-lib.aws_dynamodb.TableGrantsProps#policyResource is deprecated.
+  - Leave this field undefined. A best-effort attempt will be made to discover a resource policy and add
+permissions to it.
+  This API will be removed in the next major release.
+Bundling asset DynamoDBLambda/StreamProcessor/Code/Stage...
+
+  ...f266481132e830e26698ce216bfd7dba32c4c1f6116adb65-building/index.js  2.2kb
+
+⚡ Done in 2ms
+[WARNING] aws-cdk-lib.aws_iam.GrantOnPrincipalOptions#scope is deprecated.
+  The scope argument is currently unused.
+  This API will be removed in the next major release.
+[WARNING] aws-cdk-lib.aws_dynamodb.TableOptionsV2#pointInTimeRecovery is deprecated.
+  use `pointInTimeRecoverySpecification` instead
+  This API will be removed in the next major release.
+[WARNING] aws-cdk-lib.aws_dynamodb.TableGrantsProps#encryptedResource is deprecated.
+  - Leave this field undefined. If the table is encrypted with a customer-managed KMS key, appropriate
+grants to the key will be automatically added.
+  This API will be removed in the next major release.
+[WARNING] aws-cdk-lib.aws_dynamodb.TableGrantsProps#policyResource is deprecated.
+  - Leave this field undefined. A best-effort attempt will be made to discover a resource policy and add
+permissions to it.
+  This API will be removed in the next major release.
+Bundling asset ElastiCacheValkeyCluster/DemoServerAsset/Stage...
+
+  ...98a667b795cb614292d85248a27e30852c434a5-building/demo_server.js  56.2mb ⚠️
+
+⚡ Done in 1709ms
+Resources:
+  CacheSGD31B448D:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ElastiCache security group
+      SecurityGroupEgress:
+        - CidrIp: 255.255.255.255/32
+          Description: Disallow all traffic
+          FromPort: 252
+          IpProtocol: icmp
+          ToPort: 86
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/CacheSG/Resource
+  CacheSGfromSsmBastionBastionSG22FCCA7263799C497867:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Valkey from bastion
+      FromPort: 6379
+      GroupId:
+        Fn::GetAtt:
+          - CacheSGD31B448D
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::ImportValue: SsmBastion:ExportsOutputFnGetAttBastionSGEBD2A3B1GroupId0BE655F5
+      ToPort: 6379
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/CacheSG/from SsmBastionBastionSG22FCCA72:6379
+  SubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: Private isolated subnets for ElastiCache
+      SubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/SubnetGroup
+  DefaultUserSecret87579512:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      GenerateSecretString:
+        ExcludePunctuation: true
+        PasswordLength: 32
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/DefaultUserSecret/Resource
+  DefaultUser:
+    Type: AWS::ElastiCache::User
+    Properties:
+      AccessString: off ~* -@all
+      Engine: valkey
+      Passwords:
+        - Fn::Join:
+            - ""
+            - - "{{resolve:secretsmanager:"
+              - Ref: DefaultUserSecret87579512
+              - :SecretString:::}}
+      UserId: valkey-default
+      UserName: default
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/DefaultUser
+  ValkeySecret2AE7188E:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Valkey RBAC password for appuser
+      GenerateSecretString:
+        ExcludePunctuation: true
+        PasswordLength: 32
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/ValkeySecret/Resource
+  AppUser:
+    Type: AWS::ElastiCache::User
+    Properties:
+      AccessString: on ~* +@all
+      Engine: valkey
+      Passwords:
+        - Fn::Join:
+            - ""
+            - - "{{resolve:secretsmanager:"
+              - Ref: ValkeySecret2AE7188E
+              - :SecretString:::}}
+      UserId: valkey-appuser
+      UserName: appuser
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/AppUser
+  UserGroup:
+    Type: AWS::ElastiCache::UserGroup
+    Properties:
+      Engine: valkey
+      UserGroupId: valkey-usergroup
+      UserIds:
+        - Ref: DefaultUser
+        - Ref: AppUser
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/UserGroup
+  ParamGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Properties:
+      CacheParameterGroupFamily: valkey8
+      Description: Valkey tuning
+      Properties:
+        maxmemory-policy: allkeys-lru
+        maxmemory-samples: "5"
+        lfu-decay-time: "1"
+        activedefrag: "no"
+        timeout: "0"
+        slowlog-log-slower-than: "5000"
+        slowlog-max-len: "128"
+        repl-backlog-size: "10485760"
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/ParamGroup
+  ReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      AtRestEncryptionEnabled: true
+      AutomaticFailoverEnabled: true
+      CacheNodeType: cache.t4g.micro
+      CacheParameterGroupName:
+        Ref: ParamGroup
+      CacheSubnetGroupName:
+        Ref: SubnetGroup
+      Engine: valkey
+      EngineVersion: "8.0"
+      MultiAZEnabled: true
+      NumCacheClusters: 2
+      ReplicationGroupDescription: Valkey active-passive replication group
+      ReplicationGroupId: valkey-ap-demo
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - CacheSGD31B448D
+            - GroupId
+      SnapshotRetentionLimit: 0
+      TransitEncryptionEnabled: true
+      UserGroupIds:
+        - Ref: UserGroup
+    DependsOn:
+      - UserGroup
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/ReplicationGroup
+  ReplicaTargetRoleF5BB5369:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: application-autoscaling.amazonaws.com
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/ReplicaTarget/Role/Resource
+  ReplicaTarget9C4BC959:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 3
+      MinCapacity: 1
+      ResourceId:
+        Fn::Join:
+          - ""
+          - - replication-group/
+            - Ref: ReplicationGroup
+      RoleARN:
+        Fn::GetAtt:
+          - ReplicaTargetRoleF5BB5369
+          - Arn
+      ScalableDimension: elasticache:replication-group:Replicas
+      ServiceNamespace: elasticache
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/ReplicaTarget/Resource
+  ReplicaTargetReplicaCPUTracking9BB4AE02:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: ElastiCacheValkeyActivePassiveReplicaTargetReplicaCPUTracking45C26A60
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: ReplicaTarget9C4BC959
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ElastiCacheReplicaEngineCPUUtilization
+        TargetValue: 60
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/ReplicaTarget/ReplicaCPUTracking/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/7WTwWobMRCGnyU6BnkbTOjBNzeFEmgbY7u9mFDGo/FGsVYSI8mOEXr3ol2vG5NzTyM+5h/N/CNNm+n9XXN3A8cwQbWfGL1t8ioC7iUcw59MOG3yijCxjqdv7JLfZHHwKGbiVkihKCBrH7WzZwLGuOPcmKcUty5ZJWY7MIGKzAKUerQtUwjLZEjMNlWQixS34rk8y4edvbroAziLiyQDIWoEfKEm16y0tRQvol+BeIwXuACGjuI7siRvNELtvWdFBkKmGDqw0BL3czPFTRYtWWKINIBVZG1bMcuC3tAkRYtkMSYYXIicSAoPIRwdq+9k2/jSe1OkYOrcAczCGY0nMav2RXYnUd35aOV/v3X0nCkWCf5iB6ToAoLRtm3yCsHA1tAauO3NCMQHjfQTOgoekMRMvFuIkCKcFV91Rzb8m4cpuMRIj+oMOm0fwAPqeBoJvF2RakwtR2u3ZsD9D4qscXw6IvY9/QaT6FzAMynaaUtqTK1Vxud1NYocQl9X23Y1DDy4NGZfQJEauiYvnaFNFhBC6kh9OdV1eNYWtQczR3TJxvEj9DlVMMfLUsvQSKWl1NNTij7FIq1T1LyGT4fpffO5ubt5DVpPONmoO2qWQ/wLdDasoqwDAAA=
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyActivePassive/CDKMetadata/Default
+Outputs:
+  ValkeyPrimaryEndpoint:
+    Value:
+      Fn::GetAtt:
+        - ReplicationGroup
+        - PrimaryEndPoint.Address
+  ValkeyReaderEndpoint:
+    Value:
+      Fn::GetAtt:
+        - ReplicationGroup
+        - ReaderEndPoint.Address
+  ValkeyPort:
+    Value:
+      Fn::GetAtt:
+        - ReplicationGroup
+        - PrimaryEndPoint.Port
+  MinNodes:
+    Value: "2"
+  MaxNodes:
+    Value: "4"
+  AutoScalingEnabled:
+    Value: "true"
+  ValkeySecretArn:
+    Value:
+      Ref: ValkeySecret2AE7188E
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
+17 feature flags are not configured. Run 'cdk flags --unstable=flags' to learn more.
