@@ -27,6 +27,7 @@ Datastore / Dynamdob:
 
 Datastore / Elasticache:
 - [x] [`elasticache-valkey-active-passive`](./patterns/elasticache-valkey-active-passive): ElastiCache Valkey replication group (1 primary + N replicas), RBAC, TLS, SSM port forwarding via ssm-bastion
+- [x] [`elasticache-valkey-cluster`](./patterns/elasticache-valkey-cluster): ElastiCache Valkey cluster mode (N shards × M replicas), hash-slot distribution  with consistent hashing
 
 
 Datastore / RDS & Aurora:
