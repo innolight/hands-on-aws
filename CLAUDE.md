@@ -43,7 +43,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 **Multi-step patterns:** Some patterns require deploying stacks in a specific order across regions (e.g., `s3-cross-region-replication` deploys a destination bucket to `eu-west-1` first, then a source bucket to the default region).
 
 **README.md structure** — each pattern README should follow this order:
-1. **Pattern Description** — bullet list of components and data flow; link each AWS service/concept to its official docs
+1. **Pattern Description** — ASCII architecture diagram followed by a bullet list of components and data flow; link each AWS service/concept to its official docs
 2. **Cost** — table with columns: Resource | Idle | ~N unit/month | Cost driver; include region and workload assumption in the header; state the dominant cost driver
 3. **Notes** — non-obvious decisions, production caveats, alternatives considered
 4. **Commands to play with stack** — deploy, interact (upload/query/etc.), observe (logs), destroy, and `cdk synth` to capture CloudFormation yaml

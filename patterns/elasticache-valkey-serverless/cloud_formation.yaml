@@ -1,0 +1,152 @@
+Resources:
+  CacheSGD31B448D:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ElastiCache serverless security group
+      SecurityGroupEgress:
+        - CidrIp: 255.255.255.255/32
+          Description: Disallow all traffic
+          FromPort: 252
+          IpProtocol: icmp
+          ToPort: 86
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyServerless/CacheSG/Resource
+  DefaultUserSecret87579512:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      GenerateSecretString:
+        ExcludePunctuation: true
+        PasswordLength: 32
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyServerless/DefaultUserSecret/Resource
+  DefaultUser:
+    Type: AWS::ElastiCache::User
+    Properties:
+      AccessString: off ~* -@all
+      Engine: valkey
+      Passwords:
+        - Fn::Join:
+            - ""
+            - - "{{resolve:secretsmanager:"
+              - Ref: DefaultUserSecret87579512
+              - :SecretString:::}}
+      UserId: valkey-serverless-default
+      UserName: default
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyServerless/DefaultUser
+  ValkeySecret2AE7188E:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Valkey RBAC password for appuser
+      GenerateSecretString:
+        ExcludePunctuation: true
+        PasswordLength: 32
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyServerless/ValkeySecret/Resource
+  AppUser:
+    Type: AWS::ElastiCache::User
+    Properties:
+      AccessString: on ~* +@all
+      Engine: valkey
+      Passwords:
+        - Fn::Join:
+            - ""
+            - - "{{resolve:secretsmanager:"
+              - Ref: ValkeySecret2AE7188E
+              - :SecretString:::}}
+      UserId: valkey-serverless-appuser
+      UserName: appuser
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyServerless/AppUser
+  UserGroup:
+    Type: AWS::ElastiCache::UserGroup
+    Properties:
+      Engine: valkey
+      UserGroupId: valkey-serverless-usergroup
+      UserIds:
+        - Ref: DefaultUser
+        - Ref: AppUser
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyServerless/UserGroup
+  ServerlessCache:
+    Type: AWS::ElastiCache::ServerlessCache
+    Properties:
+      CacheUsageLimits:
+        DataStorage:
+          Maximum: 1
+          Unit: GB
+        ECPUPerSecond:
+          Maximum: 5000
+          Minimum: 1000
+      Engine: valkey
+      MajorEngineVersion: "8"
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - CacheSGD31B448D
+            - GroupId
+      ServerlessCacheName: valkey-serverless
+      SnapshotRetentionLimit: 0
+      SubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+      UserGroupId:
+        Ref: UserGroup
+    DependsOn:
+      - UserGroup
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyServerless/ServerlessCache
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/7WQMWvDMBSEf0s0FkU1JnTwVjJ0KSQ0dAqlvMgvjhJFMu892Q1C/70kTodC104HH8fdcbWpF5WpZjDy3LanuXc7kzcC9qRh5M+MtjZ5gzaRk8sLxdRvsxp6qxr1oLRqkS25XlwMdwLex/HZ+1WSXUyhVc0ePGP50Mt9+BVUNKMlFD5DgA7p1kMo26w6DEggOIGNkAudarLCL+tTi+sUrCSYWoUSatUD8xipfcXQyeG2pWhFeI4D+HX0zl5Uc50rFC+q6PzH9H9v/fmAUIpGDyzOgj2gyct9eGckfdfbP5OZBiSPzMursZQrXCXpkxQdYovmyI9DvTBPppod2bk5pSDujOZt0m8iGv/y4AEAAA==
+    Metadata:
+      aws:cdk:path: ElastiCacheValkeyServerless/CDKMetadata/Default
+Outputs:
+  ValkeyEndpoint:
+    Value:
+      Fn::GetAtt:
+        - ServerlessCache
+        - Endpoint.Address
+  ValkeyReaderEndpoint:
+    Value:
+      Fn::GetAtt:
+        - ServerlessCache
+        - ReaderEndpoint.Address
+  ValkeyPort:
+    Value:
+      Fn::GetAtt:
+        - ServerlessCache
+        - Endpoint.Port
+  ValkeyReaderPort:
+    Value:
+      Fn::GetAtt:
+        - ServerlessCache
+        - ReaderEndpoint.Port
+  ValkeySecretArn:
+    Value:
+      Ref: ValkeySecret2AE7188E
+  ExportsOutputFnGetAttCacheSGD31B448DGroupId8EFEF3E1:
+    Value:
+      Fn::GetAtt:
+        - CacheSGD31B448D
+        - GroupId
+    Export:
+      Name: ElastiCacheValkeyServerless:ExportsOutputFnGetAttCacheSGD31B448DGroupId8EFEF3E1
+  ExportsOutputRefValkeySecret2AE7188E3DAD6B26:
+    Value:
+      Ref: ValkeySecret2AE7188E
+    Export:
+      Name: ElastiCacheValkeyServerless:ExportsOutputRefValkeySecret2AE7188E3DAD6B26
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
