@@ -18,6 +18,8 @@ import {S3TablesLakeFormationSetupStack, s3TablesLakeFormationSetupStackName} fr
 import {ElastiCacheValkeyStack, elasticacheValkeyActivePassiveStackName} from '../patterns/elasticache-valkey-active-passive/stack';
 import {ElastiCacheValkeyClusterStack, elasticacheValkeyClusterStackName} from '../patterns/elasticache-valkey-cluster/stack';
 import {ElastiCacheValkeyClusterAppStack, elasticacheValkeyClusterAppStackName} from '../patterns/elasticache-valkey-cluster/app_stack';
+import {ElastiCacheValkeyServerlessStack, elasticacheValkeyServerlessStackName} from '../patterns/elasticache-valkey-serverless/stack';
+import {ElastiCacheValkeyServerlessAppStack, elasticacheValkeyServerlessAppStackName} from '../patterns/elasticache-valkey-serverless/app_stack';
 import {VpcSubnetsStack, vpcSubnetsStackName} from '../patterns/vpc-subnets/stack';
 import {SsmBastionStack, ssmBastionStackName} from '../patterns/ssm-bastion/stack';
 
@@ -112,4 +114,16 @@ new ElastiCacheValkeyClusterAppStack(app, elasticacheValkeyClusterAppStackName, 
   vpc: vpcStack.vpc,
   cacheSG: clusterStack.cacheSG,
   appUserSecret: clusterStack.appUserSecret,
+});
+
+const serverlessStack = new ElastiCacheValkeyServerlessStack(app, elasticacheValkeyServerlessStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+});
+
+new ElastiCacheValkeyServerlessAppStack(app, elasticacheValkeyServerlessAppStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  cacheSG: serverlessStack.cacheSG,
+  appUserSecret: serverlessStack.appUserSecret,
 });
