@@ -37,7 +37,17 @@ Datastore / RDS & Aurora:
 - [ ] `rds-proxy`: RDS proxy in front of RDS
 
 Datastore / OpenSearch:
-- [ ] TBD
+- [ ] `opensearch-provisioned`: Managed OpenSearch domain — parameterized from single-node dev to Multi-AZ production (node count, AZ, dedicated masters)
+- [ ] `opensearch-serverless`: OpenSearch Serverless collection with OCU-based billing, zero capacity management
+
+Messaging & Event-Driven:
+- [ ] `sqs-lambda`: SQS → Lambda with DLQ and batch processing
+- [ ] `step-functions-workflow`: Step Functions orchestrating multiple Lambdas (validate → process → notify), error handling & retries
+- [ ] `eventbridge-sns-fanout`: EventBridge rule with content filtering → SNS → multiple SQS subscribers
+
+API & Auth:
+- [ ] `apigw-lambda-cognito`: API Gateway REST API + Lambda + Cognito User Pool authorizer
+- [ ] `apigw-websocket`: API Gateway WebSocket API + Lambda + DynamoDB connection tracking
 
 Infrastructures / Containers on AWS:
 - [ ] [`elastic-container-registry`](./patterns/containers/elastic-container-registry): ECR repository provisioning, Docker image build & push
@@ -58,6 +68,7 @@ Infrastructures:
 - [ ] `waf-shield-ddos-protection`: AWS WAF + Shield for DDoS protection on CloudFront
 - [ ] `sagemaker-pipeline`: Building an end-to-end ML pipeline with AWS SageMaker and CDK
 - [ ] `glue-etl-job`: AWS Glue ETL job that processes and transforms data in S3 to different format
+- [ ] `vpc-endpoints-privatelink`: VPC Gateway endpoints (S3, DynamoDB) + Interface endpoints (SQS, Secrets Manager)
 
 ## Development
 

@@ -34,9 +34,10 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 
 **Pattern structure:** Each pattern lives in `patterns/<pattern-name>/` and typically contains:
 - `stack.ts` (or `stack_step*.ts` for multi-step patterns) — the CDK Stack class
+- `stack.test.ts` unit test for stack, focusing on testing key design decision
 - `README.md` — pattern-specific notes
 - `cloud_formation.yaml` (or `cloud_formation_step*.yaml`) — synthesized CloudFormation output
-- Optionally: `demo_server.ts` (Express server to demo the pattern) and `demo_requests.http`
+- Optionally: `demo_server.ts` (Express server to demo the pattern)
 
 **Utils:** `utils/stackoutput.ts` exports `getStackOutputs(stackName)`, which uses the CloudFormation SDK to retrieve stack outputs by name. Demo servers use this to discover resource names/ARNs at runtime without hardcoding them.
 
@@ -46,7 +47,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 1. **Pattern Description** — ASCII architecture diagram followed by a bullet list of components and data flow; link each AWS service/concept to its official docs
 2. **Cost** — table with columns: Resource | Idle | ~N unit/month | Cost driver; include region and workload assumption in the header; state the dominant cost driver
 3. **Notes** — non-obvious decisions, production caveats, alternatives considered
-4. **Commands to play with stack** — deploy, interact (upload/query/etc.), observe (logs), destroy, and `cdk synth` to capture CloudFormation yaml
+4. **Commands to play with stack** — deploy, interact (start demo server, curl commands to play with demo_server.ts), observe (logs), destroy, and `cdk synth` to capture CloudFormation yaml
 
 **stack.ts commenting conventions** — comments are educational, not decorative. Each comment should teach something a reader couldn't immediately infer from the code:
 
