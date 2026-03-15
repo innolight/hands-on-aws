@@ -17,13 +17,11 @@ Datastore / S3:
 - [x] [`s3-vectors-bucket`](./patterns/s3-vectors-bucket/): S3 Vector Bucket + Index for similarity search on food reviews
 - [ ] `s3-serverless-data-lake`: S3 (Storage) → AWS Glue (Data Catalog/Crawler) → Amazon Athena (Query Engine)
 
-Datastore / Dynamdob:
+Datastore / Dynamodb:
 - [x] [`dynamodb-global-database`](./patterns/dynamodb-global-database/): Dynamodb Global Database (multi-write architecture)
-- [ ] `dynamodb-to-s3-zero-etl`: Dynamodb → S3 with Zero-ETL
-- [ ] `dynamodb-kinesis-s3`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → S3 | AWS OpenSearch
 - [x] [`dynamodb-stream-lambda`](./patterns/dynamodb-stream-lambda): Dynamodb → Dynamodb Stream → Lambda
-- [ ] `dynamodb-behind-api-gateway`: API Gateway → Dynamodb
-- [ ] `dynamodb-behind-alb`: Application Load Balancer (API) → Dynamodb
+- [ ] `dynamodb-to-s3-zero-etl`: Dynamodb → S3 with Zero-ETL
+- [ ] `dynamodb-kinesis-opensearch`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → S3 | AWS OpenSearch
 
 Datastore / Elasticache:
 - [x] [`elasticache-valkey-active-passive`](./patterns/elasticache-valkey-active-passive): ElastiCache Valkey replication group (1 primary + N replicas), RBAC, TLS, SSM port forwarding via ssm-bastion
@@ -33,7 +31,7 @@ Datastore / Elasticache:
 
 Datastore / RDS & Aurora:
 - [ ] `rds-backup-and-recovery`: Set up automated backups and point-in-time recovery for RDS
-- [ ] `rds-two-readable-standbys`: Multi-AZ deployment of RDS with 2 readable standby instance
+- [ ] `rds-readable-standbys`: Multi-AZ deployment of RDS with 2 readable standby instance
 - [ ] `rds-aurora-cross-region-replication`: RDS Aurora Cross-Region replication + Write Forwarding
 - [ ] `rds-aurora-serverless-v2`: Deploying Aurora Serverless v2 with autoscaling
 - [ ] `rds-proxy`: RDS proxy in front of RDS
@@ -41,11 +39,20 @@ Datastore / RDS & Aurora:
 Datastore / OpenSearch:
 - [ ] TBD
 
+Infrastructures / Containers on AWS:
+- [ ] [`elastic-container-registry`](./patterns/containers/elastic-container-registry): ECR repository provisioning, Docker image build & push
+- [ ] [`app-runner`](./patterns/containers/app-runner): App Runner — fully managed, source-to-URL container hosting
+- [ ] [`ecs-fargate-alb`](./patterns/containers/ecs-fargate-alb): ECS Fargate + ALB — serverless containers behind Application Load Balancer
+- [ ] [`ecs-fargate-apigw`](./patterns/containers/ecs-fargate-apigw): ECS Fargate + API Gateway HTTP API + VPC Link
+- [ ] [`ecs-ec2-alb`](./patterns/containers/ecs-ec2-alb): ECS on EC2 (Spot) + ALB — self-managed container instances behind load balancer
+- [ ] [`lambda-container`](./patterns/containers/lambda-container): Lambda container image + Function URL — serverless per-request execution
+- [ ] [`one-ec2`](./patterns/containers/one-ec2): Single EC2 instance running Docker, public-facing
+- [ ] [`ec2s-behind-alb`](./patterns/containers/ec2s-behind-alb): Auto Scaling Group of EC2s running Docker behind ALB
+- [ ] [`eks-fargate`](./patterns/containers/eks-fargate): EKS Fargate — Kubernetes control plane + serverless pods, no node management
+
 Infrastructures:
 - [x] [`vpc-subnets`](./patterns/vpc-subnets): VPC with 3-tier subnet layout (public / private / isolated) across 3 AZs, configurable NAT Gateways
 - [x] [`ssm-bastion`](./patterns/ssm-bastion): EC2 bastion accessible via SSM Session Manager (no SSH, no inbound rules) — used for port forwarding to isolated resources
-- [ ] `ecs-on-fargate`: deployment of Elastic Container Service (container orchestration platform from Amazon)
-- [ ] `eks`: Deployment of container to Kubernetes cluster using EKS (Elastic Kubernetes Service)
 - [ ] `event-bridge-lambda-job`: Lightweight job with event bridge triggering lambda function using cron schedule  
 - [ ] `msk-lambda`: Kafka cluster setup via Amazon Managed Streaming for Kafka (MSK), Lambda consumer
 - [ ] `waf-shield-ddos-protection`: AWS WAF + Shield for DDoS protection on CloudFront
