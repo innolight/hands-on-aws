@@ -1,0 +1,53 @@
+Resources:
+  Repository22E53BBD:
+    Type: AWS::ECR::Repository
+    Properties:
+      EmptyOnDelete: true
+      LifecyclePolicy:
+        LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Expire untagged images after 1 day","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countNumber":1,"countUnit":"days"},"action":{"type":"expire"}}]}'
+      RepositoryName: hands-on-containers
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: ElasticContainerRegistryStack/Repository/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/6WQzWrDMBCEnyV7DLJqTOjBt9JeAqUJzjGYspU2Qol+jLRKYozfvaQpbe89DQMz38A0slnVsl7gJVdKnypnP+S0Y1QngZf8TirJqaMhZssxjfsJ0o95Q0/QwhIEJPLxjG4bnVUjtKApc4ojCCA/8LgJL+SICVpOhQQ4eyA1KkddcZSh3U+3hkp2YBvDN5PR7Bi5ZGihBEZjSIMAj9e1R0NP5j4+97OYALV+/Qv9J1N8pZfQz714PoTfA+ab3RQeCs8iRE3ymB/OzUo+ynpxzNZWqQS2nmR3108/hmgbYAEAAA==
+    Metadata:
+      aws:cdk:path: ElasticContainerRegistryStack/CDKMetadata/Default
+Outputs:
+  RepositoryUri:
+    Value:
+      Fn::Join:
+        - ""
+        - - Fn::Select:
+              - 4
+              - Fn::Split:
+                  - ":"
+                  - Fn::GetAtt:
+                      - Repository22E53BBD
+                      - Arn
+          - .dkr.ecr.
+          - Fn::Select:
+              - 3
+              - Fn::Split:
+                  - ":"
+                  - Fn::GetAtt:
+                      - Repository22E53BBD
+                      - Arn
+          - "."
+          - Ref: AWS::URLSuffix
+          - /
+          - Ref: Repository22E53BBD
+  RepositoryName:
+    Value:
+      Ref: Repository22E53BBD
+  ApiKeyParameterName:
+    Value: /hands-on-aws/containers/api-key
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

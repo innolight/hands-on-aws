@@ -1,0 +1,113 @@
+# Containers on AWS
+
+Multiple ways to run the same containerized API on AWS — each pattern showcases a different compute and networking model, from single EC2 instance to managed Kubernetes.
+
+## Shared Container
+
+All patterns run the same Docker image: a simple Express API with two endpoints:
+
+- `GET /health` — unauthenticated health check (required by ALB/App Runner target group checks)
+- `GET /quote` — returns a famous quote, principle, or law from computer science (API-key protected)
+
+The image is built once and stored in ECR via the `elastic-container-registry` pattern. All other patterns reference the image URI from that stack's outputs.
+
+## Pattern Comparison
+
+| Pattern | Compute | Networking | Scale-to-zero | Idle cost | Ops burden | CDK complexity |
+|---|---|---|---|---|---|---|
+| `app-runner` | App Runner | Built-in HTTPS | Pause only | ~$5/mo | Lowest | Low |
+| `ecs-fargate-alb` | ECS Fargate | ALB | No | ~$20/mo | Low | Medium |
+| `ecs-fargate-apigw` | ECS Fargate | API GW + VPC Link | Yes* | ~$0* | Medium | High |
+| `ecs-ec2-alb` | ECS on EC2 (Spot) | ALB | No | ~$20/mo | Medium | High |
+| `lambda-container` | Lambda | Function URL | Yes | ~$0 | Low | Medium |
+| `one-ec2` | Single EC2 + Docker | Public IP | No | ~$4/mo | High | Low |
+| `ec2s-behind-alb` | ASG of EC2s + Docker | ALB | No | ~$20/mo | High | Medium |
+| `eks-fargate` | EKS + Fargate pods | K8s Ingress/ALB | No | ~$80/mo† | High | High |
+
+\* `ecs-fargate-apigw` can scale Fargate to 0 tasks, but API Gateway HTTP API itself has no idle cost.
+
+† `eks-fargate` idle cost: $73/mo EKS control plane ($0.10/hr) + CoreDNS pods on Fargate (~$7/mo). ECS and EKS patterns running tasks in private subnets also require a NAT Gateway (~$32/mo) or VPC endpoints (~$7/mo each) to pull ECR images — not included in the table above.
+
+## Authentication
+
+All 8 compute patterns use the same approach: **application-level API key middleware**.
+
+**How it works:**
+
+1. The `elastic-container-registry` stack creates an [SSM SecureString](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) parameter holding a generated API key
+2. Each compute pattern reads the key from SSM and injects it as the `API_KEY` environment variable into the container
+3. Express middleware checks the `x-api-key` request header against `process.env.API_KEY`
+4. `/health` is excluded from auth so ALB/App Runner health checks pass without credentials
+
+**How the API key reaches the container per pattern:**
+
+| Pattern | Injection mechanism |
+|---|---|
+| `app-runner` | `ImageConfiguration.runtimeEnvironmentSecrets` referencing SSM parameter |
+| `ecs-fargate-alb` | Task definition `secrets` from SSM parameter |
+| `ecs-fargate-apigw` | Task definition `secrets` from SSM parameter |
+| `ecs-ec2-alb` | Task definition `secrets` from SSM parameter |
+| `lambda-container` | Lambda environment variable from SSM parameter |
+| `one-ec2` | EC2 user data script reads SSM parameter, sets env var |
+| `ec2s-behind-alb` | Launch template user data reads SSM parameter, sets env var |
+| `eks-fargate` | Kubernetes Secret sourced from SSM, mounted as env var |
+
+## Project Structure
+
+```
+patterns/containers/
+├── README.md                          ← this file
+├── elastic-container-registry/        ← ECR repo + shared Docker image + SSM API key
+│   ├── stack.ts
+│   ├── example-container/
+│   │   ├── Dockerfile
+│   │   ├── server.ts
+│   │   └── package.json
+│   └── README.md
+├── app-runner/
+│   ├── stack.ts
+│   └── README.md
+├── ecs-fargate-alb/
+│   ├── stack.ts
+│   └── README.md
+├── ecs-fargate-apigw/
+│   ├── stack.ts
+│   └── README.md
+├── ecs-ec2-alb/
+│   ├── stack.ts
+│   └── README.md
+├── lambda-container/
+│   ├── stack.ts
+│   └── README.md
+├── one-ec2/
+│   ├── stack.ts
+│   └── README.md
+├── ec2s-behind-alb/
+│   ├── stack.ts
+│   └── README.md
+└── eks-fargate/
+    ├── stack.ts
+    └── README.md
+```
+
+## Invoking the API
+
+Each pattern outputs its endpoint URL as a `CfnOutput`. Refer to each pattern's own README for detailed invocation examples.
+
+The container can also be run locally:
+
+```bash
+docker run -e API_KEY=your-key -p 3000:3000 <image-uri>
+```
+
+## Deploy Order
+
+Deploy `elastic-container-registry` first — it produces the image URI and SSM API key that all other patterns depend on. After that, any pattern can be deployed independently.
+
+```bash
+npx cdk deploy ElasticContainerRegistryStack
+# then any of:
+npx cdk deploy AppRunnerStack
+npx cdk deploy EcsFargateAlbStack
+# etc.
+```

@@ -22,6 +22,8 @@ import {ElastiCacheValkeyServerlessStack, elasticacheValkeyServerlessStackName} 
 import {ElastiCacheValkeyServerlessAppStack, elasticacheValkeyServerlessAppStackName} from '../patterns/elasticache-valkey-serverless/app_stack';
 import {VpcSubnetsStack, vpcSubnetsStackName} from '../patterns/vpc-subnets/stack';
 import {SsmBastionStack, ssmBastionStackName} from '../patterns/ssm-bastion/stack';
+import {ElasticContainerRegistryStack, elasticContainerRegistryStackName} from '../patterns/containers/elastic-container-registry/stack';
+import {OpenSearchServerlessStack, opensearchServerlessStackName} from '../patterns/opensearch-serverless/stack';
 
 const app = new cdk.App();
 
@@ -126,4 +128,14 @@ new ElastiCacheValkeyServerlessAppStack(app, elasticacheValkeyServerlessAppStack
   vpc: vpcStack.vpc,
   cacheSG: serverlessStack.cacheSG,
   appUserSecret: serverlessStack.appUserSecret,
+});
+
+new ElasticContainerRegistryStack(app, elasticContainerRegistryStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+});
+
+new OpenSearchServerlessStack(app, opensearchServerlessStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  bastionSG: bastionStack.bastionSG,
 });
