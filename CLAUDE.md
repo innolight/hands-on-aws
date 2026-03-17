@@ -34,7 +34,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 
 **Pattern structure:** Each pattern lives in `patterns/<pattern-name>/` and typically contains:
 - `stack.ts` (or `stack_step*.ts` for multi-step patterns) — the CDK Stack class
-- `stack.test.ts` unit test for stack, focusing on testing key design decision
+- `stack.test.ts` unit test for stack — keep tests minimal: assert resource existence and the most critical properties per resource type. Avoid exhaustive property coverage which harms readability; that belongs in integration tests.
 - `README.md` — pattern-specific notes
 - `cloud_formation.yaml` (or `cloud_formation_step*.yaml`) — synthesized CloudFormation output
 - Optionally: `demo_server.ts` (Express server to demo the pattern)
@@ -67,6 +67,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 - Stacks use `removalPolicy: DESTROY` and `autoDeleteObjects: true` for easy cleanup — note these as non-production settings when adding new patterns
 - Stack outputs (`CfnOutput`) are the mechanism for passing resource info to demo servers via `getStackOutputs`
 - Default region is `eu-central-1` (set via `CDK_DEFAULT_REGION`; CDK resolves account/region automatically from the AWS CLI profile)
+- Datastore stacks (e.g., OpenSearch, ElastiCache) must not assume how they will be consumed. They expose security groups and resource identifiers as `public readonly` properties. Consumer/app stacks wire up access (SG ingress, IAM, etc.) separately using L1 `CfnSecurityGroupIngress` to avoid cross-stack mutation. Deploy order: shared infra → datastore → consumer app stacks.
 
 # Behavioural Guideline
 

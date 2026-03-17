@@ -1,0 +1,26 @@
+Resources:
+  VpceAccessPort443:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: HTTPS from bastion (SSM tunnel)
+      FromPort: 443
+      GroupId:
+        Fn::ImportValue: OpenSearchServerless:ExportsOutputFnGetAttVpcEndpointSG69334BC7GroupIdE31C8449
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::ImportValue: SsmBastion:ExportsOutputFnGetAttBastionSGEBD2A3B1GroupId0BE655F5
+      ToPort: 443
+    Metadata:
+      aws:cdk:path: OpenSearchServerlessApp/VpceAccessPort443
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/yXFQQ5AMBAAwLe462oa8QEHceUBUrVki5JuqxHxdwdzGQWqlCAznViYaRUbjfD0QZs114kHNArq2fVooqdwN/6IZ+sWj8xv7o4JwXJxqRIqkJllIuGjC7QjdP8fCapXpmAAAAA=
+    Metadata:
+      aws:cdk:path: OpenSearchServerlessApp/CDKMetadata/Default
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

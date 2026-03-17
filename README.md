@@ -38,7 +38,7 @@ Datastore / RDS & Aurora:
 
 Datastore / OpenSearch:
 - [ ] `opensearch-provisioned`: Managed OpenSearch domain — parameterized from single-node dev to Multi-AZ production (node count, AZ, dedicated masters)
-- [ ] `opensearch-serverless`: OpenSearch Serverless collection with OCU-based billing, zero capacity management
+- [x] [`opensearch-serverless`](./patterns/opensearch-serverless): OpenSearch Serverless collection with OCU-based billing, zero capacity management
 
 Messaging & Event-Driven:
 - [ ] `sqs-lambda`: SQS → Lambda with DLQ and batch processing

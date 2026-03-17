@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template, Match} from 'aws-cdk-lib/assertions';
+import {Template, Match, Annotations} from 'aws-cdk-lib/assertions';
 import {S3TablesLakeFormationSetupStack} from './setup_stack';
 
 describe('S3TablesLakeFormationSetupStack', () => {
@@ -9,50 +9,30 @@ describe('S3TablesLakeFormationSetupStack', () => {
   });
   const template = Template.fromStack(stack);
 
-  test('IAM role for Lake Formation has correct name and trust policy', () => {
+  test('creates IAM role trusted by lakeformation.amazonaws.com with known name', () => {
     template.hasResourceProperties('AWS::IAM::Role', {
       RoleName: 'S3TablesRoleForLakeFormation',
       AssumeRolePolicyDocument: Match.objectLike({
         Statement: Match.arrayWith([
-          Match.objectLike({
-            Principal: {Service: 'lakeformation.amazonaws.com'},
-            Action: 'sts:AssumeRole',
-          }),
+          Match.objectLike({Principal: {Service: 'lakeformation.amazonaws.com'}}),
         ]),
       }),
     });
   });
 
-  test('IAM role has s3tables inline policy', () => {
-    template.hasResourceProperties('AWS::IAM::Role', {
-      Policies: Match.arrayWith([
-        Match.objectLike({
-          PolicyName: 'S3TablesAccess',
-          PolicyDocument: Match.objectLike({
-            Statement: Match.arrayWith([
-              Match.objectLike({
-                Action: 's3tables:ListTableBuckets',
-                Resource: '*',
-              }),
-            ]),
-          }),
-        }),
-      ]),
-    });
-  });
-
-  test('creates 5 custom resources (Lambda bootstrap, LF admin, LF registration, Glue catalog, Principal grants)', () => {
+  test('creates 5 custom resources (Lambda bootstrap, LF admin, LF registration, Glue catalog, principal grants)', () => {
     template.resourceCountIs('Custom::AWS', 5);
   });
 
-  test('throws if lfAdmin context is missing', () => {
+  test('emits error annotation if lfAdmin context is missing', () => {
     const appNoContext = new cdk.App();
-    expect(() => new S3TablesLakeFormationSetupStack(appNoContext, 'NoContextStack', {
+    const missingContextStack = new S3TablesLakeFormationSetupStack(appNoContext, 'NoContextStack', {
       env: {account: '123456789012', region: 'eu-central-1'},
-    })).toThrow(/lfAdmin/);
+    });
+    Annotations.fromStack(missingContextStack).hasError('*', Match.stringLikeRegexp('lfAdmin'));
   });
 
-  test('stack has 2 outputs', () => {
+  test('exposes LakeFormationRoleArn and GlueCatalogName as outputs', () => {
     template.hasOutput('LakeFormationRoleArn', {});
     template.hasOutput('GlueCatalogName', {});
   });

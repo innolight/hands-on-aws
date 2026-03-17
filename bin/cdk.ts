@@ -24,6 +24,7 @@ import {VpcSubnetsStack, vpcSubnetsStackName} from '../patterns/vpc-subnets/stac
 import {SsmBastionStack, ssmBastionStackName} from '../patterns/ssm-bastion/stack';
 import {ElasticContainerRegistryStack, elasticContainerRegistryStackName} from '../patterns/containers/elastic-container-registry/stack';
 import {OpenSearchServerlessStack, opensearchServerlessStackName} from '../patterns/opensearch-serverless/stack';
+import {OpenSearchServerlessAppStack, opensearchServerlessAppStackName} from '../patterns/opensearch-serverless/app_stack';
 
 const app = new cdk.App();
 
@@ -134,8 +135,13 @@ new ElasticContainerRegistryStack(app, elasticContainerRegistryStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
 });
 
-new OpenSearchServerlessStack(app, opensearchServerlessStackName, {
+const ossStack = new OpenSearchServerlessStack(app, opensearchServerlessStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
   vpc: vpcStack.vpc,
+});
+
+new OpenSearchServerlessAppStack(app, opensearchServerlessAppStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
   bastionSG: bastionStack.bastionSG,
+  vpcEndpointSG: ossStack.vpcEndpointSG,
 });

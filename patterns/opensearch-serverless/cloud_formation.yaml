@@ -1,0 +1,107 @@
+Resources:
+  VpcEndpointSG69334BC7:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: OpenSearch Serverless VPC endpoint — inbound rules added by consumer stacks
+      SecurityGroupEgress:
+        - CidrIp: 255.255.255.255/32
+          Description: Disallow all traffic
+          FromPort: 252
+          IpProtocol: icmp
+          ToPort: 86
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: OpenSearchServerless/VpcEndpointSG/Resource
+  EncryptionPolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Name: search-demo-encryption
+      Policy: '{"Rules":[{"ResourceType":"collection","Resource":["collection/search-demo"]}],"AWSOwnedKey":true}'
+      Type: encryption
+    Metadata:
+      aws:cdk:path: OpenSearchServerless/EncryptionPolicy
+  VpcEndpoint:
+    Type: AWS::OpenSearchServerless::VpcEndpoint
+    Properties:
+      Name: search-demo-vpce
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - VpcEndpointSG69334BC7
+            - GroupId
+      SubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: OpenSearchServerless/VpcEndpoint
+  NetworkPolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Name: search-demo-network
+      Policy:
+        Fn::Join:
+          - ""
+          - - '[{"Rules":[{"ResourceType":"collection","Resource":["collection/search-demo"]},{"ResourceType":"dashboard","Resource":["collection/search-demo"]}],"AllowFromPublic":false,"SourceVPCEs":["'
+            - Ref: VpcEndpoint
+            - '"]}]'
+      Type: network
+    Metadata:
+      aws:cdk:path: OpenSearchServerless/NetworkPolicy
+  DataAccessPolicy:
+    Type: AWS::OpenSearchServerless::AccessPolicy
+    Properties:
+      Name: search-demo-data-access
+      Policy: '[{"Rules":[{"ResourceType":"collection","Resource":["collection/search-demo"],"Permission":["aoss:CreateCollectionItems","aoss:DeleteCollectionItems","aoss:UpdateCollectionItems","aoss:DescribeCollectionItems"]},{"ResourceType":"index","Resource":["index/search-demo/*"],"Permission":["aoss:CreateIndex","aoss:DeleteIndex","aoss:UpdateIndex","aoss:DescribeIndex","aoss:ReadDocument","aoss:WriteDocument"]}],"Principal":["arn:aws:iam::495599779087:root"]}]'
+      Type: data
+    Metadata:
+      aws:cdk:path: OpenSearchServerless/DataAccessPolicy
+  Collection:
+    Type: AWS::OpenSearchServerless::Collection
+    Properties:
+      Name: search-demo
+      StandbyReplicas: DISABLED
+      Type: SEARCH
+    DependsOn:
+      - DataAccessPolicy
+      - EncryptionPolicy
+      - NetworkPolicy
+    Metadata:
+      aws:cdk:path: OpenSearchServerless/Collection
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/1VOTWsCMRD9LeZYstNlEQ/eRIpHpUIvpZQ4GWl0TEIm2UVC/rssLbQ9Pd4nb4Bh2UO/MJN0aK8duxPUYzZ41WaSz0o4QD0SluTyfZdCie9VjRHVWj0prSwJJhezC/5HMcxh2jDvSz6F4q1anw0LtQ+9Pft/Q02HSF7IJPwSSiMlJhGof3KHwA7vc/Mt4ou3MTifZ7pBJJFfexuYCecbrc18X3IsuWkfLMFFnsdhCSvoFxdxrkvFZ3cjeP3GB/XqxOADAQAA
+    Metadata:
+      aws:cdk:path: OpenSearchServerless/CDKMetadata/Default
+Outputs:
+  CollectionEndpoint:
+    Value:
+      Fn::GetAtt:
+        - Collection
+        - CollectionEndpoint
+  CollectionName:
+    Value: search-demo
+  DashboardEndpoint:
+    Value:
+      Fn::GetAtt:
+        - Collection
+        - DashboardEndpoint
+  VpcEndpointId:
+    Value:
+      Ref: VpcEndpoint
+  ExportsOutputFnGetAttVpcEndpointSG69334BC7GroupIdE31C8449:
+    Value:
+      Fn::GetAtt:
+        - VpcEndpointSG69334BC7
+        - GroupId
+    Export:
+      Name: OpenSearchServerless:ExportsOutputFnGetAttVpcEndpointSG69334BC7GroupIdE31C8449
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
