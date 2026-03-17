@@ -25,6 +25,8 @@ export class ElasticContainerRegistryStack extends cdk.Stack {
       lifecycleRules: [
         {
           // Untagged images accumulate on every `docker push` — expire them quickly to avoid storage costs
+          // An image becomes untagged when you push a new image with the same tag — ECR moves the tag to 
+          // the new image, leaving the old one tagless. That orphaned image is what gets deleted after 1 day.
           description: 'Expire untagged images after 1 day',
           tagStatus: ecr.TagStatus.UNTAGGED,
           maxImageAge: cdk.Duration.days(1),
