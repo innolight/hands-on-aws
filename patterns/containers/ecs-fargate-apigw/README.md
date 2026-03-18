@@ -42,9 +42,9 @@ Region: eu-central-1 — 1 task running 24/7, ~10k requests/month
 
 ## Notes
 
-**Stack split: platform vs service**
+**Stack split: cluster → compute → networking**
 
-This pattern uses two stacks. `EcsPlatformStack` owns the ECS cluster, Cloud Map namespace, and VPC Link — resources that change almost never and would be shared across multiple services in a real deployment. `EcsFargateApigwStack` owns the task definition, Fargate service, task SG, and API Gateway — resources that change on every deploy. Keeping them separate limits blast radius: a routine task definition update cannot accidentally replace the cluster or break service discovery. The platform stack exports `cluster`, `namespace`, `vpcLink`, and `vpcLinkSg` as `public readonly` properties; the service stack wires them in via props.
+This pattern uses three stacks. `EcsClusterStack` owns the ECS cluster and Cloud Map namespace — deployed once, shared across services. `EcsFargateComputeStack` owns the task definition, Fargate service, task SG, and auto-scaling — changes on every service deploy. `EcsFargateNetworkingStack` owns the VPC Link, HTTP API, routes, and the SG ingress rule — wired up last because it depends on both the Cloud Map service (from compute) and the task SG. The networking stack adds the ingress rule via L1 `CfnSecurityGroupIngress` rather than mutating the task SG directly, keeping cross-stack coupling explicit and unidirectional.
 
 
 
@@ -82,7 +82,7 @@ npx cdk deploy ElasticContainerRegistryStack
 
 ```bash
 # VpcSubnets must be deployed with natGateways >= 1 so tasks can pull from ECR
-npx cdk deploy -c natGateways=1 VpcSubnets EcsPlatformStack EcsFargateApigwStack
+npx cdk deploy -c natGateways=1 VpcSubnets EcsClusterStack EcsFargateComputeStack EcsFargateNetworkingStack
 ```
 
 **3. Invoke the APIs**
@@ -90,7 +90,7 @@ npx cdk deploy -c natGateways=1 VpcSubnets EcsPlatformStack EcsFargateApigwStack
 ```bash
 # Get API GW endpoint https://<api-id>.execute-api.eu-central-1.amazonaws.com
 ENDPOINT=$(aws cloudformation describe-stacks \
-  --stack-name EcsFargateApigwStack \
+  --stack-name EcsFargateNetworkingStack \
   --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" \
   --output text)
 
@@ -127,12 +127,13 @@ aws logs tail /apigateway/ecs-fargate-apigw --follow
 
 ```bash
 npx cdk deploy VpcSubnets -c natGateways=0 # destroy NAT Gateway which drains money
-npx cdk destroy EcsFargateApigwStack EcsPlatformStack
+npx cdk destroy EcsFargateNetworkingStack EcsFargateComputeStack EcsClusterStack
 ```
 
 **7. Capture CloudFormation templates**
 
 ```bash
-npx cdk synth EcsPlatformStack > patterns/containers/ecs-fargate-apigw/cloud_formation_platform.yaml
-npx cdk synth EcsFargateApigwStack > patterns/containers/ecs-fargate-apigw/cloud_formation.yaml
+npx cdk synth EcsClusterStack > patterns/containers/ecs-fargate-apigw/cloud_formation_ecs_cluster.yaml
+npx cdk synth EcsFargateComputeStack > patterns/containers/ecs-fargate-apigw/cloud_formation_compute.yaml
+npx cdk synth EcsFargateNetworkingStack > patterns/containers/ecs-fargate-apigw/cloud_formation.yaml
 ```

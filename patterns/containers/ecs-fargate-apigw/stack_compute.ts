@@ -6,33 +6,29 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
-import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
-import {HttpServiceDiscoveryIntegration} from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import {apiKeyParameterName} from '../elastic-container-registry/stack';
 
-export const ecsFargateApigwStackName = 'EcsFargateApigwStack';
+export const ecsFargateComputeStackName = 'EcsFargateComputeStack';
 
-interface EcsFargateApigwStackProps extends cdk.StackProps {
+interface EcsFargateComputeStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
-  repository: ecr.Repository;
   cluster: ecs.Cluster;
   namespace: servicediscovery.PrivateDnsNamespace;
-  vpcLink: apigwv2.VpcLink;
-  vpcLinkSg: ec2.SecurityGroup;
 }
 
-// ECR image → ECS Fargate task (private subnet) → Cloud Map → VPC Link → API Gateway HTTP API
-export class EcsFargateApigwStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props: EcsFargateApigwStackProps) {
+// ECR image → ECS Fargate task (private subnet) → Cloud Map
+export class EcsFargateComputeStack extends cdk.Stack {
+  public readonly cloudMapService: servicediscovery.IService;
+  public readonly taskSg: ec2.SecurityGroup;
+
+  constructor(scope: Construct, id: string, props: EcsFargateComputeStackProps) {
     super(scope, id, props);
 
-    // Task SG: only accept traffic from the VPC Link — explicit SG chaining enforces
-    // that the only path to the container is API GW → VPC Link → task
-    const taskSg = new ec2.SecurityGroup(this, 'TaskSG', {
+    // Task SG: ingress rule added by the networking stack via CfnSecurityGroupIngress
+    this.taskSg = new ec2.SecurityGroup(this, 'TaskSG', {
       vpc: props.vpc,
       description: 'Security group for ECS Fargate tasks',
     });
-    taskSg.addIngressRule(props.vpcLinkSg, ec2.Port.tcp(3000), 'Allow traffic from VPC Link only');
 
     // --- SSM SecureString reference (created manually, see elastic-container-registry README) ---
     const apiKey = ssm.StringParameter.fromSecureStringParameterAttributes(this, 'ApiKey', {
@@ -58,8 +54,11 @@ export class EcsFargateApigwStack extends cdk.Stack {
       retention: logs.RetentionDays.ONE_WEEK,
     });
 
+    // fromRepositoryName avoids a cross-stack reference — the ECR stack need not be deployed first
+    const repository = ecr.Repository.fromRepositoryName(this, 'Repo', 'hands-on-containers');
+
     taskDef.addContainer('app', {
-      image: ecs.ContainerImage.fromEcrRepository(props.repository, 'latest'),
+      image: ecs.ContainerImage.fromEcrRepository(repository, 'latest'),
       portMappings: [{containerPort: 3000}],
       // if you don't add a logging driver to the container definition, there are no logs at all
       logging: ecs.LogDrivers.awsLogs({logGroup: taskLogGroup, streamPrefix: 'ecs'}),
@@ -83,7 +82,7 @@ export class EcsFargateApigwStack extends cdk.Stack {
       taskDefinition: taskDef,
       // !! Change the following in production: use desiredCount >= 2 across AZs
       desiredCount: 1,
-      securityGroups: [taskSg],
+      securityGroups: [this.taskSg],
       vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS},
       // Rolling update: replaces tasks in-place without a load balancer.
       // Alternatives: CODE_DEPLOY (blue/green, requires ALB) or EXTERNAL (third-party controller).
@@ -116,37 +115,6 @@ export class EcsFargateApigwStack extends cdk.Stack {
       scaleOutCooldown: cdk.Duration.seconds(30),
     });
 
-    // --- API Gateway HTTP API ---
-    const accessLogGroup = new logs.LogGroup(this, 'ApiAccessLogGroup', {
-      logGroupName: '/apigateway/ecs-fargate-apigw',
-      // !! Change the following in production.
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      retention: logs.RetentionDays.ONE_WEEK,
-    });
-
-    
-
-    const httpApi = new apigwv2.HttpApi(this, 'HttpApi');
-
-    // Explicit routes instead of defaultIntegration ($default catch-all) — only /health and /quote
-    // are forwarded to the ECS service; any other path returns 404 from API Gateway itself.
-    const integration = new HttpServiceDiscoveryIntegration('CloudMapIntegration',
-      fargateService.cloudMapService!,
-      {vpcLink: props.vpcLink},
-    );
-    httpApi.addRoutes({path: '/health', methods: [apigwv2.HttpMethod.GET], integration});
-    // /quote and all sub-paths (e.g. /quote/random, /quote/category/tech), all HTTP methods
-    httpApi.addRoutes({path: '/quote', methods: [apigwv2.HttpMethod.ANY], integration});
-    httpApi.addRoutes({path: '/quote/{proxy+}', methods: [apigwv2.HttpMethod.ANY], integration});
-
-    // Access logs help debug VPC Link connectivity issues — worth the small cost
-    // Without accessLogSettings on the stage, API Gateway produces no access logs.
-    const stage = httpApi.defaultStage!.node.defaultChild as apigwv2.CfnStage;
-    stage.accessLogSettings = {
-      destinationArn: accessLogGroup.logGroupArn,
-      format: '$context.requestId $context.httpMethod $context.path $context.status $context.integrationLatency',
-    };
-
-    new cdk.CfnOutput(this, 'ApiEndpoint', {value: httpApi.apiEndpoint});
+    this.cloudMapService = fargateService.cloudMapService!;
   }
 }

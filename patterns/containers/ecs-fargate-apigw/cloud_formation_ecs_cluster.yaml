@@ -1,0 +1,38 @@
+Resources:
+  ClusterEB0386A7:
+    Type: AWS::ECS::Cluster
+    Metadata:
+      aws:cdk:path: EcsClusterStack/Cluster/Resource
+  Namespace9B63B8C8:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: ecs-fargate-apigw.local
+      Vpc:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: EcsClusterStack/Namespace/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/22MywrCMBBFv6VZSjqWUly4rWsRXRaRMR1h+khLJk2RkH8X1JW4unA455ZQVgUUGa6Sm7bPB75DvHg0vcZVbpGMQKyHRTy5JqowG7VXG5Wuun7YL09ayAU21LKYKZB7Qjw5DujpYOWII8mMhpqoLI707vXP0x89paTt1BJ0sg1lBTsosk6Yc7dYzyPB+bMv6LdXisIAAAA=
+    Metadata:
+      aws:cdk:path: EcsClusterStack/CDKMetadata/Default
+Outputs:
+  ExportsOutputRefClusterEB0386A796A0E3FE:
+    Value:
+      Ref: ClusterEB0386A7
+    Export:
+      Name: EcsClusterStack:ExportsOutputRefClusterEB0386A796A0E3FE
+  ExportsOutputFnGetAttNamespace9B63B8C8Id4C69F815:
+    Value:
+      Fn::GetAtt:
+        - Namespace9B63B8C8
+        - Id
+    Export:
+      Name: EcsClusterStack:ExportsOutputFnGetAttNamespace9B63B8C8Id4C69F815
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

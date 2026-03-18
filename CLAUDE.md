@@ -33,11 +33,15 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 **Entry point:** `bin/cdk.ts` — instantiates all CDK stacks and registers them with the CDK app. Each new pattern stack must be imported and instantiated here.
 
 **Pattern structure:** Each pattern lives in `patterns/<pattern-name>/` and typically contains:
-- `stack.ts` (or `stack_step*.ts` for multi-step patterns) — the CDK Stack class
+- `stack.ts` — the CDK Stack class (simple single-stack patterns)
+- `stack_<role>.ts` — for multi-stack patterns, one file per stack named after its role (e.g., `stack_ecs_cluster.ts`, `stack_compute.ts`, `stack_networking.ts`)
+- `stack_step*.ts` — for multi-step patterns requiring ordered deployment across regions
 - `stack.test.ts` unit test for stack — keep tests minimal: assert resource existence and the most critical properties per resource type. Avoid exhaustive property coverage which harms readability; that belongs in integration tests.
 - `README.md` — pattern-specific notes
-- `cloud_formation.yaml` (or `cloud_formation_step*.yaml`) — synthesized CloudFormation output
+- `cloud_formation.yaml` (or `cloud_formation_<role>.yaml`) — synthesized CloudFormation output
 - Optionally: `demo_server.ts` (Express server to demo the pattern)
+
+**Stack naming:** Each stack file exports a `const <camelCase>StackName = '<PascalCase>'` string that is used as both the CDK construct id and the CloudFormation stack name. The exported name constant should match the file: `stack_compute.ts` → `ecsFargateComputeStackName = 'EcsFargateComputeStack'`.
 
 **Utils:** `utils/stackoutput.ts` exports `getStackOutputs(stackName)`, which uses the CloudFormation SDK to retrieve stack outputs by name. Demo servers use this to discover resource names/ARNs at runtime without hardcoding them.
 
@@ -68,9 +72,10 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 - Stack outputs (`CfnOutput`) are the mechanism for passing resource info to demo servers via `getStackOutputs`
 - Default region is `eu-central-1` (set via `CDK_DEFAULT_REGION`; CDK resolves account/region automatically from the AWS CLI profile)
 - Split stacks along lifecycle and ownership boundaries. Group resources that change at the same frequency and share the same blast radius. Typical layers:
-  - **Shared infrastructure** (VPC, ECS cluster, Cloud Map namespace, VPC Link) — deployed once, almost never updated, consumed by multiple stacks via `public readonly` exports
+  - **Shared infrastructure** (VPC, ECS cluster, Cloud Map namespace) — deployed once, almost never updated, consumed by multiple stacks via `public readonly` exports
   - **Platform/datastore** (OpenSearch domain, ElastiCache cluster, ECR repository) — updated occasionally, exports SGs and identifiers for consumers
-  - **Service/app** (task definitions, Fargate services, Lambda functions, API Gateway) — changes on every deploy, wires up access to upstream stacks
+  - **Compute** (task definitions, Fargate services, Lambda functions, auto-scaling) — changes on every service deploy; exports Cloud Map service and task SG for the networking layer
+  - **Networking** (API Gateway, VPC Link, routes, SG ingress rules) — wired up last; owns the ingress rule via `CfnSecurityGroupIngress` so the compute stack stays self-contained
 
   A stack should not mix slow-changing shared infrastructure with fast-changing per-service resources. When in doubt, ask: "If I redeploy this stack, what's the blast radius?" If the answer includes resources unrelated to the change, split.
 - Datastore stacks (e.g., OpenSearch, ElastiCache) must not assume how they will be consumed. They expose security groups and resource identifiers as `public readonly` properties. Consumer/app stacks wire up access (SG ingress, IAM, etc.) separately using L1 `CfnSecurityGroupIngress` to avoid cross-stack mutation. Deploy order: shared infra → datastore → consumer app stacks.

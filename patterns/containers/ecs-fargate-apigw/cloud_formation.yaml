@@ -1,8 +1,8 @@
 Resources:
-  TaskSG7164C6FA:
+  VpcLinkSG3BF39CE1:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Security group for ECS Fargate tasks
+      GroupDescription: Security group for API Gateway VPC Link
       SecurityGroupEgress:
         - CidrIp: 0.0.0.0/0
           Description: Allow all outbound traffic by default
@@ -10,251 +10,52 @@ Resources:
       VpcId:
         Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
     Metadata:
-      aws:cdk:path: EcsFargateApigwStack/TaskSG/Resource
-  TaskSGfromEcsPlatformStackVpcLinkSG7AA57B2D30008925AA25:
+      aws:cdk:path: EcsFargateNetworkingStack/VpcLinkSG/Resource
+  TaskSgIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow traffic from VPC Link only
       FromPort: 3000
       GroupId:
-        Fn::GetAtt:
-          - TaskSG7164C6FA
-          - GroupId
+        Fn::ImportValue: EcsFargateComputeStack:ExportsOutputFnGetAttTaskSG7164C6FAGroupIdEA038E97
       IpProtocol: tcp
       SourceSecurityGroupId:
-        Fn::ImportValue: EcsPlatformStack:ExportsOutputFnGetAttVpcLinkSG3BF39CE1GroupIdD4DF0A8E
+        Fn::GetAtt:
+          - VpcLinkSG3BF39CE1
+          - GroupId
       ToPort: 3000
     Metadata:
-      aws:cdk:path: EcsFargateApigwStack/TaskSG/from EcsPlatformStackVpcLinkSG7AA57B2D:3000
-  TaskDefTaskRole1EDB4A67:
-    Type: AWS::IAM::Role
+      aws:cdk:path: EcsFargateNetworkingStack/TaskSgIngress
+  VpcLink42ED6FF0:
+    Type: AWS::ApiGatewayV2::VpcLink
     Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-        Version: "2012-10-17"
+      Name: EcsFargateNetworkingStackVpcLink35B5E076
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - VpcLinkSG3BF39CE1
+            - GroupId
+      SubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD
     Metadata:
-      aws:cdk:path: EcsFargateApigwStack/TaskDef/TaskRole/Resource
-  TaskDef54694570:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      ContainerDefinitions:
-        - Essential: true
-          HealthCheck:
-            Command:
-              - CMD-SHELL
-              - wget -qO- http://localhost:3000/health || exit 1
-            Interval: 30
-            Retries: 3
-            StartPeriod: 10
-            Timeout: 5
-          Image:
-            Fn::Join:
-              - ""
-              - - Fn::Select:
-                    - 4
-                    - Fn::Split:
-                        - ":"
-                        - Fn::ImportValue: ElasticContainerRegistryStack:ExportsOutputFnGetAttRepository22E53BBDArn3AD4E30B
-                - .dkr.ecr.
-                - Fn::Select:
-                    - 3
-                    - Fn::Split:
-                        - ":"
-                        - Fn::ImportValue: ElasticContainerRegistryStack:ExportsOutputFnGetAttRepository22E53BBDArn3AD4E30B
-                - "."
-                - Ref: AWS::URLSuffix
-                - /
-                - Fn::ImportValue: ElasticContainerRegistryStack:ExportsOutputRefRepository22E53BBD9A9E013B
-                - :latest
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group:
-                Ref: TaskLogGroup933EA2D6
-              awslogs-stream-prefix: ecs
-              awslogs-region: eu-central-1
-          Name: app
-          PortMappings:
-            - ContainerPort: 3000
-              Protocol: tcp
-          Secrets:
-            - Name: API_KEY
-              ValueFrom: arn:aws:ssm:eu-central-1:495599779087:parameter/hands-on-aws/containers/api-key
-      Cpu: "256"
-      ExecutionRoleArn:
-        Fn::GetAtt:
-          - TaskDefExecutionRoleB4775C97
-          - Arn
-      Family: EcsFargateApigwStackTaskDef47E1AFAF
-      Memory: "512"
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      TaskRoleArn:
-        Fn::GetAtt:
-          - TaskDefTaskRole1EDB4A67
-          - Arn
-    Metadata:
-      aws:cdk:path: EcsFargateApigwStack/TaskDef/Resource
-  TaskDefExecutionRoleB4775C97:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-        Version: "2012-10-17"
-    Metadata:
-      aws:cdk:path: EcsFargateApigwStack/TaskDef/ExecutionRole/Resource
-  TaskDefExecutionRoleDefaultPolicy0DBB737A:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyDocument:
-        Statement:
-          - Action:
-              - ecr:BatchCheckLayerAvailability
-              - ecr:BatchGetImage
-              - ecr:GetDownloadUrlForLayer
-            Effect: Allow
-            Resource:
-              Fn::ImportValue: ElasticContainerRegistryStack:ExportsOutputFnGetAttRepository22E53BBDArn3AD4E30B
-          - Action: ecr:GetAuthorizationToken
-            Effect: Allow
-            Resource: "*"
-          - Action:
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-            Effect: Allow
-            Resource:
-              Fn::GetAtt:
-                - TaskLogGroup933EA2D6
-                - Arn
-          - Action:
-              - ssm:DescribeParameters
-              - ssm:GetParameter
-              - ssm:GetParameterHistory
-              - ssm:GetParameters
-            Effect: Allow
-            Resource: arn:aws:ssm:eu-central-1:495599779087:parameter/hands-on-aws/containers/api-key
-        Version: "2012-10-17"
-      PolicyName: TaskDefExecutionRoleDefaultPolicy0DBB737A
-      Roles:
-        - Ref: TaskDefExecutionRoleB4775C97
-    Metadata:
-      aws:cdk:path: EcsFargateApigwStack/TaskDef/ExecutionRole/DefaultPolicy/Resource
-  TaskLogGroup933EA2D6:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: 7
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-    Metadata:
-      aws:cdk:path: EcsFargateApigwStack/TaskLogGroup/Resource
-  ServiceD69D759B:
-    Type: AWS::ECS::Service
-    Properties:
-      Cluster:
-        Fn::ImportValue: EcsPlatformStack:ExportsOutputRefClusterEB0386A796A0E3FE
-      DeploymentConfiguration:
-        MaximumPercent: 200
-        MinimumHealthyPercent: 50
-      DesiredCount: 1
-      EnableECSManagedTags: false
-      LaunchType: FARGATE
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
-          SecurityGroups:
-            - Fn::GetAtt:
-                - TaskSG7164C6FA
-                - GroupId
-          Subnets:
-            - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940
-            - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3
-            - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD
-      ServiceRegistries:
-        - ContainerName: app
-          ContainerPort: 3000
-          RegistryArn:
-            Fn::GetAtt:
-              - ServiceCloudmapService046058A4
-              - Arn
-      TaskDefinition:
-        Ref: TaskDef54694570
-    DependsOn:
-      - TaskDefTaskRole1EDB4A67
-    Metadata:
-      aws:cdk:path: EcsFargateApigwStack/Service/Service
-  ServiceCloudmapService046058A4:
-    Type: AWS::ServiceDiscovery::Service
-    Properties:
-      DnsConfig:
-        DnsRecords:
-          - TTL: 60
-            Type: SRV
-        NamespaceId:
-          Fn::ImportValue: EcsPlatformStack:ExportsOutputFnGetAttNamespace9B63B8C8Id4C69F815
-        RoutingPolicy: MULTIVALUE
-      HealthCheckCustomConfig:
-        FailureThreshold: 1
-      NamespaceId:
-        Fn::ImportValue: EcsPlatformStack:ExportsOutputFnGetAttNamespace9B63B8C8Id4C69F815
-    DependsOn:
-      - TaskDefTaskRole1EDB4A67
-    Metadata:
-      aws:cdk:path: EcsFargateApigwStack/Service/CloudmapService/Resource
+      aws:cdk:path: EcsFargateNetworkingStack/VpcLink/Resource
   ApiAccessLogGroupCEA70788:
     Type: AWS::Logs::LogGroup
     Properties:
+      LogGroupName: /apigateway/ecs-fargate-apigw
       RetentionInDays: 7
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Metadata:
-      aws:cdk:path: EcsFargateApigwStack/ApiAccessLogGroup/Resource
+      aws:cdk:path: EcsFargateNetworkingStack/ApiAccessLogGroup/Resource
   HttpApiF5A9A8A7:
     Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: HttpApi
       ProtocolType: HTTP
     Metadata:
-      aws:cdk:path: EcsFargateApigwStack/HttpApi/Resource
-  HttpApiDefaultRouteCloudMapIntegration2CE319E9:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId:
-        Ref: HttpApiF5A9A8A7
-      ConnectionId:
-        Fn::ImportValue: EcsPlatformStack:ExportsOutputRefVpcLink42ED6FF0DCEB9DB7
-      ConnectionType: VPC_LINK
-      IntegrationMethod: ANY
-      IntegrationType: HTTP_PROXY
-      IntegrationUri:
-        Fn::GetAtt:
-          - ServiceCloudmapService046058A4
-          - Arn
-      PayloadFormatVersion: "1.0"
-    Metadata:
-      aws:cdk:path: EcsFargateApigwStack/HttpApi/DefaultRoute/CloudMapIntegration/Resource
-  HttpApiDefaultRoute146696CE:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId:
-        Ref: HttpApiF5A9A8A7
-      AuthorizationType: NONE
-      RouteKey: $default
-      Target:
-        Fn::Join:
-          - ""
-          - - integrations/
-            - Ref: HttpApiDefaultRouteCloudMapIntegration2CE319E9
-    Metadata:
-      aws:cdk:path: EcsFargateApigwStack/HttpApi/DefaultRoute/Resource
+      aws:cdk:path: EcsFargateNetworkingStack/HttpApi/Resource
   HttpApiDefaultStage3EEB07D6:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
@@ -269,13 +70,70 @@ Resources:
       AutoDeploy: true
       StageName: $default
     Metadata:
-      aws:cdk:path: EcsFargateApigwStack/HttpApi/DefaultStage/Resource
+      aws:cdk:path: EcsFargateNetworkingStack/HttpApi/DefaultStage/Resource
+  HttpApiGEThealthCloudMapIntegrationF6876C3A:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId:
+        Ref: HttpApiF5A9A8A7
+      ConnectionId:
+        Ref: VpcLink42ED6FF0
+      ConnectionType: VPC_LINK
+      IntegrationMethod: ANY
+      IntegrationType: HTTP_PROXY
+      IntegrationUri:
+        Fn::ImportValue: EcsFargateComputeStack:ExportsOutputFnGetAttServiceCloudmapService046058A4Arn1A865595
+      PayloadFormatVersion: "1.0"
+    Metadata:
+      aws:cdk:path: EcsFargateNetworkingStack/HttpApi/GET--health/CloudMapIntegration/Resource
+  HttpApiGEThealthAB1F4856:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId:
+        Ref: HttpApiF5A9A8A7
+      AuthorizationType: NONE
+      RouteKey: GET /health
+      Target:
+        Fn::Join:
+          - ""
+          - - integrations/
+            - Ref: HttpApiGEThealthCloudMapIntegrationF6876C3A
+    Metadata:
+      aws:cdk:path: EcsFargateNetworkingStack/HttpApi/GET--health/Resource
+  HttpApiANYquoteD542E79A:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId:
+        Ref: HttpApiF5A9A8A7
+      AuthorizationType: NONE
+      RouteKey: ANY /quote
+      Target:
+        Fn::Join:
+          - ""
+          - - integrations/
+            - Ref: HttpApiGEThealthCloudMapIntegrationF6876C3A
+    Metadata:
+      aws:cdk:path: EcsFargateNetworkingStack/HttpApi/ANY--quote/Resource
+  HttpApiANYquoteproxy4161C337:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId:
+        Ref: HttpApiF5A9A8A7
+      AuthorizationType: NONE
+      RouteKey: ANY /quote/{proxy+}
+      Target:
+        Fn::Join:
+          - ""
+          - - integrations/
+            - Ref: HttpApiGEThealthCloudMapIntegrationF6876C3A
+    Metadata:
+      aws:cdk:path: EcsFargateNetworkingStack/HttpApi/ANY--quote--{proxy+}/Resource
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/6VTXYvbMBD8LafHQ1FDOFrIW5rSXqC0hx36Eo5DlTaOLrIkpJWDEf7vRf64S0hpy/XBmJ2dnV2vZxdscTdn8xt+CjMhjzOtfrJUIhdHyk/hKYFYsFSCiF5h+8Xb6HaJNE6QJbkllEgIwiuHypoe6WgiXMqNqTyEUEQNZLnLzNRRckseu0e63psLvStgLO4oiMDSZ+4rjrDl4fgJ9sqo3KuX/M3Tq19S6doa5MqAP8NG0RJ8owTspsox7qjiNUuF1bBLhIcQa5AfW7JMxHllhHJcr4Sw0eC4hoGTC1bidRf9Mt5cTYm3Gr7xGs43u7UPk8iD1Uq0ZLlL3WOfReTisDFaGXjJ9Uv/a/LPum/N9jvNn0UHeDDCOMrW5szVhNewlCVyhBoMhou2/wn30w2DdVTbKrD01VaTxT3Utnn9nmx09LYllHhAMMNv+pC1/5HZt5sadDQMVpMqCNuAb/ORDWZMxPAaguMCRn+YyQOUSBMKENbLbesyVhY/CCUiBrT1PXCNh/UBxDGbbc+Vjh62Bw/hYLWcXCVN2KIeokvXc6fyVZx42yxYukd0K6dejmPlFM1YYSOOJ5PDjUGoPJ+usqeeYYMFIkJPLpFXZ+eWo66jBQQbvYCMfY/oInbUWAnsObxrFnfsPZvfPAelZj4aVDWwYnj/AgGvHii8BAAA
+      Analytics: v2:deflate64:H4sIAAAAAAAA/2WQUWuDMBSFf0vzOGImUjboW9lDVyjbqLAXGSOLdyFVk5BcFQn+92HU0rKHkJzv3HsIJ2PZNmXphvc+EWWV1OqHhRy5qCjv/XcAkbGQg2idwuHgTGuLQDoryI48EEpK8MIpi8roSMYv+vKr7+b/gaOWDrwfKbdKcoSeD13GwqcVJ6WrIubOJ4YtnL4i2r1Vt/51Zm9V9HPkEoqVRhX52bQI98kTPmoE6fj0++vSDZtk3BxpbaRn4WTkWkG9PN94A0sXDhrT8frD1EoMZDd1g84M0UHQc0fPc0Nr0jhO6r1F2+JItSmBXfxjl23ZE0s3F69U4lqNqgF2nu8/gl0b+7EBAAA=
     Metadata:
-      aws:cdk:path: EcsFargateApigwStack/CDKMetadata/Default
+      aws:cdk:path: EcsFargateNetworkingStack/CDKMetadata/Default
 Outputs:
   ApiEndpoint:
     Value:

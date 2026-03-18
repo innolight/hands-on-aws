@@ -23,6 +23,9 @@ import {ElastiCacheValkeyServerlessAppStack, elasticacheValkeyServerlessAppStack
 import {VpcSubnetsStack, vpcSubnetsStackName} from '../patterns/vpc-subnets/stack';
 import {SsmBastionStack, ssmBastionStackName} from '../patterns/ssm-bastion/stack';
 import {ElasticContainerRegistryStack, elasticContainerRegistryStackName} from '../patterns/containers/elastic-container-registry/stack';
+import {EcsClusterStack, ecsClusterStackName} from '../patterns/containers/ecs-fargate-apigw/stack_ecs_cluster';
+import {EcsFargateComputeStack, ecsFargateComputeStackName} from '../patterns/containers/ecs-fargate-apigw/stack_compute';
+import {EcsFargateNetworkingStack, ecsFargateNetworkingStackName} from '../patterns/containers/ecs-fargate-apigw/stack_networking';
 import {OpenSearchServerlessStack, opensearchServerlessStackName} from '../patterns/opensearch-serverless/stack';
 import {OpenSearchServerlessAppStack, opensearchServerlessAppStackName} from '../patterns/opensearch-serverless/app_stack';
 
@@ -133,6 +136,25 @@ new ElastiCacheValkeyServerlessAppStack(app, elasticacheValkeyServerlessAppStack
 
 new ElasticContainerRegistryStack(app, elasticContainerRegistryStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+});
+
+const ecsClusterStack = new EcsClusterStack(app, ecsClusterStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+});
+
+const ecsComputeStack = new EcsFargateComputeStack(app, ecsFargateComputeStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  cluster: ecsClusterStack.cluster,
+  namespace: ecsClusterStack.namespace,
+});
+
+new EcsFargateNetworkingStack(app, ecsFargateNetworkingStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  cloudMapService: ecsComputeStack.cloudMapService,
+  taskSg: ecsComputeStack.taskSg,
 });
 
 const ossStack = new OpenSearchServerlessStack(app, opensearchServerlessStackName, {
