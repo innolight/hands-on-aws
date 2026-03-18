@@ -59,6 +59,62 @@ Resources:
       - VpcVPCGWBF912B6E
     Metadata:
       aws:cdk:path: VpcSubnets/Vpc/PublicSubnet1/DefaultRoute
+  VpcPublicSubnet1NatInstanceInstanceRole9D835E32:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/PublicSubnet1/NatInstance
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet1/NatInstance/InstanceRole/Resource
+  VpcPublicSubnet1NatInstanceInstanceProfileEE10C485:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: VpcPublicSubnet1NatInstanceInstanceRole9D835E32
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet1/NatInstance/InstanceProfile
+  VpcPublicSubnet1NatInstance57B636B8:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: eu-central-1a
+      IamInstanceProfile:
+        Ref: VpcPublicSubnet1NatInstanceInstanceProfileEE10C485
+      ImageId:
+        Ref: SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter
+      InstanceType: t4g.nano
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - VpcNatSecurityGroup8DA26EDC
+            - GroupId
+      SourceDestCheck: false
+      SubnetId:
+        Ref: VpcPublicSubnet1Subnet5C2D37C4
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc/PublicSubnet1/NatInstance
+      UserData:
+        Fn::Base64: |-
+          #!/bin/bash
+          yum install iptables-services -y
+          systemctl enable iptables
+          systemctl start iptables
+          echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/custom-ip-forwarding.conf
+          sudo sysctl -p /etc/sysctl.d/custom-ip-forwarding.conf
+          sudo /sbin/iptables -t nat -A POSTROUTING -o $(route | awk '/^default/{print $NF}') -j MASQUERADE
+          sudo /sbin/iptables -F FORWARD
+          sudo service iptables save
+    DependsOn:
+      - VpcPublicSubnet1NatInstanceInstanceRole9D835E32
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PublicSubnet1/NatInstance/Resource
   VpcPublicSubnet2Subnet691E08A3:
     Type: AWS::EC2::Subnet
     Properties:
@@ -191,6 +247,16 @@ Resources:
         Ref: VpcPrivateSubnet1Subnet536B997A
     Metadata:
       aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet1/RouteTableAssociation
+  VpcPrivateSubnet1DefaultRouteBE02A9ED:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId:
+        Ref: VpcPublicSubnet1NatInstance57B636B8
+      RouteTableId:
+        Ref: VpcPrivateSubnet1RouteTableB2C5B500
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet1/DefaultRoute
   VpcPrivateSubnet2Subnet3788AAA1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -227,6 +293,16 @@ Resources:
         Ref: VpcPrivateSubnet2Subnet3788AAA1
     Metadata:
       aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet2/RouteTableAssociation
+  VpcPrivateSubnet2DefaultRoute060D2087:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId:
+        Ref: VpcPublicSubnet1NatInstance57B636B8
+      RouteTableId:
+        Ref: VpcPrivateSubnet2RouteTableA678073B
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet2/DefaultRoute
   VpcPrivateSubnet3SubnetF258B56E:
     Type: AWS::EC2::Subnet
     Properties:
@@ -263,6 +339,16 @@ Resources:
         Ref: VpcPrivateSubnet3SubnetF258B56E
     Metadata:
       aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet3/RouteTableAssociation
+  VpcPrivateSubnet3DefaultRoute94B74F0D:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId:
+        Ref: VpcPublicSubnet1NatInstance57B636B8
+      RouteTableId:
+        Ref: VpcPrivateSubnet3RouteTableD98824C7
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/PrivateSubnet3/DefaultRoute
   VpcIsolatedSubnet1SubnetE48C5737:
     Type: AWS::EC2::Subnet
     Properties:
@@ -388,6 +474,21 @@ Resources:
         Ref: Vpc8378EB38
     Metadata:
       aws:cdk:path: VpcSubnets/Vpc/VPCGW
+  VpcNatSecurityGroup8DA26EDC:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group for NAT instances
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      Tags:
+        - Key: Name
+          Value: VpcSubnets/Vpc
+      VpcId:
+        Ref: Vpc8378EB38
+    Metadata:
+      aws:cdk:path: VpcSubnets/Vpc/NatSecurityGroup/Resource
   VpcRestrictDefaultSecurityGroupCustomResourceC73DA2BE:
     Type: Custom::VpcRestrictDefaultSG
     Properties:
@@ -460,9 +561,17 @@ Resources:
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/+2WwYrbMBCGn2V1XBQ3hCWH3Lw+FENLQrLsoWEpY3mSnY0tGc3IaWry7iW206Utu1Ao1AefNDOa/+eTYJBm0exuGk1v4MgTkx8mBWVRsxEwBw1H/opmFjWPldk2qoRv8XdWC3WrtLIgH0HwCKdrhUNmURJnd7QPHoScVYttoyyU+EvLw6m6FFYhK8gorQzl/jPwoW0663cUnmoQ/BtJyq4AwfwPzdP5SSc7+7hKdAeyaWXbRkENVEBGBcnpi7NX27oyad7HF6v7wplDn5dQdSZptbSfIFjzrBbiA2pFVT1PfmsHZtrbtKrncZ57ZF7axGN/Y/2BBkExGJBhUAwGZBgU3QR1c3OJ1i4IPkBW4Gv9tRYzO0Otwc9m3U/0P5+9HRQ8gOsdMUaMEWPEGDH+F0b7RKVW0Fu8flj7f1+fxSJgnku0ctZrZBe8QZ0EFlde0626Va3RG/sr72rK0d8Do46ZUTYCe7L7i2YZpApy1tblGL3wh3p2F82j6c0LE018sEIlRutu/QEQiX8bjAsAAA==
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+2XUWvbMBCAf0v1OFSvhNKHvLkulMC2hKT0YaGMi3xJrpElI52SZSb/fdiW66yFwdhgfuiTpdPd+bvDujuPktH1VXJ1AQd/qfLdpaZVUi0Y1E7CwX+rUI2S6rFUy0oU8D394cVYfBBSGOB7YDzA8a1k5uyecnTxwIeVQc6sWdMmOGCyRoyXlTBQ4C8qD8eyFszCSpMSUijK3Wfwu0bpJH9j4WgPjH9iMvFWA2P+xubp9CSztXmcZbIFWTRmy0rAHkjDijTx8as1ndt9qSZ5XNeubrVVu7gvoGydTMqp+QTBqK0YswsoBZX7m+yVOnhPGzMp9zdpnjv0fmoyhzFjMaBBUAwGZBgUgwEZBkV7g9p7U6/mNjA+wEpjL+9lqfdWUePgRVlOjGcwCpeVoLiMF7dFVlsyOClg83K5bXAK79BztsUadg3aYxN5n4P21V6Mq1gMvBgvxQfxdGriajCwS0YMr/OPKjji472zoYyyHR5nQK7ffemLjXKYEy9KVLQm1adHiuDR3QFDLDd1zF20Mhayf15yYjL+91f1dxjDIRkIxnBIBoIxHJJ3jHeMQWPEvsPoDHZze5x74y5lBrUt0LBcnDe/ZXXWVHP0ylF51t5Aa3tItZ4GXtlg8naWiCPBuZ+TJCiSam513eXB+1Bgfnusm3PpyCgqQadK2WC4DyoUWBukqo+kdV1Lz1vpzNk1aTyd5Bzb2UBmwbMtum3T9xvLl/O1mYGDAhndK+Xuj+YWPMrUe+QFw4bMpjaaBi4Dn6SxOSbP/uN+dJ3cJFcXz57o0gXDVGAyb58/Aan+dMdvDQAA
     Metadata:
       aws:cdk:path: VpcSubnets/CDKMetadata/Default
+Parameters:
+  SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
 Outputs:
   VpcId:
     Value:
@@ -475,7 +584,7 @@ Outputs:
   AvailabilityZones:
     Value: eu-central-1a, eu-central-1b, eu-central-1c
   NatGatewayCount:
-    Value: "0"
+    Value: "1"
   PublicSubnetIds:
     Value:
       Fn::Join:
@@ -503,9 +612,44 @@ Outputs:
           - Ref: VpcIsolatedSubnet2Subnet16364B91
           - ", "
           - Ref: VpcIsolatedSubnet3Subnet6840A2D4
-Parameters:
-  BootstrapVersion:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /cdk-bootstrap/hnb659fds/version
-    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+  ExportsOutputRefVpc8378EB38272D6E3A:
+    Value:
+      Ref: Vpc8378EB38
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+  ExportsOutputRefVpcPublicSubnet1Subnet5C2D37C4FFA2B456:
+    Value:
+      Ref: VpcPublicSubnet1Subnet5C2D37C4
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpcPublicSubnet1Subnet5C2D37C4FFA2B456
+  ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3:
+    Value:
+      Ref: VpcIsolatedSubnet1SubnetE48C5737
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+  ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68:
+    Value:
+      Ref: VpcIsolatedSubnet2Subnet16364B91
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+  ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF:
+    Value:
+      Ref: VpcIsolatedSubnet3Subnet6840A2D4
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+  ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940:
+    Value:
+      Ref: VpcPrivateSubnet1Subnet536B997A
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940
+  ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3:
+    Value:
+      Ref: VpcPrivateSubnet2Subnet3788AAA1
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3
+  ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD:
+    Value:
+      Ref: VpcPrivateSubnet3SubnetF258B56E
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD
 

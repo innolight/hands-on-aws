@@ -124,13 +124,20 @@ export class EcsFargateApigwStack extends cdk.Stack {
       retention: logs.RetentionDays.ONE_WEEK,
     });
 
-    // defaultIntegration creates a $default catch-all route (not /{proxy+} — that's REST API syntax)
-    const httpApi = new apigwv2.HttpApi(this, 'HttpApi', {
-      defaultIntegration: new HttpServiceDiscoveryIntegration('CloudMapIntegration',
-        fargateService.cloudMapService!,
-        {vpcLink: props.vpcLink},
-      ),
-    });
+    
+
+    const httpApi = new apigwv2.HttpApi(this, 'HttpApi');
+
+    // Explicit routes instead of defaultIntegration ($default catch-all) — only /health and /quote
+    // are forwarded to the ECS service; any other path returns 404 from API Gateway itself.
+    const integration = new HttpServiceDiscoveryIntegration('CloudMapIntegration',
+      fargateService.cloudMapService!,
+      {vpcLink: props.vpcLink},
+    );
+    httpApi.addRoutes({path: '/health', methods: [apigwv2.HttpMethod.GET], integration});
+    // /quote and all sub-paths (e.g. /quote/random, /quote/category/tech), all HTTP methods
+    httpApi.addRoutes({path: '/quote', methods: [apigwv2.HttpMethod.ANY], integration});
+    httpApi.addRoutes({path: '/quote/{proxy+}', methods: [apigwv2.HttpMethod.ANY], integration});
 
     // Access logs help debug VPC Link connectivity issues — worth the small cost
     // Without accessLogSettings on the stage, API Gateway produces no access logs.

@@ -4,11 +4,17 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 
 export const vpcSubnetsStackName = 'VpcSubnets';
 
+interface VpcSubnetsStackProps extends cdk.StackProps {
+  // 'aws-managed' → AWS NAT Gateway (~$35/mo/each, no ops).
+  // 'self-managed' → NAT Instance on t4g.nano (~$3.40/mo, ~90% cheaper, requires instance management).
+  natProviderType?: 'aws-managed' | 'self-managed';
+}
+
 // 3-tier VPC: Public (IGW) → Private (NAT egress, optional) → Isolated (no internet)
 export class VpcSubnetsStack extends cdk.Stack {
   public readonly vpc: ec2.Vpc;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: VpcSubnetsStackProps) {
     super(scope, id, props);
 
     // natGateways=0 → no outbound internet from private subnets; use VPC Endpoints for AWS services instead.
@@ -16,9 +22,26 @@ export class VpcSubnetsStack extends cdk.Stack {
     // natGateways=3 → one per AZ, eliminates cross-AZ NAT traffic cost in production.
     const natGateways = Number(this.node.tryGetContext('natGateways') ?? '0');
 
+    const natProviderType = props?.natProviderType ?? 'self-managed';
+
+    // NAT Instance (self-managed): t4g.nano runs Amazon Linux 2023; CDK injects user data that
+    // installs iptables and configures MASQUERADE NAT, routing traffic out to the IGW.
+    // ~$3.40/mo vs ~$35/mo for a NAT Gateway — saves ~90% for dev/learning stacks.
+    // Trade-offs: single point of failure per instance, lower max bandwidth (~5 Gbps on t4g.nano),
+    // manual patching required. Not recommended for production without HA configuration.
+    const natGatewayProvider =
+      natGateways > 0 && natProviderType === 'self-managed'
+        ? ec2.NatProvider.instanceV2({
+            instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.NANO),
+            // OUTBOUND_ONLY blocks unsolicited inbound by default — matches NAT Gateway behaviour.
+            defaultAllowedTraffic: ec2.NatTrafficDirection.OUTBOUND_ONLY,
+          })
+        : undefined;
+
     this.vpc = new ec2.Vpc(this, 'Vpc', {
       maxAzs: 3,
       natGateways,
+      natGatewayProvider,
       subnetConfiguration: [
         // Public subnets: attached to the Internet Gateway. Use for load balancers,
         // NAT Gateways, and bastion hosts — not application workloads.

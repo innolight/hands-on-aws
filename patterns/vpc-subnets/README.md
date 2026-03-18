@@ -7,6 +7,7 @@
 - **Private** subnets — route `0.0.0.0/0` to a [NAT Gateway](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html) (outbound-only); for app servers, Lambda, ECS tasks
 - **Isolated** subnets — no internet route in either direction; for databases and caches
 - NAT Gateway count controlled via `-c natGateways=N` (default: `0`)
+- NAT provider type controlled via `natProviderType` prop: `'self-managed'` (default, EC2 NAT instance) or `'aws-managed'` (NAT Gateway)
 
 ### AWS containment hierarchy
 
@@ -59,20 +60,24 @@ What crosses boundaries:
 
 Region: `eu-central-1`. Assumes 24/7 idle.
 
-| Resource | Idle (`natGateways=0`) | Idle (`natGateways=1`) | Idle (`natGateways=3`) | Cost driver |
+| Resource | Idle (`natGateways=0`) | `natGateways=1` aws-managed | `natGateways=1` self-managed | Cost driver |
 |---|---|---|---|---|
 | VPC | $0 | $0 | $0 | Free |
 | Internet Gateway | $0 | $0 | $0 | Free (data transfer charged separately) |
-| NAT Gateway | $0 | ~$35/mo | ~$105/mo | Hourly fee ($0.048/hr each) |
-| Data through NAT | $0 | $0.048/GB | $0.048/GB | Per-GB processed |
+| NAT Gateway | $0 | ~$35/mo | $0 | Hourly fee ($0.048/hr each) |
+| NAT Instance (t4g.nano) | $0 | $0 | ~$3.40/mo | EC2 instance-hours |
+| Data through NAT | $0 | $0.048/GB | $0 (EC2 egress rates apply) | Per-GB processed |
 
-Dominant cost when `natGateways>0`: NAT Gateway hourly fee (~$35/gateway/month).
+Dominant cost when `natGateways>0`:
+- `aws-managed`: NAT Gateway hourly fee (~$35/gateway/month)
+- `self-managed`: EC2 t4g.nano instance (~$3.40/month, ~90% cheaper)
 
 **Alternative to NAT Gateway:** Add [VPC Gateway Endpoints](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-gateway.html) (free) for S3 and DynamoDB, and [Interface Endpoints](https://docs.aws.amazon.com/vpc/latest/userguide/vpce-interface.html) (~$7/mo each) for other AWS services — eliminating the need for a NAT Gateway in many workloads.
 
 ## Notes
 
-- **NAT Gateway per AZ**: `natGateways=1` places one NAT GW in the first AZ. Traffic from AZ-b and AZ-c crosses AZ boundaries to reach it (charged at $0.01/GB). `natGateways=3` places one per AZ, eliminating cross-AZ NAT costs — preferred for production.
+- **NAT Instance vs NAT Gateway**: The default `natProviderType='self-managed'` uses a t4g.nano EC2 instance running Amazon Linux 2023; CDK injects user data that installs iptables and configures MASQUERADE NAT. Cost: ~$3.40/mo vs ~$35/mo (~90% cheaper). Trade-offs: single point of failure per instance (no built-in HA), max bandwidth ~5 Gbps on t4g.nano (NAT GW scales to 100 Gbps), requires OS patching. For production, use `natProviderType='aws-managed'`.
+- **NAT Gateway per AZ**: `natGateways=1` places one NAT GW/instance in the first AZ. Traffic from AZ-b and AZ-c crosses AZ boundaries to reach it (charged at $0.01/GB for aws-managed). `natGateways=3` places one per AZ, eliminating cross-AZ NAT costs — preferred for production.
 - **Private subnets with `natGateways=0`**: CDK creates the subnets but adds no default route. They behave identically to isolated subnets. This is intentional — the pattern demonstrates the full 3-tier layout regardless of NAT configuration.
 - **Security Groups vs NACLs**: Security Groups (stateful, instance-level) are the primary access control. NACLs (stateless, subnet-level) are a blunt backstop — use them only to block ranges of IPs across an entire subnet.
 - **VPC DNS**: CDK enables `enableDnsHostnames` and `enableDnsSupport` by default — required for VPC Endpoints and Route 53 private hosted zones.
@@ -83,14 +88,17 @@ Dominant cost when `natGateways>0`: NAT Gateway hourly fee (~$35/gateway/month).
 ### Deploy
 
 ```bash
-# No NAT Gateway ($0 idle) — use VPC Endpoints for AWS service access
+# No NAT ($0 idle) — use VPC Endpoints for AWS service access
 npx cdk deploy VpcSubnets
 
-# Single NAT Gateway (~$35/mo) — outbound internet from private subnets
+# NAT Instance on t4g.nano (~$3.40/mo) — default self-managed provider
 npx cdk deploy VpcSubnets -c natGateways=1
 
-# One NAT Gateway per AZ (~$105/mo) — production HA
-npx cdk deploy VpcSubnets -c natGateways=3
+# Managed NAT Gateway (~$35/mo) — fully managed, no instance ops
+npx cdk deploy VpcSubnets -c natGateways=1  # then pass natProviderType='aws-managed' via props in bin/cdk.ts
+
+# One NAT Gateway per AZ (~$105/mo) — production HA (aws-managed)
+npx cdk deploy VpcSubnets -c natGateways=3  # set natProviderType='aws-managed' in bin/cdk.ts
 ```
 
 ### Inspect
@@ -118,5 +126,5 @@ npx cdk destroy VpcSubnets
 ### Capture CloudFormation YAML
 
 ```bash
-npx cdk synth VpcSubnets > patterns/vpc-subnets/cloud_formation.yaml
+npx cdk synth -c natGateways=1 VpcSubnets > patterns/vpc-subnets/cloud_formation.yaml
 ```

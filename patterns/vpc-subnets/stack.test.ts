@@ -27,9 +27,9 @@ describe('VpcSubnetsStack', () => {
     });
   });
 
-  describe('natGateways=1', () => {
+  describe('natGateways=1, aws-managed', () => {
     const app = new cdk.App({'context': {natGateways: '1'}});
-    const stack = new VpcSubnetsStack(app, 'TestStack');
+    const stack = new VpcSubnetsStack(app, 'TestStack', {natProviderType: 'aws-managed'});
     const template = Template.fromStack(stack);
 
     test('creates 1 NAT Gateway', () => {
@@ -41,9 +41,9 @@ describe('VpcSubnetsStack', () => {
     });
   });
 
-  describe('natGateways=3', () => {
+  describe('natGateways=3, aws-managed', () => {
     const app = new cdk.App({'context': {natGateways: '3'}});
-    const stack = new VpcSubnetsStack(app, 'TestStack');
+    const stack = new VpcSubnetsStack(app, 'TestStack', {natProviderType: 'aws-managed'});
     const template = Template.fromStack(stack);
 
     // natGateways=3 is capped to the AZ count (2 in test env).
@@ -53,6 +53,21 @@ describe('VpcSubnetsStack', () => {
 
     test('creates 2 Elastic IPs (one per NAT GW)', () => {
       template.resourceCountIs('AWS::EC2::EIP', 2);
+    });
+  });
+
+  describe('natGateways=1, self-managed (default)', () => {
+    const app = new cdk.App({'context': {natGateways: '1'}});
+    // natProviderType defaults to 'self-managed'
+    const stack = new VpcSubnetsStack(app, 'TestStack');
+    const template = Template.fromStack(stack);
+
+    test('creates 1 EC2 NAT instance', () => {
+      template.resourceCountIs('AWS::EC2::Instance', 1);
+    });
+
+    test('creates no managed NAT Gateways', () => {
+      template.resourceCountIs('AWS::EC2::NatGateway', 0);
     });
   });
 });
