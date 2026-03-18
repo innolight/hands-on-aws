@@ -1,0 +1,76 @@
+Resources:
+  ClusterEB0386A7:
+    Type: AWS::ECS::Cluster
+    Metadata:
+      aws:cdk:path: EcsPlatformStack/Cluster/Resource
+  Namespace9B63B8C8:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: ecs-fargate-apigw.local
+      Vpc:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: EcsPlatformStack/Namespace/Resource
+  VpcLinkSG3BF39CE1:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for API Gateway VPC Link
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: EcsPlatformStack/VpcLinkSG/Resource
+  VpcLink42ED6FF0:
+    Type: AWS::ApiGatewayV2::VpcLink
+    Properties:
+      Name: EcsPlatformStackVpcLink9850272B
+      SecurityGroupIds:
+        - Fn::GetAtt:
+            - VpcLinkSG3BF39CE1
+            - GroupId
+      SubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD
+    Metadata:
+      aws:cdk:path: EcsPlatformStack/VpcLink/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/22OwWrDMBBEvyU6FnlrTOih1xR6KaU0kIsJZbvelo1jWWhlGSP07wUnh7T0MAwM84ZpoNnWUG9w1oq6vjrLJ+R9ROotzvqRmRTy7jxp5NBmkzyZR3NnytHuvtw1L1Y5JCHuRGlMHBbIb0ESRn5y+ooDq0fiNhuHA6+8/bP0T71YpgbynmkKEpfnME7+5oE1HSsF8VFGd7P0q18sevnGyDMuqYF88PQirm9X/qIVuualFOvGjuGk96nZwgPUm5OKVGFyUQaG94v/AMQJTX01AQAA
+    Metadata:
+      aws:cdk:path: EcsPlatformStack/CDKMetadata/Default
+Outputs:
+  ExportsOutputFnGetAttVpcLinkSG3BF39CE1GroupIdD4DF0A8E:
+    Value:
+      Fn::GetAtt:
+        - VpcLinkSG3BF39CE1
+        - GroupId
+    Export:
+      Name: EcsPlatformStack:ExportsOutputFnGetAttVpcLinkSG3BF39CE1GroupIdD4DF0A8E
+  ExportsOutputRefClusterEB0386A796A0E3FE:
+    Value:
+      Ref: ClusterEB0386A7
+    Export:
+      Name: EcsPlatformStack:ExportsOutputRefClusterEB0386A796A0E3FE
+  ExportsOutputFnGetAttNamespace9B63B8C8Id4C69F815:
+    Value:
+      Fn::GetAtt:
+        - Namespace9B63B8C8
+        - Id
+    Export:
+      Name: EcsPlatformStack:ExportsOutputFnGetAttNamespace9B63B8C8Id4C69F815
+  ExportsOutputRefVpcLink42ED6FF0DCEB9DB7:
+    Value:
+      Ref: VpcLink42ED6FF0
+    Export:
+      Name: EcsPlatformStack:ExportsOutputRefVpcLink42ED6FF0DCEB9DB7
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

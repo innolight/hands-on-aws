@@ -94,7 +94,7 @@ REPO_URI=$(aws cloudformation describe-stacks \
   --output text | tr -d '\r')
 
 cd patterns/containers/elastic-container-registry/example-container
-docker build -t hands-on-containers .
+docker build --platform linux/arm64 -t hands-on-containers .
 docker tag hands-on-containers:latest "${REPO_URI}:latest"
 ```
 

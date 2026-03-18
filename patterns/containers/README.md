@@ -17,14 +17,14 @@ The image is built once and stored in ECR via the `elastic-container-registry` p
 |---|---|---|---|---|---|---|
 | `app-runner` | App Runner | Built-in HTTPS | Pause only | ~$5/mo | Lowest | Low |
 | `ecs-fargate-alb` | ECS Fargate | ALB | No | ~$20/mo | Low | Medium |
-| `ecs-fargate-apigw` | ECS Fargate | API GW + VPC Link | Yes* | ~$0* | Medium | High |
+| `ecs-fargate-apigw` | ECS Fargate | API GW + VPC Link | Yes* | ~$10/mo* | Medium | High |
 | `ecs-ec2-alb` | ECS on EC2 (Spot) | ALB | No | ~$20/mo | Medium | High |
 | `lambda-container` | Lambda | Function URL | Yes | ~$0 | Low | Medium |
 | `one-ec2` | Single EC2 + Docker | Public IP | No | ~$4/mo | High | Low |
 | `ec2s-behind-alb` | ASG of EC2s + Docker | ALB | No | ~$20/mo | High | Medium |
 | `eks-fargate` | EKS + Fargate pods | K8s Ingress/ALB | No | ~$80/mo† | High | High |
 
-\* `ecs-fargate-apigw` can scale Fargate to 0 tasks, but API Gateway HTTP API itself has no idle cost.
+\* `ecs-fargate-apigw`: the ~$10/mo is 1 Fargate task (256 CPU/512 MB). API GW + VPC Link have no idle cost, so scaling to 0 tasks would yield ~$0 — but Fargate cold start is 30–90s and the service returns 503 while at 0 tasks.
 
 † `eks-fargate` idle cost: $73/mo EKS control plane ($0.10/hr) + CoreDNS pods on Fargate (~$7/mo). ECS and EKS patterns running tasks in private subnets also require a NAT Gateway (~$32/mo) or VPC endpoints (~$7/mo each) to pull ECR images — not included in the table above.
 
