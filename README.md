@@ -50,10 +50,10 @@ API & Auth:
 - [ ] `apigw-websocket`: API Gateway WebSocket API + Lambda + DynamoDB connection tracking
 
 Infrastructures / Containers on AWS:
-- [ ] [`elastic-container-registry`](./patterns/containers/elastic-container-registry): ECR repository provisioning, Docker image build & push
+- [x] [`elastic-container-registry`](./patterns/containers/elastic-container-registry): ECR repository provisioning, Docker image build & push
 - [ ] [`app-runner`](./patterns/containers/app-runner): App Runner — fully managed, source-to-URL container hosting
 - [ ] [`ecs-fargate-alb`](./patterns/containers/ecs-fargate-alb): ECS Fargate + ALB — serverless containers behind Application Load Balancer
-- [ ] [`ecs-fargate-apigw`](./patterns/containers/ecs-fargate-apigw): ECS Fargate + API Gateway HTTP API + VPC Link
+- [x] [`ecs-fargate-apigw`](./patterns/containers/ecs-fargate-apigw): ECS Fargate + API Gateway HTTP API + VPC Link
 - [ ] [`ecs-ec2-alb`](./patterns/containers/ecs-ec2-alb): ECS on EC2 (Spot) + ALB — self-managed container instances behind load balancer
 - [ ] [`lambda-container`](./patterns/containers/lambda-container): Lambda container image + Function URL — serverless per-request execution
 - [ ] [`one-ec2`](./patterns/containers/one-ec2): Single EC2 instance running Docker, public-facing
