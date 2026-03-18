@@ -51,7 +51,7 @@ export class EcsFargateApigwStack extends cdk.Stack {
       },
     });
 
-    const logGroup = new logs.LogGroup(this, 'TaskLogGroup', {
+    const taskLogGroup = new logs.LogGroup(this, 'TaskLogGroup', {
       logGroupName: '/ecs/ecs-fargate-apigw',
       // !! Change the following in production.
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -61,7 +61,8 @@ export class EcsFargateApigwStack extends cdk.Stack {
     taskDef.addContainer('app', {
       image: ecs.ContainerImage.fromEcrRepository(props.repository, 'latest'),
       portMappings: [{containerPort: 3000}],
-      logging: ecs.LogDrivers.awsLogs({logGroup, streamPrefix: 'ecs'}),
+      // if you don't add a logging driver to the container definition, there are no logs at all
+      logging: ecs.LogDrivers.awsLogs({logGroup: taskLogGroup, streamPrefix: 'ecs'}),
       // CDK auto-grants ssm:GetParameters on the execution role (not the task role)
       secrets: {
         API_KEY: ecs.Secret.fromSsmParameter(apiKey),
@@ -132,6 +133,7 @@ export class EcsFargateApigwStack extends cdk.Stack {
     });
 
     // Access logs help debug VPC Link connectivity issues — worth the small cost
+    // Without accessLogSettings on the stage, API Gateway produces no access logs.
     const stage = httpApi.defaultStage!.node.defaultChild as apigwv2.CfnStage;
     stage.accessLogSettings = {
       destinationArn: accessLogGroup.logGroupArn,
