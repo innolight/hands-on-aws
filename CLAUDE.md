@@ -67,6 +67,12 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 - Stacks use `removalPolicy: DESTROY` and `autoDeleteObjects: true` for easy cleanup — note these as non-production settings when adding new patterns
 - Stack outputs (`CfnOutput`) are the mechanism for passing resource info to demo servers via `getStackOutputs`
 - Default region is `eu-central-1` (set via `CDK_DEFAULT_REGION`; CDK resolves account/region automatically from the AWS CLI profile)
+- Split stacks along lifecycle and ownership boundaries. Group resources that change at the same frequency and share the same blast radius. Typical layers:
+  - **Shared infrastructure** (VPC, ECS cluster, Cloud Map namespace, VPC Link) — deployed once, almost never updated, consumed by multiple stacks via `public readonly` exports
+  - **Platform/datastore** (OpenSearch domain, ElastiCache cluster, ECR repository) — updated occasionally, exports SGs and identifiers for consumers
+  - **Service/app** (task definitions, Fargate services, Lambda functions, API Gateway) — changes on every deploy, wires up access to upstream stacks
+
+  A stack should not mix slow-changing shared infrastructure with fast-changing per-service resources. When in doubt, ask: "If I redeploy this stack, what's the blast radius?" If the answer includes resources unrelated to the change, split.
 - Datastore stacks (e.g., OpenSearch, ElastiCache) must not assume how they will be consumed. They expose security groups and resource identifiers as `public readonly` properties. Consumer/app stacks wire up access (SG ingress, IAM, etc.) separately using L1 `CfnSecurityGroupIngress` to avoid cross-stack mutation. Deploy order: shared infra → datastore → consumer app stacks.
 
 # Behavioural Guideline
