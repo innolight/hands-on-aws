@@ -28,6 +28,8 @@ import {EcsFargateComputeStack, ecsFargateComputeStackName} from '../patterns/co
 import {EcsFargateNetworkingStack, ecsFargateNetworkingStackName} from '../patterns/containers/ecs-fargate-apigw/stack_networking';
 import {OpenSearchServerlessStack, opensearchServerlessStackName} from '../patterns/opensearch-serverless/stack';
 import {OpenSearchServerlessAppStack, opensearchServerlessAppStackName} from '../patterns/opensearch-serverless/app_stack';
+import {OpenSearchProvisionedStack, opensearchProvisionedStackName} from '../patterns/opensearch-provisioned/stack';
+import {OpenSearchProvisionedAppStack, opensearchProvisionedAppStackName} from '../patterns/opensearch-provisioned/app_stack';
 
 const app = new cdk.App();
 
@@ -166,4 +168,15 @@ new OpenSearchServerlessAppStack(app, opensearchServerlessAppStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
   bastionSG: bastionStack.bastionSG,
   vpcEndpointSG: ossStack.vpcEndpointSG,
+});
+
+const ospStack = new OpenSearchProvisionedStack(app, opensearchProvisionedStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+});
+
+new OpenSearchProvisionedAppStack(app, opensearchProvisionedAppStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  bastionSG: bastionStack.bastionSG,
+  domainSG: ospStack.domainSG,
 });

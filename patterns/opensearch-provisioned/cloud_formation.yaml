@@ -1,0 +1,270 @@
+Resources:
+  DomainSG1DB71FAD:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: OpenSearch Provisioned domain — inbound rules added by consumer stacks
+      SecurityGroupEgress:
+        - CidrIp: 255.255.255.255/32
+          Description: Disallow all traffic
+          FromPort: 252
+          IpProtocol: icmp
+          ToPort: 86
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/DomainSG/Resource
+  DomainSlowSearchLogs5B35A97A:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/Domain/SlowSearchLogs/Resource
+  DomainAppLogs21698C1B:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/Domain/AppLogs/Resource
+  DomainESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822CBAE520A:
+    Type: Custom::CloudwatchLogResourcePolicy
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - AWS679f53fac002430cb0da5b7982bd22872D164C4C
+          - Arn
+      Create:
+        Fn::Join:
+          - ""
+          - - '{"service":"CloudWatchLogs","action":"putResourcePolicy","parameters":{"policyName":"ESLogPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822","policyDocument":"{\"Statement\":[{\"Action\":[\"logs:PutLogEvents\",\"logs:CreateLogStream\"],\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"es.amazonaws.com\"},\"Resource\":[\"'
+            - Fn::GetAtt:
+                - DomainSlowSearchLogs5B35A97A
+                - Arn
+            - \",\"
+            - Fn::GetAtt:
+                - DomainAppLogs21698C1B
+                - Arn
+            - \"]}],\"Version\":\"2012-10-17\"}"},"physicalResourceId":{"id":"ESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822"}}
+      Update:
+        Fn::Join:
+          - ""
+          - - '{"service":"CloudWatchLogs","action":"putResourcePolicy","parameters":{"policyName":"ESLogPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822","policyDocument":"{\"Statement\":[{\"Action\":[\"logs:PutLogEvents\",\"logs:CreateLogStream\"],\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"es.amazonaws.com\"},\"Resource\":[\"'
+            - Fn::GetAtt:
+                - DomainSlowSearchLogs5B35A97A
+                - Arn
+            - \",\"
+            - Fn::GetAtt:
+                - DomainAppLogs21698C1B
+                - Arn
+            - \"]}],\"Version\":\"2012-10-17\"}"},"physicalResourceId":{"id":"ESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822"}}
+      Delete: '{"service":"CloudWatchLogs","action":"deleteResourcePolicy","parameters":{"policyName":"ESLogPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822"},"ignoreErrorCodesMatching":"ResourceNotFoundException"}'
+      InstallLatestAwsSdk: false
+    DependsOn:
+      - DomainESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822CustomResourcePolicy419178A5
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/Domain/ESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822/Resource/Default
+  DomainESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822CustomResourcePolicy419178A5:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - logs:DeleteResourcePolicy
+              - logs:PutResourcePolicy
+            Effect: Allow
+            Resource: "*"
+        Version: "2012-10-17"
+      PolicyName: DomainESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822CustomResourcePolicy419178A5
+      Roles:
+        - Ref: AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/Domain/ESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822/CustomResourcePolicy/Resource
+  Domain66AC69E0:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      ClusterConfig:
+        DedicatedMasterEnabled: false
+        InstanceCount: 2
+        InstanceType: t3.small.search
+        MultiAZWithStandbyEnabled: false
+        ZoneAwarenessConfig:
+          AvailabilityZoneCount: 2
+        ZoneAwarenessEnabled: true
+      DomainEndpointOptions:
+        EnforceHTTPS: true
+        TLSSecurityPolicy: Policy-Min-TLS-1-2-2019-07
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+        VolumeType: gp3
+      EncryptionAtRestOptions:
+        Enabled: true
+      EngineVersion: OpenSearch_2.19
+      LogPublishingOptions:
+        SEARCH_SLOW_LOGS:
+          CloudWatchLogsLogGroupArn:
+            Fn::GetAtt:
+              - DomainSlowSearchLogs5B35A97A
+              - Arn
+          Enabled: true
+        ES_APPLICATION_LOGS:
+          CloudWatchLogsLogGroupArn:
+            Fn::GetAtt:
+              - DomainAppLogs21698C1B
+              - Arn
+          Enabled: true
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+      VPCOptions:
+        SecurityGroupIds:
+          - Fn::GetAtt:
+              - DomainSG1DB71FAD
+              - GroupId
+        SubnetIds:
+          - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+          - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+          - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+    DependsOn:
+      - DomainESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822CustomResourcePolicy419178A5
+      - DomainESLogGroupPolicyc880eb2d92417ac9f9cafe395deac6bcfd75f20822CBAE520A
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/Domain/Resource
+  DomainAccessPolicyEE735B04:
+    Type: Custom::OpenSearchAccessPolicy
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - AWS679f53fac002430cb0da5b7982bd22872D164C4C
+          - Arn
+      Create:
+        Fn::Join:
+          - ""
+          - - '{"action":"updateDomainConfig","service":"OpenSearch","parameters":{"DomainName":"'
+            - Ref: Domain66AC69E0
+            - '","AccessPolicies":"{\"Statement\":[{\"Action\":\"es:*\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::495599779087:root\"},\"Resource\":[\"'
+            - Fn::GetAtt:
+                - Domain66AC69E0
+                - Arn
+            - \",\"
+            - Fn::GetAtt:
+                - Domain66AC69E0
+                - Arn
+            - /*\"]}],\"Version\":\"2012-10-17\"}"},"outputPaths":["DomainConfig.AccessPolicies"],"physicalResourceId":{"id":"
+            - Ref: Domain66AC69E0
+            - AccessPolicy"}}
+      Update:
+        Fn::Join:
+          - ""
+          - - '{"action":"updateDomainConfig","service":"OpenSearch","parameters":{"DomainName":"'
+            - Ref: Domain66AC69E0
+            - '","AccessPolicies":"{\"Statement\":[{\"Action\":\"es:*\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::495599779087:root\"},\"Resource\":[\"'
+            - Fn::GetAtt:
+                - Domain66AC69E0
+                - Arn
+            - \",\"
+            - Fn::GetAtt:
+                - Domain66AC69E0
+                - Arn
+            - /*\"]}],\"Version\":\"2012-10-17\"}"},"outputPaths":["DomainConfig.AccessPolicies"],"physicalResourceId":{"id":"
+            - Ref: Domain66AC69E0
+            - AccessPolicy"}}
+      InstallLatestAwsSdk: false
+    DependsOn:
+      - DomainAccessPolicyCustomResourcePolicyE61F1845
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/Domain/AccessPolicy/Resource/Default
+  DomainAccessPolicyCustomResourcePolicyE61F1845:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: es:UpdateDomainConfig
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - Domain66AC69E0
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: DomainAccessPolicyCustomResourcePolicyE61F1845
+      Roles:
+        - Ref: AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/Domain/AccessPolicy/CustomResourcePolicy/Resource
+  AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/AWS679f53fac002430cb0da5b7982bd2287/ServiceRole/Resource
+  AWS679f53fac002430cb0da5b7982bd22872D164C4C:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: 56f7467bbde8a5efebcf57ae9e460027607099bab9f844669dcf5d800172ee5a.zip
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2
+          - Arn
+      Runtime: nodejs22.x
+      Timeout: 120
+    DependsOn:
+      - AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/AWS679f53fac002430cb0da5b7982bd2287/Resource
+      aws:asset:path: asset.56f7467bbde8a5efebcf57ae9e460027607099bab9f844669dcf5d800172ee5a
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/91VTU/cMBD9LfURmRQtqIe9BUpbJAqIIPWwWqFZZzYYHDvyjHcVovz3yomzLIhW7a3qKes34zcfbzw7y2YnR9nRB9jSoSqfDo1eZV3BoJ4kbOm+QzXLugJV8Jrbr96FZtGJTaPEXBwIKUok5XXD2tmEgDFumxtzHXjlgi3FfA2GsF/Ks7V9RdRL16AlBK8eCP1GK8y6z64GbWMM9PTCqqABpbkV806UwHDlSqQph3S+sMRgFd61DSZTHQzr/PmH5oeCwZar9tzCyuAuKylwRZF040yosdDP09URSFxVcyx6KZ6dxXwLHi3ScAsnNvYhkr00ZtOoIqwsMon5ohM0/E5sF+QMMJaiX0pB+y2JzuJALKVAu3Ze4TfmCEZ6Kawr8c7FUs+t8m3q+mjDHZLzLRK/l51xVaVtFU1k3LYYOn/pqvN9Pymgad6CvRQea7cBc+OMVq2YR+XZu1b0shNQlrlSSDRYNQ4198tR81HRXhpXUdZdumqaIo+Mdqzh+CjSvAaGy5N7Lw3UqxKyrtC2MsjOfglWRedFJ0LQZer76HYTfONoNwVYO9/uacu6Rhc4nbwzk8GkcOm4TiGuoMYXXd9ReJxRV05eD2BLg34KEGyMOJxSu74jQ5zbUW8Ze7x83xTHIVr++xqXck/Rf6qcYRKn5Hqpoc668R3El83AWKNNnKnAYg8dnsJvYGZQD3fudqhpMen9C/gvwv0571DgWJGM+KITQBRqLE+Hjdt4bZVuwORKuWAnFUafeCFXu3+AXooaLFRY7i+DV1ib++S7l9GFNdritF7epPuecUg6Bu8lHd8DETJlefxIOs5Og3pCPoW441UgdvW9R3LBK6Qs39LZgN0mSL4+7oZyCDH5DNwFQ9yh0XAduAncy7iWs0f6uJmdZJ+yow+PpPVhGqDsdvz+BJcuyBVnBwAA
+    Metadata:
+      aws:cdk:path: OpenSearchProvisioned/CDKMetadata/Default
+Outputs:
+  DomainEndpoint:
+    Value:
+      Fn::Join:
+        - ""
+        - - https://
+          - Fn::GetAtt:
+              - Domain66AC69E0
+              - DomainEndpoint
+  DomainName:
+    Value:
+      Ref: Domain66AC69E0
+  ExportsOutputFnGetAttDomainSG1DB71FADGroupIdA7C3AABC:
+    Value:
+      Fn::GetAtt:
+        - DomainSG1DB71FAD
+        - GroupId
+    Export:
+      Name: OpenSearchProvisioned:ExportsOutputFnGetAttDomainSG1DB71FADGroupIdA7C3AABC
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
