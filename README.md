@@ -37,7 +37,7 @@ Datastore / RDS & Aurora:
 - [ ] `rds-proxy`: RDS proxy in front of RDS
 
 Datastore / OpenSearch:
-- [ ] `opensearch-provisioned`: Managed OpenSearch domain — parameterized from single-node dev to Multi-AZ production (node count, AZ, dedicated masters)
+- [x] [`opensearch-provisioned`](./patterns/opensearch-provisioned/): Managed OpenSearch domain — parameterized from single-node dev to Multi-AZ production (node count, AZ, dedicated masters)
 - [x] [`opensearch-serverless`](./patterns/opensearch-serverless): OpenSearch Serverless collection with OCU-based billing, zero capacity management
 
 Messaging & Event-Driven:
@@ -55,7 +55,7 @@ Infrastructures / Containers on AWS:
 - [ ] [`ecs-fargate-alb`](./patterns/containers/ecs-fargate-alb): ECS Fargate + ALB — serverless containers behind Application Load Balancer
 - [x] [`ecs-fargate-apigw`](./patterns/containers/ecs-fargate-apigw): ECS Fargate + API Gateway HTTP API + VPC Link
 - [ ] [`ecs-ec2-alb`](./patterns/containers/ecs-ec2-alb): ECS on EC2 (Spot) + ALB — self-managed container instances behind load balancer
-- [ ] [`lambda-container`](./patterns/containers/lambda-container): Lambda container image + Function URL — serverless per-request execution
+- [x] [`lambda-container`](./patterns/containers/lambda-container): Lambda container image + Function URL — serverless per-request execution
 - [ ] [`one-ec2`](./patterns/containers/one-ec2): Single EC2 instance running Docker, public-facing
 - [ ] [`ec2s-behind-alb`](./patterns/containers/ec2s-behind-alb): Auto Scaling Group of EC2s running Docker behind ALB
 - [ ] [`eks-fargate`](./patterns/containers/eks-fargate): EKS Fargate — Kubernetes control plane + serverless pods, no node management
