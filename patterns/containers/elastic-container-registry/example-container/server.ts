@@ -35,6 +35,23 @@ router.get('/quote', (req, res) => {
 
 app.use(process.env.ROUTE_PREFIX || '/', router);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+// Close the listener so no new connections are accepted, then let in-flight requests finish.
+function shutdown(signal: string) {
+  console.log(`${signal} received, draining connections...`);
+  server.close(() => {
+    console.log('All connections drained, exiting.');
+    process.exit(0);
+  });
+}
+
+// ECS sends SIGTERM → stopTimeout (default 30s) → SIGKILL.
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+// Ctrl+C sends SIGINT
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Node.js doesn't exit after the last line — it enters the event loop here.

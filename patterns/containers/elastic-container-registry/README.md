@@ -103,10 +103,10 @@ docker build --platform linux/arm64 --provenance=false --target lambda -t hands-
 **3. Test the image locally**
 
 ```bash
-docker run --rm -p 3000:3000 -e API_KEY=test hands-on-containers:latest
+docker run --rm -p 3000:3000 -e API_KEY=test -e ROUTE_PREFIX=/api hands-on-containers:latest
 # In another terminal:
-curl localhost:3000/health
-curl -H "x-api-key: test" localhost:3000/quote
+curl localhost:3000/api/health
+curl -H "x-api-key: test" localhost:3000/api/quote
 ```
 
 **5. Authenticate Docker to ECR**
