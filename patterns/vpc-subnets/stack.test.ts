@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
+import {Match, Template} from 'aws-cdk-lib/assertions';
 import {VpcSubnetsStack} from './stack';
 
 describe('VpcSubnetsStack', () => {
@@ -68,6 +68,18 @@ describe('VpcSubnetsStack', () => {
 
     test('creates no managed NAT Gateways', () => {
       template.resourceCountIs('AWS::EC2::NatGateway', 0);
+    });
+
+    test('NAT instance SG allows ingress from VPC CIDR', () => {
+      template.hasResourceProperties('AWS::EC2::SecurityGroup', {
+        GroupDescription: 'Security Group for NAT instances',
+        SecurityGroupIngress: Match.arrayWith([
+          Match.objectLike({
+            CidrIp: Match.objectLike({'Fn::GetAtt': Match.arrayWith(['Vpc8378EB38', 'CidrBlock'])}),
+            IpProtocol: '-1',
+          }),
+        ]),
+      });
     });
   });
 });

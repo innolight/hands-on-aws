@@ -29,7 +29,7 @@ export class VpcSubnetsStack extends cdk.Stack {
     // ~$3.40/mo vs ~$35/mo for a NAT Gateway — saves ~90% for dev/learning stacks.
     // Trade-offs: single point of failure per instance, lower max bandwidth (~5 Gbps on t4g.nano),
     // manual patching required. Not recommended for production without HA configuration.
-    const natGatewayProvider =
+    const selfManagedNATGatewayProvider =
       natGateways > 0 && natProviderType === 'self-managed'
         ? ec2.NatProvider.instanceV2({
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.NANO),
@@ -41,7 +41,7 @@ export class VpcSubnetsStack extends cdk.Stack {
     this.vpc = new ec2.Vpc(this, 'Vpc', {
       maxAzs: 3,
       natGateways,
-      natGatewayProvider,
+      natGatewayProvider: selfManagedNATGatewayProvider,
       subnetConfiguration: [
         // Public subnets: attached to the Internet Gateway. Use for load balancers,
         // NAT Gateways, and bastion hosts — not application workloads.
@@ -57,6 +57,20 @@ export class VpcSubnetsStack extends cdk.Stack {
         {name: 'Isolated', subnetType: ec2.SubnetType.PRIVATE_ISOLATED, cidrMask: 20},
       ],
     });
+
+    // OUTBOUND_ONLY adds egress but no ingress to the NAT SG. Without this rule, traffic from
+    // private subnets reaches the NAT instance ENI but gets dropped by the security group.
+    // AWS NAT Gateways have no SGs so this gap only affects self-managed NAT instances.
+    if (selfManagedNATGatewayProvider) {
+      selfManagedNATGatewayProvider.securityGroup.addIngressRule(
+        // use the full VPC CIDR instead of individual private subnet CIDRs for simplicity
+        // only private subnets have routes pointing to the NAT instance anyway, so public/isolated subnet traffic never arrives here.
+        ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+        // allows all protocols and ports (maps to IpProtocol: "-1")
+        ec2.Port.allTraffic(), 
+        'Allow traffic from private subnets for NAT forwarding',
+      );
+    }
 
     new cdk.CfnOutput(this, 'VpcId', {value: this.vpc.vpcId});
     new cdk.CfnOutput(this, 'VpcCidr', {value: this.vpc.vpcCidrBlock});

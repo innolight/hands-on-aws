@@ -482,6 +482,13 @@ Resources:
         - CidrIp: 0.0.0.0/0
           Description: Allow all outbound traffic by default
           IpProtocol: "-1"
+      SecurityGroupIngress:
+        - CidrIp:
+            Fn::GetAtt:
+              - Vpc8378EB38
+              - CidrBlock
+          Description: Allow traffic from private subnets for NAT forwarding
+          IpProtocol: "-1"
       Tags:
         - Key: Name
           Value: VpcSubnets/Vpc
@@ -561,7 +568,7 @@ Resources:
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/+2XUWvbMBCAf0v1OFSvhNKHvLkulMC2hKT0YaGMi3xJrpElI52SZSb/fdiW66yFwdhgfuiTpdPd+bvDujuPktH1VXJ1AQd/qfLdpaZVUi0Y1E7CwX+rUI2S6rFUy0oU8D394cVYfBBSGOB7YDzA8a1k5uyecnTxwIeVQc6sWdMmOGCyRoyXlTBQ4C8qD8eyFszCSpMSUijK3Wfwu0bpJH9j4WgPjH9iMvFWA2P+xubp9CSztXmcZbIFWTRmy0rAHkjDijTx8as1ndt9qSZ5XNeubrVVu7gvoGydTMqp+QTBqK0YswsoBZX7m+yVOnhPGzMp9zdpnjv0fmoyhzFjMaBBUAwGZBgUgwEZBkV7g9p7U6/mNjA+wEpjL+9lqfdWUePgRVlOjGcwCpeVoLiMF7dFVlsyOClg83K5bXAK79BztsUadg3aYxN5n4P21V6Mq1gMvBgvxQfxdGriajCwS0YMr/OPKjji472zoYyyHR5nQK7ffemLjXKYEy9KVLQm1adHiuDR3QFDLDd1zF20Mhayf15yYjL+91f1dxjDIRkIxnBIBoIxHJJ3jHeMQWPEvsPoDHZze5x74y5lBrUt0LBcnDe/ZXXWVHP0ylF51t5Aa3tItZ4GXtlg8naWiCPBuZ+TJCiSam513eXB+1Bgfnusm3PpyCgqQadK2WC4DyoUWBukqo+kdV1Lz1vpzNk1aTyd5Bzb2UBmwbMtum3T9xvLl/O1mYGDAhndK+Xuj+YWPMrUe+QFw4bMpjaaBi4Dn6SxOSbP/uN+dJ3cJFcXz57o0gXDVGAyb58/Aan+dMdvDQAA
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+2XS2vbQBCAf0v2GDZqMCEH3xQHgqCtjR1yqAllvBrbE69m1X04dYX/e5G0itwECqWF6pCTd0czo28Gz0OjZHR1mVyewbO7UPnuQtMqqRYe1E7Cs/taoRol1UOplpUo4Hv6w4mxOBdSMPg78PgMh7eSmTV7ytHGBy6sGP3E8Jo2wYInw2K8rARDgb+o3B/KWjALK01KSKEot5/A7Rqlo/yNhaU9ePwTk8wZDR7zNzaPx0c5WfPDbCJbkEVjtqwE7IE0rEiTP3wx3LndlyrL47l2daON2sV7AWXrJCun/BECq60YextQCir315NX6uAcbTgr99dpnlt0bsoTizFjMaBBUAwGZBgUgwEZBkVbQW3d1Ke5CR7vYaWxl/ey1DmjqHHwoiwzdh5Y4bISFI+xcFtktSXGrIDNS3GbYBXeovOTLdawa9AOm8j7HLSvdmJcxWbgxHgpzsXjsYmrwcAuGTG8zj+qYMkf7qwJZZTt8DADsv3tc99slMWc/KJERWtSfXqkCA7tLXiI7aaOuYtWxkb2z1tOTMb//lf9HcZwSAaCMRySgWAMh+Qd4x1j0Bhx7ni0jN3eHvfeeEu9B7UtkL1cnA6/ZXUyVHN0ylJ5Mt5Aa/Ocaj0NfmUC5+0u0YSd5xlvaph50Nh8AijgjDUxtpJ261CGGVXtshu+gelbwJicps6bod2uGadsR0lQJNXc6HpzAOdCgfnNoR74pSVWVIJOlTKBfZ+oUGBtkKo+O63rWno6nmfWrEnj8Sjn2O4bchKcN0V3bXaJxvLl+ZpnYKFAj/aVcveVdAMOZeoc+oWHDfGmNpoGXwZ/lGxyTJ7ch/3oKrlOLs+eHNGFDeypwGTe/v4EbdfvnMMNAAA=
     Metadata:
       aws:cdk:path: VpcSubnets/CDKMetadata/Default
 Parameters:
@@ -652,4 +659,14 @@ Outputs:
       Ref: VpcPrivateSubnet3SubnetF258B56E
     Export:
       Name: VpcSubnets:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD
+  ExportsOutputRefVpcPublicSubnet2Subnet691E08A351552740:
+    Value:
+      Ref: VpcPublicSubnet2Subnet691E08A3
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpcPublicSubnet2Subnet691E08A351552740
+  ExportsOutputRefVpcPublicSubnet3SubnetBE12F0B65CC33245:
+    Value:
+      Ref: VpcPublicSubnet3SubnetBE12F0B6
+    Export:
+      Name: VpcSubnets:ExportsOutputRefVpcPublicSubnet3SubnetBE12F0B65CC33245
 
