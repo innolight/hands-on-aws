@@ -99,16 +99,6 @@ pnpm install
 
 CDK automatically resolves `CDK_DEFAULT_ACCOUNT` and `CDK_DEFAULT_REGION` from your AWS CLI profile (`aws configure`). To target a specific region: `export CDK_DEFAULT_REGION=eu-central-1`
 
-### CDK Construct Levels
-
-CDK organizes cloud resources into three levels of abstraction called **constructs**:
-
-| Level | Name | What it is | Example |
-|---|---|---|---|
-| **L1** | CFN Resources | 1:1 mapping to CloudFormation resources. Prefixed with `Cfn`. No defaults — you configure every property yourself. | `CfnBucket`, `CfnFunction` |
-| **L2** | Curated Constructs | AWS-vetted wrappers around L1. Provide sensible defaults, helper methods (e.g., `bucket.grantRead(lambda)`), and a higher-level API. Most of what you'll use day-to-day. | `s3.Bucket`, `lambda.Function` |
-| **L3** | Patterns | Opinionated multi-resource compositions. Wire together several L2 constructs into a common architecture. | `LambdaRestApi` (API Gateway + Lambda), `S3BucketDeployment` (S3 + Lambda + Custom Resource) |
-
 ### Project Structure
 
 ```
@@ -122,6 +112,34 @@ patterns/<name>/
 utils/
   └── stackoutput.ts              # getStackOutputs(stackName) — discovers deployed resources at runtime
 ```
+
+### Adding a New Pattern
+
+1. Create `patterns/<name>/stack.ts` — extend `cdk.Stack`, export a stack name constant, and use `CfnOutput` for key resource IDs/ARNs
+2. Register the stack in `bin/cdk.ts`
+3. (Optional) Add `demo_server.ts` using `getStackOutputs()` to discover resources at runtime
+4. Add a `README.md` in the pattern folder
+5. Synthesize the template: `npx cdk synth <StackName> > patterns/<name>/cloud_formation.yaml`
+
+### Running Demo Servers
+
+```bash
+AWS_REGION=eu-central-1 npx ts-node patterns/<name>/demo_server.ts
+```
+
+Demo servers use `getStackOutputs()` from `utils/stackoutput.ts` to discover deployed resource names and ARNs at runtime — no hardcoding needed. Deploy the pattern stack first, then start the server.
+
+## CDK Concepts
+
+### CDK Constructs
+
+CDK organizes cloud resources into three levels of abstraction called **constructs**:
+
+| Level | Name | What it is | Example |
+|---|---|---|---|
+| **L1** | CFN Resources | 1:1 mapping to CloudFormation resources. Prefixed with `Cfn`. No defaults — you configure every property yourself. | `CfnBucket`, `CfnFunction` |
+| **L2** | Curated Constructs | AWS-vetted wrappers around L1. Provide sensible defaults, helper methods (e.g., `bucket.grantRead(lambda)`), and a higher-level API. Most of what you'll use day-to-day. | `s3.Bucket`, `lambda.Function` |
+| **L3** | Patterns | Opinionated multi-resource compositions. Wire together several L2 constructs into a common architecture. | `LambdaRestApi` (API Gateway + Lambda), `S3BucketDeployment` (S3 + Lambda + Custom Resource) |
 
 **When to use which:**
 - **Start with L2** — covers ~90% of cases with good defaults and grant helpers that auto-generate least-privilege IAM policies.
@@ -152,20 +170,4 @@ utils/
 - `npx cdk destroy <StackName>` — delete the CloudFormation stack and all resources within it. Prompts for confirmation before deleting.
 
 > **Note:** All patterns use `removalPolicy: DESTROY` and `autoDeleteObjects: true` for easy cleanup. These settings are **not production-safe**.
-
-### Adding a New Pattern
-
-1. Create `patterns/<name>/stack.ts` — extend `cdk.Stack`, export a stack name constant, and use `CfnOutput` for key resource IDs/ARNs
-2. Register the stack in `bin/cdk.ts`
-3. (Optional) Add `demo_server.ts` using `getStackOutputs()` to discover resources at runtime
-4. Add a `README.md` in the pattern folder
-5. Synthesize the template: `npx cdk synth <StackName> > patterns/<name>/cloud_formation.yaml`
-
-### Running Demo Servers
-
-```bash
-AWS_REGION=eu-central-1 npx ts-node patterns/<name>/demo_server.ts
-```
-
-Demo servers use `getStackOutputs()` from `utils/stackoutput.ts` to discover deployed resource names and ARNs at runtime — no hardcoding needed. Deploy the pattern stack first, then start the server.
 
