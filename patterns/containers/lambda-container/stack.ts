@@ -42,7 +42,11 @@ export class LambdaContainerStack extends cdk.Stack {
       // DockerImageCode.fromEcr auto-grants ecr:GetDownloadUrlForLayer, ecr:BatchGetImage,
       // ecr:GetAuthorizationToken on the execution role — no manual ECR policy needed.
       // Tag 'lambda' coexists with 'latest' (used by ECS patterns) in the same ECR repository.
-      code: lambda.DockerImageCode.fromEcr(repository, {tagOrDigest: 'lambda'}),
+      // Context override: `cdk deploy -c imageDigest=sha256:...` pins to a specific image digest,
+      // so a CI push + deploy always picks up the new image (re-tagging alone won't trigger an update).
+      code: lambda.DockerImageCode.fromEcr(repository, {
+        tagOrDigest: this.node.tryGetContext('imageDigest') ?? 'lambda',
+      }),
       // ARM64 (Graviton) is ~20% cheaper than x86 and consistent with ECS patterns
       architecture: lambda.Architecture.ARM_64,
       // 512 MB: Lambda container cold start scales with memory allocation;

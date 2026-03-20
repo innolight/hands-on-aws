@@ -38,10 +38,6 @@ Dominant cost driver: Lambda duration (scales with invocations, not time). At id
 
 ## Notes
 
-**Why Secrets Manager instead of SSM SecureString**
-
-Other container patterns (ECS, App Runner) inject the API key from SSM SecureString — the platform resolves `{{resolve:ssm-secure:...}}` at task launch. Lambda does not support SSM SecureString dynamic references in environment variables ([CloudFormation docs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/dynamic-references-ssm-secure-strings.html#dynamic-references-ssm-secure-strings-resources)). Secrets Manager references (`{{resolve:secretsmanager:...}}`) are supported, so this pattern uses a Secrets Manager secret instead. The trade-off is $0.40/mo per secret vs ~$0.05/mo for SSM SecureString.
-
 **Lambda Web Adapter (LWA)**
 
 LWA is an AWS-maintained binary that runs as a [Lambda extension](https://docs.aws.amazon.com/lambda/latest/dg/lambda-extensions.html). When Lambda starts a new execution environment:
@@ -53,9 +49,27 @@ LWA is an AWS-maintained binary that runs as a [Lambda extension](https://docs.a
 
 The app code requires zero changes — Express does not know it runs inside Lambda.
 
-**Multi-stage Dockerfile**
+**Lambda containers vs Lambda zip**
 
-The `example-container/Dockerfile` uses multi-stage targets to produce both the ECS and Lambda images from a single file. The `lambda` stage extends the shared `base` stage with three additions: the LWA binary copied into `/opt/extensions/`, and two `ENV` vars (`AWS_LWA_PORT=3000`, `AWS_LWA_READINESS_CHECK_PATH=/health`). See the [ECR README](../elastic-container-registry/README.md) for build and push commands.
+Prefer container packaging over zip when:
+- **Existing web app** — you already have an Express/Flask app and want scale-to-zero without rewriting it into a Lambda handler. LWA bridges the gap.
+- **Large dependencies** — zip is limited to 50 MB (250 MB unzipped). Container images go up to 10 GB. ML libraries, native binaries, sharp, ffmpeg, etc.
+- **Local testing** — `docker run` the image and `curl localhost:3000` for a fast feedback loop without deploying to AWS.
+
+Trade-offs: container cold starts are slower (1–3s vs 200–500ms for zip) and the init phase is billed, so each cold start costs more. LWA adds a few milliseconds of proxy overhead per invocation, slightly increasing duration cost. Containers also require an ECR repository and a docker build/push step in your pipeline. ECR storage adds ~$0.01/mo vs free Lambda-managed storage for zip.
+
+**Lambda (container or zip) vs always-on compute**
+
+Lambda suits **low-to-moderate traffic, short-lived, stateless request/response workloads** where you want zero idle cost. Move to Fargate or App Runner when you hit the constraints below:
+
+| Constraint | Why Lambda hurts | Alternative |
+|---|---|---|
+| Consistent high traffic | Per-request pricing becomes expensive; cold starts add latency at scale | ECS Fargate / App Runner — fixed compute cost, no cold starts |
+| Long-running requests (>15 min) | Lambda hard timeout | ECS Fargate — no timeout |
+| Streaming responses (SSE, WebSockets) | LWA buffers the full response; no persistent connections | ECS Fargate + ALB or App Runner |
+| Response > 6 MB | Lambda payload limit | ECS Fargate + ALB |
+| Stateful processes (in-memory cache, connection pools) | Execution environment is ephemeral and frozen between invocations | ECS Fargate — long-lived process |
+| Consistent low latency (<50ms p99) | Cold starts of 1–3s unavoidable without provisioned concurrency (~$15/mo per instance) | ECS Fargate with minimum task count |
 
 **Cold start**
 
@@ -70,7 +84,9 @@ No provisioned concurrency is configured (the commented-out block in `stack.ts` 
 | Cold start timeout | HTTP 500 (Lambda timeout); cold starts usually <3s but can spike | Increase `timeout` in `stack.ts` (max 15 min) |
 | Bad deploy | Function returns 500/init error | No automatic rollback — push a known-good image with the `lambda` tag and `npx cdk deploy LambdaContainerStack` |
 | Throttling | HTTP 429 from Function URL when >10 concurrent requests | Increase `reservedConcurrentExecutions` in `stack.ts`; or remove the cap for production |
-| Pre-existing log group | CDK deploy fails with `ResourceAlreadyExistsException` | Delete the log group manually: `aws logs delete-log-group --log-group-name /aws/lambda/lambda-container` |
+| Read-only filesystem | `EROFS: read-only file system` at runtime | Write only to `/tmp` (up to 10 GB). Common when porting an Express app that writes logs or caches to disk. |
+| Platform mismatch | `exec format error` — build succeeds, fails on invocation | Always pass `--platform linux/arm64` to `docker build` (or use `docker buildx`). This stack deploys ARM64. |
+| Stale image after tag push | No error — function works but serves old code | Push new image with same `:lambda` tag → Lambda still runs the old image. Two production approaches: (1) **`fromImageAsset`** — CDK builds, hashes, pushes, and updates the function in one `cdk deploy`. Simplest, but CDK owns the build. (2) **Digest pinning** — CI pushes the image, passes the digest to CDK via context: `npx cdk deploy LambdaContainerStack -c imageDigest=sha256:abc...`. CDK sees a changed value and updates the function. |
 
 **Synchronous invocation model**
 
@@ -79,6 +95,12 @@ Function URL invocations are synchronous — Lambda executes, returns a response
 **Provisioned concurrency**
 
 To eliminate cold starts, uncomment the `Alias` block in `stack.ts` and set `provisionedConcurrentExecutions: 1`. This keeps one execution environment warm at all times, at a cost of approximately $15/mo (1 instance × 512 MB × 730 hours). Provisioned concurrency cannot be set on `$LATEST` — it requires a function version and alias.
+
+**Secrets Manager instead of SSM SecureString**
+
+Lambda does not support SSM SecureString dynamic references in environment variables ([CloudFormation docs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/dynamic-references-ssm-secure-strings.html#dynamic-references-ssm-secure-strings-resources)). Secrets Manager references (`{{resolve:secretsmanager:...}}`) are supported, so this pattern uses a Secrets Manager secret instead. The trade-off is $0.40/mo per secret vs ~$0.05/mo for SSM SecureString.
+
+While secretsmanager references technically work, they bake the secret into your Lambda configuration in plaintext. Anyone with lambda:GetFunction permissions will be able to see the secret in the AWS Console or via the CLI.
 
 ## Commands to play with stack
 
