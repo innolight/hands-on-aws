@@ -1,0 +1,279 @@
+Resources:
+  TaskSG7164C6FA:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ECS Fargate tasks
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/TaskSG/Resource
+  TaskSGfromEcsFargateAlbNetworkingStackAlbSG51CEC8D330004A843D4C:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Load balancer to target
+      FromPort: 3000
+      GroupId:
+        Fn::GetAtt:
+          - TaskSG7164C6FA
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::ImportValue: EcsFargateAlbNetworkingStack:ExportsOutputFnGetAttAlbSGE6D0E5D1GroupId3836EA9B
+      ToPort: 3000
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/TaskSG/from EcsFargateAlbNetworkingStackAlbSG51CEC8D3:3000
+  TaskDefTaskRole1EDB4A67:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/TaskDef/TaskRole/Resource
+  TaskDef54694570:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Environment:
+            - Name: ROUTE_PREFIX
+              Value: /quote-service
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - wget -qO- http://localhost:3000/quote-service/health || exit 1
+            Interval: 30
+            Retries: 3
+            StartPeriod: 10
+            Timeout: 5
+          Image:
+            Fn::Join:
+              - ""
+              - - 495599779087.dkr.ecr.eu-central-1.
+                - Ref: AWS::URLSuffix
+                - /hands-on-containers:latest
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: TaskLogGroup933EA2D6
+              awslogs-stream-prefix: ecs
+              awslogs-region: eu-central-1
+          Name: app
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Secrets:
+            - Name: API_KEY
+              ValueFrom: arn:aws:ssm:eu-central-1:495599779087:parameter/hands-on-aws/containers/api-key
+      Cpu: "256"
+      ExecutionRoleArn:
+        Fn::GetAtt:
+          - TaskDefExecutionRoleB4775C97
+          - Arn
+      Family: EcsFargateAlbComputeStackTaskDef80B47E0E
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      TaskRoleArn:
+        Fn::GetAtt:
+          - TaskDefTaskRole1EDB4A67
+          - Arn
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/TaskDef/Resource
+  TaskDefExecutionRoleB4775C97:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/TaskDef/ExecutionRole/Resource
+  TaskDefExecutionRoleDefaultPolicy0DBB737A:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - ecr:BatchCheckLayerAvailability
+              - ecr:BatchGetImage
+              - ecr:GetDownloadUrlForLayer
+            Effect: Allow
+            Resource: arn:aws:ecr:eu-central-1:495599779087:repository/hands-on-containers
+          - Action: ecr:GetAuthorizationToken
+            Effect: Allow
+            Resource: "*"
+          - Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - TaskLogGroup933EA2D6
+                - Arn
+          - Action:
+              - ssm:DescribeParameters
+              - ssm:GetParameter
+              - ssm:GetParameterHistory
+              - ssm:GetParameters
+            Effect: Allow
+            Resource: arn:aws:ssm:eu-central-1:495599779087:parameter/hands-on-aws/containers/api-key
+        Version: "2012-10-17"
+      PolicyName: TaskDefExecutionRoleDefaultPolicy0DBB737A
+      Roles:
+        - Ref: TaskDefExecutionRoleB4775C97
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/TaskDef/ExecutionRole/DefaultPolicy/Resource
+  TaskLogGroup933EA2D6:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/ecs-fargate-alb
+      RetentionInDays: 7
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/TaskLogGroup/Resource
+  ServiceD69D759B:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:
+        Fn::ImportValue: EcsClusterStack:ExportsOutputRefClusterEB0386A796A0E3FE
+      DeploymentConfiguration:
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
+      DesiredCount: 1
+      EnableECSManagedTags: false
+      EnableExecuteCommand: false
+      HealthCheckGracePeriodSeconds: 60
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: app
+          ContainerPort: 3000
+          TargetGroupArn:
+            Ref: TargetGroup3D7CD9B8
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - Fn::GetAtt:
+                - TaskSG7164C6FA
+                - GroupId
+          Subnets:
+            - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940
+            - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3
+            - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD
+      TaskDefinition:
+        Ref: TaskDef54694570
+    DependsOn:
+      - QuoteServiceRule8DDEC137
+      - TaskDefTaskRole1EDB4A67
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/Service/Service
+  ServiceTaskCountTarget23E25614:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 3
+      MinCapacity: 1
+      ResourceId:
+        Fn::Join:
+          - ""
+          - - service/
+            - Fn::ImportValue: EcsClusterStack:ExportsOutputRefClusterEB0386A796A0E3FE
+            - /
+            - Fn::GetAtt:
+                - ServiceD69D759B
+                - Name
+      RoleARN: arn:aws:iam::495599779087:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+    DependsOn:
+      - TaskDefTaskRole1EDB4A67
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/Service/TaskCount/Target/Resource
+  ServiceTaskCountTargetScaleOnCpuB0F497EB:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: EcsFargateAlbComputeStackServiceTaskCountTargetScaleOnCpu12E68A5E
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: ServiceTaskCountTarget23E25614
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 30
+        TargetValue: 50
+    DependsOn:
+      - TaskDefTaskRole1EDB4A67
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/Service/TaskCount/Target/ScaleOnCpu/Resource
+  TargetGroup3D7CD9B8:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /quote-service/health
+      HealthyThresholdCount: 2
+      Port: 3000
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
+        - Key: stickiness.enabled
+          Value: "false"
+      TargetType: ip
+      UnhealthyThresholdCount: 3
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/TargetGroup/Resource
+  QuoteServiceRule8DDEC137:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn:
+            Ref: TargetGroup3D7CD9B8
+          Type: forward
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /quote-service
+              - /quote-service/*
+      ListenerArn:
+        Fn::ImportValue: EcsFargateAlbNetworkingStack:ExportsOutputRefALBHttpListener04CE8CD0A657CDCB
+      Priority: 100
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/QuoteServiceRule/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/6VUXWsbMRD8LdFjUdRgQgt+SxxaDGkJtumLCWUtba4b66RDq3NqxP33It2dPwhpIX04dJpdjWZHK03U5PpKXV3AC19qs720tFFpGUFvJbzwz4R6otISdRso7r8G3zbrJHaNFlPxQUhhkHWgJpJ3BelkEmDM3FUBmRetRTFd58zUyTw8gWV87B7l7Mmdsb4CBopOomaVvkCoIOIKeHuHT+Qo71iI3/jKDufpcuZdBHIYTrCBeIlhRxrX48phLpcaLGxs2XjmWxc7SVCrtPAW10kAc1ujud2LaRJNIKepAXujdU4dLOpz8oIbffSpGPXu1VIEb/E71Hjq+so/jCQP3pLei+k6dY8lGiPoX3NnyeEhlov9d/DvvO+NFpdzWbKH+yYZpKx8jrxS+Bo2ZhkhYo0u8tm2/wkXdb2wTlpfsUr3vhrb3w6/B/+lCFj73bHEfC9i8PsSiej6k/vc845MubWDWmDjmaIP+1tglNA0ljTkBdBGzxosuUqlYyOGCuM6Ce47NGvgBnQWgpqFFDxk3lGNjseWyULYt0Hj3IxAMbP81uRm0ICmuB8R+H2GZKcyM678KoDefsMYSI+XWzQBTb5UaMZAYWmKHyc+GeKsLVeD81FZLDX9ANuOadzHZ95b41+Gph+fjTMnZD8UTeSqZe9Xfw5j9gHoJFrgSNp6MBuw4DS5ajdR6eZoe094eJROpydZ98QRHYb8xJVDPZl3nVwMZnfSeYPqmT/uJtfqk7q6eGaiy9C6SDWqRT/+AUYKChWFBQAA
+    Metadata:
+      aws:cdk:path: EcsFargateAlbComputeStack/CDKMetadata/Default
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
