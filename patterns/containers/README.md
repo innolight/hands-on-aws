@@ -52,44 +52,6 @@ All 8 compute patterns use the same approach: **application-level API key middle
 | `ec2s-behind-alb` | Launch template user data reads SSM parameter, sets env var |
 | `eks-fargate` | Kubernetes Secret sourced from SSM, mounted as env var |
 
-## Project Structure
-
-```
-patterns/containers/
-├── README.md                          ← this file
-├── elastic-container-registry/        ← ECR repo + shared Docker image + SSM API key
-│   ├── stack.ts
-│   ├── example-container/
-│   │   ├── Dockerfile
-│   │   ├── server.ts
-│   │   └── package.json
-│   └── README.md
-├── app-runner/
-│   ├── stack.ts
-│   └── README.md
-├── ecs-fargate-alb/
-│   ├── stack.ts
-│   └── README.md
-├── ecs-fargate-apigw/
-│   ├── stack.ts
-│   └── README.md
-├── ecs-ec2-alb/
-│   ├── stack.ts
-│   └── README.md
-├── lambda-container/
-│   ├── stack.ts
-│   └── README.md
-├── one-ec2/
-│   ├── stack.ts
-│   └── README.md
-├── ec2s-behind-alb/
-│   ├── stack.ts
-│   └── README.md
-└── eks-fargate/
-    ├── stack.ts
-    └── README.md
-```
-
 ## Invoking the API
 
 Each pattern outputs its endpoint URL as a `CfnOutput`. Refer to each pattern's own README for detailed invocation examples.

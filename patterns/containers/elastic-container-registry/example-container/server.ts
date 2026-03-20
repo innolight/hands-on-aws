@@ -14,11 +14,16 @@ const quotes = [
   "Simplicity is the soul of efficiency. — Austin Freeman",
 ];
 
-app.get('/health', (_req, res) => {
+// ROUTE_PREFIX lets the ALB pattern mount routes under a path prefix (e.g. /quote-service).
+// ALB does not rewrite paths — the container receives the full path as-is.
+// Without ROUTE_PREFIX, routes stay at /health and /quote (backward-compatible).
+const router = express.Router();
+
+router.get('/health', (_req, res) => {
   res.json({status: 'ok'});
 });
 
-app.get('/quote', (req, res) => {
+router.get('/quote', (req, res) => {
   const apiKey = process.env.API_KEY;
   if (!apiKey || req.headers['x-api-key'] !== apiKey) {
     res.status(401).json({error: 'Unauthorized'});
@@ -27,6 +32,8 @@ app.get('/quote', (req, res) => {
   const quote = quotes[Math.floor(Math.random() * quotes.length)];
   res.json({quote});
 });
+
+app.use(process.env.ROUTE_PREFIX || '/', router);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

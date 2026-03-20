@@ -1,0 +1,133 @@
+Resources:
+  ApiKeyF9DDEE66:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: API key for the container Express server
+      GenerateSecretString:
+        ExcludePunctuation: true
+        PasswordLength: 32
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: LambdaContainerStack/ApiKey/Resource
+  LogGroupF5B46931:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/lambda-container
+      RetentionInDays: 7
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: LambdaContainerStack/LogGroup/Resource
+  FunctionServiceRole675BB04A:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: LambdaContainerStack/Function/ServiceRole/Resource
+  Function76856677:
+    Type: AWS::Lambda::Function
+    Properties:
+      Architectures:
+        - arm64
+      Code:
+        ImageUri:
+          Fn::Join:
+            - ""
+            - - 495599779087.dkr.ecr.eu-central-1.
+              - Ref: AWS::URLSuffix
+              - /hands-on-containers:lambda
+      Environment:
+        Variables:
+          API_KEY:
+            Fn::Join:
+              - ""
+              - - "{{resolve:secretsmanager:"
+                - Ref: ApiKeyF9DDEE66
+                - :SecretString:::}}
+      LoggingConfig:
+        LogGroup:
+          Ref: LogGroupF5B46931
+      MemorySize: 512
+      PackageType: Image
+      Role:
+        Fn::GetAtt:
+          - FunctionServiceRole675BB04A
+          - Arn
+      Timeout: 30
+    DependsOn:
+      - FunctionServiceRole675BB04A
+    Metadata:
+      aws:cdk:path: LambdaContainerStack/Function/Resource
+  FunctionFunctionUrl08F79AC9:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: NONE
+      TargetFunctionArn:
+        Fn::GetAtt:
+          - Function76856677
+          - Arn
+    Metadata:
+      aws:cdk:path: LambdaContainerStack/Function/FunctionUrl/Resource
+  FunctioninvokefunctionurlA70D8F37:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName:
+        Fn::GetAtt:
+          - Function76856677
+          - Arn
+      FunctionUrlAuthType: NONE
+      Principal: "*"
+    Metadata:
+      aws:cdk:path: LambdaContainerStack/Function/invoke-function-url
+  FunctioninvokefunctionE13A6513:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - Function76856677
+          - Arn
+      InvokedViaFunctionUrl: true
+      Principal: "*"
+    Metadata:
+      aws:cdk:path: LambdaContainerStack/Function/invoke-function
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/7VSTW/bMAz9LdVxULQgKDYgt3RfGFCkQbKejGJQZdZhI4kGJSXzBP33QbG9YYcddxL5RL73KGqlVrdLtbzRl7Aw7Wlh8VnlQ9TmJPUlfM9gWO2hp4CReLjTAWQAwxCD0153wCofrnmTRQvBMPYRyYu1eCOk6MAD6whjySEy+k6ss4AfxqYWdsmbmPTYEDmBFL0O4ULc3oPv4vFKU6RgcHTWdkcWzSDWVSkyDaI8yQ8vfmQv0lIXVL6n7gtT6pss7BRutYPJ0b+Y6k0EP1p5P/LOTEVa7Z5brfJHMifgr0538Ll6R/JNFobamV6zOWIEExPPkANHPBzw5wxEdEApThn4MzJ5B35GZtfT8LnI/yxxHXaeR87BI9smi5cpm8VTPH4b+qqzfdh+mnof2dZjB+wwBCRfJGqn8p4sNFnoEJKD9m6oq+8ZvcFe240xlH47Gmtqw+aPXpFi/GXtdV8IQayb/Bc2bHiqfRq9VIpSavSQYp9ikZ5aUK/h7Xl1q96p5c1rQFxw8vWR1H48fwEQCcLfBwMAAA==
+    Metadata:
+      aws:cdk:path: LambdaContainerStack/CDKMetadata/Default
+Outputs:
+  FunctionUrl:
+    Value:
+      Fn::GetAtt:
+        - FunctionFunctionUrl08F79AC9
+        - FunctionUrl
+  FunctionArn:
+    Value:
+      Fn::GetAtt:
+        - Function76856677
+        - Arn
+  ApiKeySecretArn:
+    Value:
+      Ref: ApiKeyF9DDEE66
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

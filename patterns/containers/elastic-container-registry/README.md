@@ -34,7 +34,8 @@ There is one ECR **registry** per AWS account per region — it exists automatic
 ```
 Registry (one per account/region)
 └── Repository: hands-on-containers          ← this stack creates this
-    ├── Image: :latest
+    ├── Image: :latest                       ← server target (ECS, App Runner, EC2)
+    ├── Image: :lambda                       ← Lambda container pattern
     ├── Image: :v1.2.0
     └── Image: :v1.1.0 (untagged after 1 day → deleted by lifecycle rule)
 ```
@@ -94,24 +95,35 @@ REPO_URI=$(aws cloudformation describe-stacks \
   --output text | tr -d '\r')
 
 cd patterns/containers/elastic-container-registry/example-container
-docker build --platform linux/arm64 -t hands-on-containers .
-docker tag hands-on-containers:latest "${REPO_URI}:latest"
+docker build --platform linux/arm64 --provenance=false --target server -t hands-on-containers:latest -t "${REPO_URI}:latest" .
+# --provenance=false disables buildx attestations that produce OCI manifests — Lambda requires Docker V2 Schema 2
+docker build --platform linux/arm64 --provenance=false --target lambda -t hands-on-containers:lambda -t "${REPO_URI}:lambda" .
 ```
 
-**3. Authenticate Docker to ECR**
+**3. Test the image locally**
+
+```bash
+docker run --rm -p 3000:3000 -e API_KEY=test hands-on-containers:latest
+# In another terminal:
+curl localhost:3000/health
+curl -H "x-api-key: test" localhost:3000/quote
+```
+
+**5. Authenticate Docker to ECR**
 
 ```bash
 aws ecr get-login-password --region eu-central-1 \
   | docker login --username AWS --password-stdin $REPO_URI
 ```
 
-**4. Push the image**
+**6. Push the image**
 
 ```bash
 docker push "${REPO_URI}:latest"
+docker push "${REPO_URI}:lambda"
 ```
 
-**5. Create the API key in SSM**
+**7. Create the API key in SSM**
 
 ```bash
 aws ssm put-parameter \
@@ -121,7 +133,7 @@ aws ssm put-parameter \
 # Add --overwrite to rotate an existing key
 ```
 
-**6. Verify**
+**8. Verify**
 
 ```bash
 # List images in ECR
@@ -131,7 +143,7 @@ aws ecr describe-images --repository-name hands-on-containers
 aws ssm get-parameter --name /hands-on-aws/containers/api-key --with-decryption
 ```
 
-**7. Destroy**
+**9. Destroy**
 
 ```bash
 npx cdk destroy ElasticContainerRegistryStack
@@ -141,7 +153,7 @@ npx cdk destroy ElasticContainerRegistryStack
 aws ssm delete-parameter --name /hands-on-aws/containers/api-key
 ```
 
-**8. Capture CloudFormation template**
+**10. Capture CloudFormation template**
 
 ```bash
 npx cdk synth ElasticContainerRegistryStack > patterns/containers/elastic-container-registry/cloud_formation.yaml

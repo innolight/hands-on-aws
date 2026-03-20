@@ -26,6 +26,7 @@ import {ElasticContainerRegistryStack, elasticContainerRegistryStackName} from '
 import {EcsClusterStack, ecsClusterStackName} from '../patterns/containers/ecs-fargate-apigw/stack_ecs_cluster';
 import {EcsFargateComputeStack, ecsFargateComputeStackName} from '../patterns/containers/ecs-fargate-apigw/stack_compute';
 import {EcsFargateNetworkingStack, ecsFargateNetworkingStackName} from '../patterns/containers/ecs-fargate-apigw/stack_networking';
+import {LambdaContainerStack, lambdaContainerStackName} from '../patterns/containers/lambda-container/stack';
 import {OpenSearchServerlessStack, opensearchServerlessStackName} from '../patterns/opensearch-serverless/stack';
 import {OpenSearchServerlessAppStack, opensearchServerlessAppStackName} from '../patterns/opensearch-serverless/app_stack';
 import {OpenSearchProvisionedStack, opensearchProvisionedStackName} from '../patterns/opensearch-provisioned/stack';
@@ -99,6 +100,7 @@ new S3TablesStack(app, s3TablesStackName, {
 
 const vpcStack = new VpcSubnetsStack(app, vpcSubnetsStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  natProviderType: 'aws-managed',
 });
 
 const bastionStack = new SsmBastionStack(app, ssmBastionStackName, {
@@ -157,6 +159,10 @@ new EcsFargateNetworkingStack(app, ecsFargateNetworkingStackName, {
   vpc: vpcStack.vpc,
   cloudMapService: ecsComputeStack.cloudMapService,
   taskSg: ecsComputeStack.taskSg,
+});
+
+new LambdaContainerStack(app, lambdaContainerStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
 });
 
 const ossStack = new OpenSearchServerlessStack(app, opensearchServerlessStackName, {
