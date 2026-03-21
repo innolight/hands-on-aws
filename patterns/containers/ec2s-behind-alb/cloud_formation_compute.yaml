@@ -1,0 +1,256 @@
+Resources:
+  LogGroupF5B46931:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ec2/ec2s-behind-alb
+      RetentionInDays: 7
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/LogGroup/Resource
+  InstanceSG2AE1100C:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for EC2 instances - inbound only from ALB
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/InstanceSG/Resource
+  InstanceSGfromEc2sAlbNetworkingStackAlbSGFABE360D3000B2F6BAEA:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Load balancer to target
+      FromPort: 3000
+      GroupId:
+        Fn::GetAtt:
+          - InstanceSG2AE1100C
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::ImportValue: Ec2sAlbNetworkingStack:ExportsOutputFnGetAttAlbSGE6D0E5D1GroupId3836EA9B
+      ToPort: 3000
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/InstanceSG/from Ec2sAlbNetworkingStackAlbSGFABE360D:3000
+  InstanceRole3CCE2F1D:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonSSMManagedInstanceCore
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/InstanceRole/Resource
+  InstanceRoleDefaultPolicy1531605C:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - ssm:DescribeParameters
+              - ssm:GetParameter
+              - ssm:GetParameterHistory
+              - ssm:GetParameters
+            Effect: Allow
+            Resource: arn:aws:ssm:eu-central-1:495599779087:parameter/hands-on-aws/containers/api-key
+          - Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - LogGroupF5B46931
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: InstanceRoleDefaultPolicy1531605C
+      Roles:
+        - Ref: InstanceRole3CCE2F1D
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/InstanceRole/DefaultPolicy/Resource
+  LaunchTemplateProfile94AA77CE:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: InstanceRole3CCE2F1D
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/LaunchTemplate/Profile
+  LaunchTemplate04EC5460:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Arn:
+            Fn::GetAtt:
+              - LaunchTemplateProfile94AA77CE
+              - Arn
+        ImageId:
+          Ref: SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter
+        InstanceType: t4g.micro
+        MetadataOptions:
+          HttpTokens: required
+        SecurityGroupIds:
+          - Fn::GetAtt:
+              - InstanceSG2AE1100C
+              - GroupId
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: Ec2sAlbComputeStack/LaunchTemplate
+          - ResourceType: volume
+            Tags:
+              - Key: Name
+                Value: Ec2sAlbComputeStack/LaunchTemplate
+        UserData:
+          Fn::Base64:
+            Fn::Join:
+              - ""
+              - - |-
+                  #!/bin/bash
+                  set -euo pipefail
+                  dnf install -y docker
+                  systemctl enable --now docker
+                  aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 495599779087.dkr.ecr.eu-central-1.amazonaws.com
+                  docker pull 495599779087.dkr.ecr.eu-central-1.
+                - Ref: AWS::URLSuffix
+                - |-
+                  /hands-on-containers:latest
+                  API_KEY=$(aws ssm get-parameter --name /hands-on-aws/containers/api-key --with-decryption --query Parameter.Value --output text --region eu-central-1)
+                  docker run -d --name api --restart=always -p 3000:3000 --log-driver=awslogs --log-opt awslogs-region=eu-central-1 --log-opt awslogs-group=
+                - Ref: LogGroupF5B46931
+                - ' -e API_KEY="$API_KEY" -e ROUTE_PREFIX=/ec2s-alb 495599779087.dkr.ecr.eu-central-1.'
+                - Ref: AWS::URLSuffix
+                - /hands-on-containers:latest
+      TagSpecifications:
+        - ResourceType: launch-template
+          Tags:
+            - Key: Name
+              Value: Ec2sAlbComputeStack/LaunchTemplate
+    DependsOn:
+      - InstanceRoleDefaultPolicy1531605C
+      - InstanceRole3CCE2F1D
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/LaunchTemplate/Resource
+  ASG46ED3070:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      CapacityRebalance: true
+      HealthCheckGracePeriod: 120
+      HealthCheckType: ELB
+      MaxSize: "4"
+      MinSize: "2"
+      MixedInstancesPolicy:
+        InstancesDistribution:
+          OnDemandBaseCapacity: 0
+          OnDemandPercentageAboveBaseCapacity: 0
+          SpotAllocationStrategy: price-capacity-optimized
+        LaunchTemplate:
+          LaunchTemplateSpecification:
+            LaunchTemplateId:
+              Ref: LaunchTemplate04EC5460
+            Version:
+              Fn::GetAtt:
+                - LaunchTemplate04EC5460
+                - LatestVersionNumber
+      TargetGroupARNs:
+        - Ref: TargetGroup3D7CD9B8
+      VPCZoneIdentifier:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+          - InstanceRefresh
+      AutoScalingScheduledAction:
+        IgnoreUnmodifiedGroupSizeProperties: true
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/ASG/ASG
+  ASGScalingPolicyScaleOnCpu4D6BA138:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName:
+        Ref: ASG46ED3070
+      Cooldown: "300"
+      EstimatedInstanceWarmup: 120
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 50
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/ASG/ScalingPolicyScaleOnCpu/Resource
+  TargetGroup3D7CD9B8:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /ec2s-alb/health
+      HealthyThresholdCount: 2
+      Port: 3000
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
+        - Key: stickiness.enabled
+          Value: "false"
+      TargetType: instance
+      UnhealthyThresholdCount: 3
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/TargetGroup/Resource
+  Ec2sAlbRule4620F565:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn:
+            Ref: TargetGroup3D7CD9B8
+          Type: forward
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /ec2s-alb
+              - /ec2s-alb/*
+      ListenerArn:
+        Fn::ImportValue: Ec2sAlbNetworkingStack:ExportsOutputRefALBHttpListener04CE8CD0A657CDCB
+      Priority: 200
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/Ec2sAlbRule/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/41U32vbMBD+W6rH4ngllA38lrUwAmWEJG+hjIt8ta+RJU06p/WE//dhW2qTNoM9Wbrv9N2P787zfH57k99cwYufyfIwU7TPw4ZBHjJ48b+CMpXPw4OpfjjT2l0QKh5/QoOiENciEw4bcwS1MopkJwpRomdnuhFh1ExGi+Jb/5jdPenE1Gco53nYoGwdcZfYj1ZG0hK9dGSnx+Ja9FkQUJZLXTn0ft0qFMVu8Ax9NnyeQHl8nIKcsX4yRIrsAVot6y02VgHjLgjSnkFL3HY2ldaArEnjsoEqmVqP7h4YUvFGJcSfRom2mtluzQG1F4Vw+Lslh6WIvThLoM8ImjysjRpyAe/bBsvvnSiCsI60JAtqIaVpNUfuyWd4sJAnfRINaKiwHPUg9KLYhTNbt3DvPb0MPMZ2b80qxU7y7kJEmUHWS61I4xsmrsV/gP/mHfsyVJRN5knhSLc1a5NkP4ny2VyWGwbGBjX7k4QvmMd4U6jhtIwTsHLmiRQOQ+ryNVrjiY3rvoPHDFo2XoIiXeVh0bLZTJfPI3y0ctPuNQ7RgvDjMc7WytERGEe16BXLFNinbgShzqYjUqYR9ffk2dG+nXQPwuh7bECXQ4p3YEESd/FNglboJGqGChd7c8QLnt4aXihlJAy0G3bAWA2gdSRxJqP3zFimhv4MgzwWoD/wNPD6wZKernEPaihAFOxazESNoLi+q1EefFowWwK/TU1a/Sj1wlpFU35bcBVyXLZJ/FHOj5pkk+PWgTyQriL0LvqZoc9QgWeSykA55Uq6Os7zcDnyQHB6PfF6IM+o0Q3/qnHdT+59n63Rm9bJEVqBgwYZXZ9pU2L+7L8c57f51/zm6tkTzVyrmRrM19P3LxQTNLG1BQAA
+    Metadata:
+      aws:cdk:path: Ec2sAlbComputeStack/CDKMetadata/Default
+Parameters:
+  SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
