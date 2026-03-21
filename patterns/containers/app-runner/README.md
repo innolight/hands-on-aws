@@ -41,6 +41,7 @@ The tradeoff with App Runner is simplicity vs control. You get managed TLS, load
 
 - **Rolling deployment only** — App Runner has one deployment strategy: rolling. New instances start with the new image, health checks run, traffic shifts, old instances drain. No blue/green, no canary. If health checks fail, the deployment rolls back automatically
 - **Deployment triggers** — two options: (1) `autoDeploymentsEnabled: true`: App Runner watches ECR and deploys on every push — zero-touch but no manual gate; (2) `autoDeploymentsEnabled: false` (this stack): push image, then explicitly trigger via Console or `aws apprunner start-deployment` — full control over when deployments happen
+- **Multi-AZ is automatic and opaque** — App Runner distributes compute across AZs within the region automatically; no subnet or AZ configuration is exposed. At `minSize=1` there is one warm instance — AWS docs do not specify whether it is pinned to a single AZ or migrated across AZs on failure. For guaranteed AZ redundancy, set `minSize` ≥ 2
 - **No VPC, no ALB** — App Runner handles all networking; the simplest container pattern in this repo
 - **ARM64 not supported yet - x86_64 only** — App Runner does not support ARM64; the ECR image must include a `linux/amd64` manifest (the multi-arch build in `elastic-container-registry` covers this).
 - **No true scale-to-zero** — the minimum instance count is 1 (minSize >= 1); a provisioned instance is always warm. Use Lambda container for true zero-cost idle
