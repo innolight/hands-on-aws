@@ -13,21 +13,6 @@ Resources:
         Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
     Metadata:
       aws:cdk:path: ElastiCacheValkeyCluster/CacheSG/Resource
-  CacheSGfromSsmBastionBastionSG22FCCA7263799C497867:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: Valkey from bastion
-      FromPort: 6379
-      GroupId:
-        Fn::GetAtt:
-          - CacheSGD31B448D
-          - GroupId
-      IpProtocol: tcp
-      SourceSecurityGroupId:
-        Fn::ImportValue: SsmBastion:ExportsOutputFnGetAttBastionSGEBD2A3B1GroupId0BE655F5
-      ToPort: 6379
-    Metadata:
-      aws:cdk:path: ElastiCacheValkeyCluster/CacheSG/from SsmBastionBastionSG22FCCA72:6379
   SubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
@@ -114,6 +99,7 @@ Resources:
         slowlog-max-len: "128"
         repl-backlog-size: "10485760"
         cluster-allow-reads-when-down: "yes"
+        cluster-enabled: "yes"
     Metadata:
       aws:cdk:path: ElastiCacheValkeyCluster/ParamGroup
   ReplicationGroup:
@@ -126,13 +112,14 @@ Resources:
         Ref: ParamGroup
       CacheSubnetGroupName:
         Ref: SubnetGroup
+      ClusterMode: enabled
       Engine: valkey
-      EngineVersion: "8.0"
+      EngineVersion: "8.2"
       MultiAZEnabled: true
       NumNodeGroups: 2
       ReplicasPerNodeGroup: 1
       ReplicationGroupDescription: "Valkey cluster: 2 shards, 1 replica(s) per shard"
-      ReplicationGroupId: valkey-sharded-2s-1r
+      ReplicationGroupId: valkey-sharded-cluster
       SecurityGroupIds:
         - Fn::GetAtt:
             - CacheSGD31B448D
@@ -143,12 +130,14 @@ Resources:
         - Ref: UserGroup
     DependsOn:
       - UserGroup
+    UpdatePolicy:
+      UseOnlineResharding: true
     Metadata:
       aws:cdk:path: ElastiCacheValkeyCluster/ReplicationGroup
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/7WQTWsCMRCGf4tzlJiKSA97Kz2UQkFRehIpY3ZcozFZJhOthPz3sn7R4rmnGR7mZWaekR6Nh3rYw2McmHo3cHal81zQ7BQe41cmM9J5TiaxldMbh9QuMhxaAxX0QUFN0bBtxQZ/JehcOL44N0myCsnXUK3RRSoqA9b1u2+YYpwlR1AtukAuCvqwLEv1uvZ/Fj2Aa7gochjFGjQb0rmbSitPcg99RuJbvcMpMu5JfpEZtc4a7G4/s6IiGSaJe/TYEJ//ZpJFhoY8MQpdwFzY+gaqDPRtXKppmryRhBcLwokUtBjjMXD9Qb6RzdlNUcC0Dwd00+CsOUHV6RMOJ+jsPKr8960350xSStdPkrRJivKhJr2NT4fRWD/rYW8brR1w8mL3pGeX+gMtpgeVOgIAAA==
+      Analytics: v2:deflate64:H4sIAAAAAAAA/7VQy2oDMQz8luhYHDcsoYe9lR56KSQk9BRKUbzqxonXXmQ522D872XzKC302pPEjBjNTKWr+UzPJjjEqWkOU2e3Oq8FzUHhEN8zmUrnNZnEVk7PHFK/yXDsDdRwBwoaioZtLzb4K4LOheHRuUWSbUi+gfoDXaTypp4+/C+hoshhFGvQ7EjnkU5bT3Imx+vXSHyb3+ASGTuSH8iKemcNjh6uupEMk8QOPbbEZ/9MssnQkidGoQuwFra+hToDfRqXGlombyThJY1wIgU9xjgEbl7It7I7ZywKmLpwRLcMzpoT1GMNwuEEReU/Kvn3r7dumaSUcV8k6ZMU5UNDeh/vj9VcP+jZZB+tnXLyYjvSq8v8AohVEMcCAgAA
     Metadata:
       aws:cdk:path: ElastiCacheValkeyCluster/CDKMetadata/Default
 Outputs:
@@ -169,6 +158,18 @@ Outputs:
     Value: "2"
   ReplicasPerShard:
     Value: "1"
+  ExportsOutputFnGetAttCacheSGD31B448DGroupId8EFEF3E1:
+    Value:
+      Fn::GetAtt:
+        - CacheSGD31B448D
+        - GroupId
+    Export:
+      Name: ElastiCacheValkeyCluster:ExportsOutputFnGetAttCacheSGD31B448DGroupId8EFEF3E1
+  ExportsOutputRefValkeySecret2AE7188E3DAD6B26:
+    Value:
+      Ref: ValkeySecret2AE7188E
+    Export:
+      Name: ElastiCacheValkeyCluster:ExportsOutputRefValkeySecret2AE7188E3DAD6B26
 Parameters:
   BootstrapVersion:
     Type: AWS::SSM::Parameter::Value<String>

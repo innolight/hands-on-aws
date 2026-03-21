@@ -139,5 +139,40 @@ npx cdk destroy ElastiCacheValkeyClusterApp ElastiCacheValkeyCluster
 
 ```bash
 npx cdk synth ElastiCacheValkeyCluster -c shards=2 -c replicas=1 > patterns/elasticache-valkey-cluster/cloud_formation.yaml
-npx cdk synth ElastiCacheValkeyClusterApp -c shards=2 -c replicas=1 > patterns/elasticache-valkey-cluster/app_stack_cloud_formation.yaml
+npx cdk synth ElastiCacheValkeyClusterApp -c shards=2 -c replicas=1 > patterns/elasticache-valkey-cluster/cloud_formation_app_stack.yaml
+```
+
+## Entity Relation of AWS Resources
+
+```mermaid
+flowchart TB
+    subgraph VpcSubnets["VpcSubnets (imported)"]
+        VPC["AWS::EC2::VPC"]
+        IsolSub["AWS::EC2::Subnet\n(3x isolated)"]
+    end
+
+    subgraph Cache["ElastiCacheValkeyCluster"]
+        CacheSG["AWS::EC2::SecurityGroup\n(cache)"]
+        SubnetGrp["AWS::ElastiCache::SubnetGroup"]
+        DefSecret["AWS::SecretsManager::Secret\n(default user)"]
+        DefUser["AWS::ElastiCache::User\n(default, disabled)"]
+        AppSecret["AWS::SecretsManager::Secret\n(appuser)"]
+        AppUser["AWS::ElastiCache::User\n(appuser)"]
+        UserGrp["AWS::ElastiCache::UserGroup"]
+        ParamGrp["AWS::ElastiCache::ParameterGroup"]
+        RepGroup["AWS::ElastiCache::ReplicationGroup"]
+    end
+
+    VPC --> |contains| IsolSub
+
+    CacheSG --> |in| VPC
+    SubnetGrp --> |placed in| IsolSub
+    DefUser --> |reads password from| DefSecret
+    AppUser --> |reads password from| AppSecret
+    UserGrp --> |includes| DefUser
+    UserGrp --> |includes| AppUser
+    RepGroup --> |secured by| CacheSG
+    RepGroup --> |placed in| SubnetGrp
+    RepGroup --> |tuned by| ParamGrp
+    RepGroup --> |authenticated via| UserGrp
 ```
