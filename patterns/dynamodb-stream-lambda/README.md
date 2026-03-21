@@ -89,3 +89,25 @@ This pattern implements Change Data Capture (CDC) using DynamoDB Streams. When a
    ```bash
    npx cdk destroy DynamoDBLambda
    ```
+
+## Entity Relation of AWS Resources
+
+```mermaid
+flowchart TB
+    subgraph Stack["DynamoDBLambdaStack"]
+        Table["AWS::DynamoDB::Table"]
+        DLQ["AWS::SQS::Queue\n(DLQ)"]
+        LambdaRole["AWS::IAM::Role\n(Lambda)\n···\nAWSLambdaBasicExecutionRole"]
+        LambdaPolicy["AWS::IAM::Policy\n(Lambda)"]
+        Lambda["AWS::Lambda::Function"]
+        ESM["AWS::Lambda::EventSourceMapping"]
+    end
+
+    ESM --> |streams from| Table
+    ESM --> |invokes| Lambda
+    ESM --> |on failure, sends to| DLQ
+    Lambda --> |runs as| LambdaRole
+    LambdaPolicy --> |grants permissions to| LambdaRole
+    LambdaPolicy --> |allows stream read from| Table
+    LambdaPolicy --> |allows send to| DLQ
+```
