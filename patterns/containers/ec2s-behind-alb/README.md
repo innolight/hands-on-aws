@@ -142,7 +142,7 @@ aws logs tail /ec2/ec2s-behind-alb --follow
 
 ```bash
 npx cdk deploy VpcSubnets -c natGateways=0  # destroy NAT instance which drains money
-npx cdk destroy Ec2sAlbComputeStack Ec2sAlbNetworkingStack
+npx cdk destroy Ec2sAlbComputeStack Ec2sAlbNetworkingStack --force
 ```
 
 **6. Capture CloudFormation templates**
