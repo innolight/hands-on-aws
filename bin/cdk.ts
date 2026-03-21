@@ -28,7 +28,10 @@ import {EcsFargateComputeStack, ecsFargateComputeStackName} from '../patterns/co
 import {EcsFargateNetworkingStack, ecsFargateNetworkingStackName} from '../patterns/containers/ecs-fargate-apigw/stack_networking';
 import {EcsFargateAlbNetworkingStack, ecsFargateAlbNetworkingStackName} from '../patterns/containers/ecs-fargate-alb/stack_networking';
 import {EcsFargateAlbComputeStack, ecsFargateAlbComputeStackName} from '../patterns/containers/ecs-fargate-alb/stack_compute';
+import {Ec2sAlbNetworkingStack, ec2sAlbNetworkingStackName} from '../patterns/containers/ec2s-behind-alb/stack_networking';
+import {Ec2sAlbComputeStack, ec2sAlbComputeStackName} from '../patterns/containers/ec2s-behind-alb/stack_compute';
 import {LambdaContainerStack, lambdaContainerStackName} from '../patterns/containers/lambda-container/stack';
+import {AppRunnerStack, appRunnerStackName} from '../patterns/containers/app-runner/stack';
 import {OpenSearchServerlessStack, opensearchServerlessStackName} from '../patterns/opensearch-serverless/stack';
 import {OpenSearchServerlessAppStack, opensearchServerlessAppStackName} from '../patterns/opensearch-serverless/app_stack';
 import {OpenSearchProvisionedStack, opensearchProvisionedStackName} from '../patterns/opensearch-provisioned/stack';
@@ -175,7 +178,22 @@ new EcsFargateAlbComputeStack(app, ecsFargateAlbComputeStackName, {
   listener: ecsFargateAlbNetworkingStack.listener,
 });
 
+const ec2sAlbNetworkingStack = new Ec2sAlbNetworkingStack(app, ec2sAlbNetworkingStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+});
+
+new Ec2sAlbComputeStack(app, ec2sAlbComputeStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  listener: ec2sAlbNetworkingStack.listener,
+});
+
 new LambdaContainerStack(app, lambdaContainerStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+});
+
+new AppRunnerStack(app, appRunnerStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
 });
 

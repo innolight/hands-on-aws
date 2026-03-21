@@ -51,7 +51,7 @@ API & Auth:
 
 Infrastructures / Containers on AWS:
 - [x] [`elastic-container-registry`](./patterns/containers/elastic-container-registry): ECR repository provisioning, Docker image build & push
-- [ ] [`app-runner`](./patterns/containers/app-runner): App Runner — fully managed, source-to-URL container hosting
+- [x] [`app-runner`](./patterns/containers/app-runner): App Runner — fully managed, source-to-URL container hosting
 - [x] [`ecs-fargate-alb`](./patterns/containers/ecs-fargate-alb): ECS Fargate + ALB — serverless containers behind Application Load Balancer
 - [x] [`ecs-fargate-apigw`](./patterns/containers/ecs-fargate-apigw): ECS Fargate + API Gateway HTTP API + VPC Link
 - [ ] [`ecs-ec2-alb`](./patterns/containers/ecs-ec2-alb): ECS on EC2 (Spot) + ALB — self-managed container instances behind load balancer

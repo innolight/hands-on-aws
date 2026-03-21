@@ -8,24 +8,28 @@ REPO_URI=$(aws cloudformation describe-stacks \
 
 echo "Repository URI: ${REPO_URI}"
 
-cd "$(dirname "$0")/example-container"
-
-echo "Building server image..."
-docker build --platform linux/arm64 --provenance=false --target server \
-  -t hands-on-containers:latest -t "${REPO_URI}:latest" .
-
-echo "Building lambda image..."
-docker build --platform linux/arm64 --provenance=false --target lambda \
-  -t hands-on-containers:lambda -t "${REPO_URI}:lambda" .
+# Create or reuse the multi-arch builder — buildx stores the builder in ~/.docker/buildx
+docker buildx create --name multiarch --use 2>/dev/null || docker buildx use multiarch
 
 echo "Authenticating Docker to ECR..."
 aws ecr get-login-password --region eu-central-1 \
   | docker login --username AWS --password-stdin "${REPO_URI}"
 
-echo "Pushing server image..."
-docker push "${REPO_URI}:latest"
+cd "$(dirname "$0")/example-container"
 
-echo "Pushing lambda image..."
-docker push "${REPO_URI}:lambda"
+echo "Building and pushing server image (multi-arch)..."
+# Note: `--push` is required for multi-arch — buildx cannot store multi-arch manifests locally.
+docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
+  --target server -t "${REPO_URI}:latest" --push .
+
+echo "Building and pushing lambda image (multi-arch)..."
+docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
+  --target lambda -t "${REPO_URI}:lambda" --push .
+
+echo "Verifying multi-arch manifests for ${REPO_URI}:latest..."
+docker buildx imagetools inspect "${REPO_URI}:latest"
+
+echo "Verifying multi-arch manifests for ${REPO_URI}:lambda..."
+docker buildx imagetools inspect "${REPO_URI}:lambda"
 
 echo "Done."

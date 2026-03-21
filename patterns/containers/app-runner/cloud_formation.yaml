@@ -1,0 +1,223 @@
+Resources:
+  AccessRoleEC309AE6:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: build.apprunner.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+    Metadata:
+      aws:cdk:path: AppRunnerStack/AccessRole/Resource
+  InstanceRole3CCE2F1D:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: tasks.apprunner.amazonaws.com
+        Version: "2012-10-17"
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action: ssm:GetParameters
+                Effect: Allow
+                Resource: arn:aws:ssm:eu-central-1:495599779087:parameter/hands-on-aws/containers/api-key
+            Version: "2012-10-17"
+          PolicyName: SsmReadPolicy
+    Metadata:
+      aws:cdk:path: AppRunnerStack/InstanceRole/Resource
+  AutoScaling:
+    Type: AWS::AppRunner::AutoScalingConfiguration
+    Properties:
+      AutoScalingConfigurationName: app-runner-autoscaling
+      MaxConcurrency: 100
+      MaxSize: 3
+      MinSize: 1
+    Metadata:
+      aws:cdk:path: AppRunnerStack/AutoScaling
+  Service:
+    Type: AWS::AppRunner::Service
+    Properties:
+      AutoScalingConfigurationArn:
+        Fn::GetAtt:
+          - AutoScaling
+          - AutoScalingConfigurationArn
+      HealthCheckConfiguration:
+        HealthyThreshold: 1
+        Interval: 10
+        Path: /health
+        Protocol: HTTP
+        Timeout: 5
+        UnhealthyThreshold: 5
+      InstanceConfiguration:
+        Cpu: 0.25 vCPU
+        InstanceRoleArn:
+          Fn::GetAtt:
+            - InstanceRole3CCE2F1D
+            - Arn
+        Memory: 0.5 GB
+      ServiceName: app-runner-container
+      SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn:
+            Fn::GetAtt:
+              - AccessRoleEC309AE6
+              - Arn
+        AutoDeploymentsEnabled: false
+        ImageRepository:
+          ImageConfiguration:
+            Port: "3000"
+            RuntimeEnvironmentSecrets:
+              - Name: API_KEY
+                Value: arn:aws:ssm:eu-central-1:495599779087:parameter/hands-on-aws/containers/api-key
+          ImageIdentifier:
+            Fn::Join:
+              - ""
+              - - 495599779087.dkr.ecr.eu-central-1.
+                - Ref: AWS::URLSuffix
+                - /hands-on-containers:latest
+          ImageRepositoryType: ECR
+    Metadata:
+      aws:cdk:path: AppRunnerStack/Service
+  AppLogRetention7495DCD6:
+    Type: Custom::LogRetention
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A
+          - Arn
+      LogGroupName:
+        Fn::Join:
+          - ""
+          - - /aws/apprunner/app-runner-container/
+            - Fn::GetAtt:
+                - Service
+                - ServiceId
+            - /application
+      RetentionInDays: 7
+      RemovalPolicy: destroy
+    Metadata:
+      aws:cdk:path: AppRunnerStack/AppLogRetention/Resource
+  LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: AppRunnerStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/Resource
+  LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - logs:DeleteRetentionPolicy
+              - logs:PutRetentionPolicy
+            Effect: Allow
+            Resource: "*"
+          - Action: logs:DeleteLogGroup
+            Effect: Allow
+            Resource:
+              - Fn::Join:
+                  - ""
+                  - - arn:aws:logs:eu-central-1:495599779087:log-group:/aws/apprunner/app-runner-container/
+                    - Fn::GetAtt:
+                        - Service
+                        - ServiceId
+                    - /application:*
+              - Fn::Join:
+                  - ""
+                  - - arn:aws:logs:eu-central-1:495599779087:log-group:/aws/apprunner/app-runner-container/
+                    - Fn::GetAtt:
+                        - Service
+                        - ServiceId
+                    - /service:*
+        Version: "2012-10-17"
+      PolicyName: LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB
+      Roles:
+        - Ref: LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB
+    Metadata:
+      aws:cdk:path: AppRunnerStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/DefaultPolicy/Resource
+  LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs22.x
+      Timeout: 900
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: 2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip
+      Role:
+        Fn::GetAtt:
+          - LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB
+          - Arn
+    DependsOn:
+      - LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB
+      - LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB
+    Metadata:
+      aws:cdk:path: AppRunnerStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/Resource
+      aws:asset:path: asset.2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  SvcLogRetentionBCE3FDD3:
+    Type: Custom::LogRetention
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A
+          - Arn
+      LogGroupName:
+        Fn::Join:
+          - ""
+          - - /aws/apprunner/app-runner-container/
+            - Fn::GetAtt:
+                - Service
+                - ServiceId
+            - /service
+      RetentionInDays: 7
+      RemovalPolicy: destroy
+    Metadata:
+      aws:cdk:path: AppRunnerStack/SvcLogRetention/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/71STUsDMRD9Lc2xpLFU8dDbtidBsOx6K1JidrpOuztZMhNLWfa/S7bVIqIIgqeB9zHvDcnMzG6mZjqyB564cj+p8dl0hVi31/bAmw5cMDm0nlF8OC4sg0bbmC73Naw7ZZljA+XiqOadagOSw9bWmXM+kqi5Git91iRD5gQ9DXCvVWPJVlCufI0OgdV83X3Cjlk4a596/bcopBoJLkkD+r/ty/LRr94jTorkObMi1r3cXVomTo3VL8if937PPunlltJZ+gSnjR9hjz4xXzp8hcuyECvQAAl/iv0tPNQ4Nei1bdsQiSCYbrmlLIovnK2RqqWnLVYx2PQCyVFAeEUHva59xebeVzkI0MDy9cYyg7DJ0tB8bRbR7UHS5+2Hq4F9DA70ICjEVkhVIh6itFF6Tb4Es+Or19mNuTXT0Y4RJyGSYAMmP803KlEJPzkDAAA=
+    Metadata:
+      aws:cdk:path: AppRunnerStack/CDKMetadata/Default
+Outputs:
+  ServiceUrl:
+    Value:
+      Fn::Join:
+        - ""
+        - - https://
+          - Fn::GetAtt:
+              - Service
+              - ServiceUrl
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

@@ -85,45 +85,27 @@ CDK's [`DockerImageAsset`](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-l
 npx cdk deploy ElasticContainerRegistryStack
 ```
 
-**2. Build and tag the container image**
+**2. Build and push the container image (multi-arch)**
 
+[build_and_push.sh](./build_and_push.sh) build push Multi-arch images. App Runner requires x86_64; ECS/Lambda patterns use ARM64.
+ 
 ```bash
-# Get repo URI from stack output
-REPO_URI=$(aws cloudformation describe-stacks \
-  --stack-name ElasticContainerRegistryStack \
-  --query "Stacks[0].Outputs[?OutputKey=='RepositoryUri'].OutputValue" \
-  --output text | tr -d '\r')
-
-cd patterns/containers/elastic-container-registry/example-container
-docker build --platform linux/arm64 --provenance=false --target server -t hands-on-containers:latest -t "${REPO_URI}:latest" .
-# --provenance=false disables buildx attestations that produce OCI manifests — Lambda requires Docker V2 Schema 2
-docker build --platform linux/arm64 --provenance=false --target lambda -t hands-on-containers:lambda -t "${REPO_URI}:lambda" .
+./patterns/containers/elastic-container-registry/build_and_push.sh
 ```
 
 **3. Test the image locally**
 
+`buildx --push` does not store the image locally. We need to build a single-platform image for local testing:
+
 ```bash
-docker run --rm -p 3000:3000 -e API_KEY=test -e ROUTE_PREFIX=/api hands-on-containers:latest
+docker build --target server -t hands-on-containers:latest .
+docker run --rm -p 3000:3000 -e API_KEY=test hands-on-containers:latest
 # In another terminal:
-curl localhost:3000/api/health
-curl -H "x-api-key: test" localhost:3000/api/quote
+curl localhost:3000/health
+curl -H "x-api-key: test" localhost:3000/quote
 ```
 
-**5. Authenticate Docker to ECR**
-
-```bash
-aws ecr get-login-password --region eu-central-1 \
-  | docker login --username AWS --password-stdin $REPO_URI
-```
-
-**6. Push the image**
-
-```bash
-docker push "${REPO_URI}:latest"
-docker push "${REPO_URI}:lambda"
-```
-
-**7. Create the API key in SSM**
+**4. Create the API key in SSM**
 
 ```bash
 aws ssm put-parameter \
@@ -133,7 +115,7 @@ aws ssm put-parameter \
 # Add --overwrite to rotate an existing key
 ```
 
-**8. Verify**
+**5. Verify**
 
 ```bash
 # List images in ECR
@@ -141,9 +123,12 @@ aws ecr describe-images --repository-name hands-on-containers
 
 # Confirm SSM parameter exists (value hidden)
 aws ssm get-parameter --name /hands-on-aws/containers/api-key --with-decryption
+
+# Confirm both linux/amd64 and linux/arm64 manifests are present
+docker buildx imagetools inspect "${REPO_URI}:latest"
 ```
 
-**9. Destroy**
+**6. Destroy**
 
 ```bash
 npx cdk destroy ElasticContainerRegistryStack
@@ -153,7 +138,7 @@ npx cdk destroy ElasticContainerRegistryStack
 aws ssm delete-parameter --name /hands-on-aws/containers/api-key
 ```
 
-**10. Capture CloudFormation template**
+**7. Capture CloudFormation template**
 
 ```bash
 npx cdk synth ElasticContainerRegistryStack > patterns/containers/elastic-container-registry/cloud_formation.yaml

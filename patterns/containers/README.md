@@ -28,14 +28,14 @@ Considered the decision three belows for choosing which navigating options
 
 | Pattern | Compute | Networking | Scale-to-zero | Idle cost | Ops burden | CDK complexity |
 |---|---|---|---|---|---|---|
-| `app-runner` | App Runner | Built-in HTTPS | Pause only | ~$5/mo | Lowest | Low |
-| `ecs-fargate-alb` | ECS Fargate | ALB | No | ~$20/mo | Low | Medium |
-| `ecs-fargate-apigw` | ECS Fargate | API GW + VPC Link | Yes* | ~$10/mo* | Medium | High |
-| `ecs-ec2-alb` | ECS on EC2 (Spot) | ALB | No | ~$20/mo | Medium | High |
-| `lambda-container` | Lambda | Function URL | Yes | ~$0 | Low | Medium |
-| `one-ec2` | Single EC2 + Docker | Public IP | No | ~$4/mo | High | Low |
-| `ec2s-behind-alb` | ASG of EC2s + Docker | ALB | No | ~$20/mo | High | Medium |
+| `lambda-container` ✅ | Lambda | Function URL | Yes | ~$0 | Low | Medium |
+| `app-runner` ✅ | App Runner | Built-in HTTPS | Pause only | ~$5/mo | Lowest | Low |
+| `ecs-fargate-alb` ✅ | ECS Fargate | ALB | No | ~$20/mo | Low | Medium |
+| `ecs-fargate-apigw` ✅ | ECS Fargate | API GW + VPC Link | Yes* | ~$10/mo* | Medium | High |
 | `eks-fargate` | EKS + Fargate pods | K8s Ingress/ALB | No | ~$80/mo† | High | High |
+| `ecs-ec2-alb` | ECS on EC2 (Spot) | ALB | No | ~$20/mo | Medium | High |
+| `ec2s-behind-alb` | ASG of EC2s + Docker | ALB | No | ~$20/mo | High | Medium |
+| `one-ec2` | Single EC2 + Docker | Public IP | No | ~$4/mo | High | Low |
 
 \* `ecs-fargate-apigw`: the ~$10/mo is 1 Fargate task (256 CPU/512 MB). API GW + VPC Link have no idle cost, so scaling to 0 tasks would yield ~$0 — but Fargate cold start is 30–90s and the service returns 503 while at 0 tasks.
 
