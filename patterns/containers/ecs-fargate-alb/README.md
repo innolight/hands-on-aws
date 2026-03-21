@@ -129,3 +129,63 @@ npx cdk destroy EcsFargateAlbComputeStack EcsFargateAlbNetworkingStack
 npx cdk synth EcsFargateAlbNetworkingStack > patterns/containers/ecs-fargate-alb/cloud_formation_networking.yaml
 npx cdk synth EcsFargateAlbComputeStack > patterns/containers/ecs-fargate-alb/cloud_formation_compute.yaml
 ```
+
+## Entity Relation of AWS Resources
+
+```mermaid
+flowchart TB
+    subgraph VpcSubnets["VpcSubnets (imported)"]
+        VPC["AWS::EC2::VPC"]
+        PubSub["AWS::EC2::Subnet\n(3x public)"]
+        PrivSub["AWS::EC2::Subnet\n(3x private)"]
+    end
+
+    subgraph EcsClusterStack_["EcsClusterStack (imported)"]
+        EcsCluster["AWS::ECS::Cluster"]
+    end
+
+    subgraph Networking["EcsFargateAlbNetworkingStack"]
+        AlbSG["AWS::EC2::SecurityGroup\n(ALB)"]
+        ALB["AWS::ElasticLoadBalancingV2::LoadBalancer"]
+        Listener["AWS::ElasticLoadBalancingV2::Listener"]
+    end
+
+    subgraph Compute["EcsFargateAlbComputeStack"]
+        TaskSG["AWS::EC2::SecurityGroup\n(tasks)"]
+        TaskRole["AWS::IAM::Role\n(task)"]
+        ExecRole["AWS::IAM::Role\n(execution)"]
+        ExecPolicy["AWS::IAM::Policy\n(execution)"]
+        TaskDef["AWS::ECS::TaskDefinition"]
+        LogGroup["AWS::Logs::LogGroup"]
+        Service["AWS::ECS::Service"]
+        TG["AWS::ElasticLoadBalancingV2::TargetGroup"]
+        LR["AWS::ElasticLoadBalancingV2::ListenerRule"]
+        ScalableTarget["AWS::ApplicationAutoScaling::ScalableTarget"]
+        ScalingPolicy["AWS::ApplicationAutoScaling::ScalingPolicy"]
+    end
+
+    VPC --> |contains| PubSub
+    VPC --> |contains| PrivSub
+
+    AlbSG --> |in| VPC
+    ALB --> |secured by| AlbSG
+    ALB --> |placed in| PubSub
+    Listener --> |:80 on| ALB
+
+    TaskSG --> |in| VPC
+    AlbSG --> |allows traffic from| TaskSG
+    TaskDef --> |app runs as| TaskRole
+    TaskDef --> |pulls image via| ExecRole
+    TaskDef --> |sends logs to| LogGroup
+    ExecPolicy --> |grants permissions to| ExecRole
+    Service --> |runs in| EcsCluster
+    Service --> |deploys| TaskDef
+    Service --> |secured by| TaskSG
+    Service --> |placed in| PrivSub
+    Service --> |registers targets with| TG
+    TG --> |in| VPC
+    LR --> |attached to| Listener
+    LR --> |routes to| TG
+    ScalableTarget --> |scales| Service
+    ScalingPolicy --> |drives| ScalableTarget
+```
