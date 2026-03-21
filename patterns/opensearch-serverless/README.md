@@ -198,3 +198,44 @@ npx cdk synth OpenSearchServerlessApp > patterns/opensearch-serverless/cloud_for
 ```bash
 npx cdk destroy OpenSearchServerlessApp OpenSearchServerless
 ```
+
+## Entity Relationship Diagram of AWS Resources
+
+```mermaid
+flowchart TB
+    subgraph VpcSubnets["VpcSubnets (imported)"]
+        VPC["AWS::EC2::VPC"]
+        IsolSub["AWS::EC2::Subnet\n(3x isolated)"]
+    end
+
+    subgraph SsmBastionImported["SsmBastion (imported)"]
+        BastionSG["AWS::EC2::SecurityGroup\n(bastion)"]
+    end
+
+    subgraph OpenSearchServerless["OpenSearchServerless"]
+        VpeSG["AWS::EC2::SecurityGroup\n(VPC endpoint)"]
+        EncryptPol["AWS::OpenSearchServerless::SecurityPolicy\n(encryption)"]
+        NetPol["AWS::OpenSearchServerless::SecurityPolicy\n(network)"]
+        DataAccPol["AWS::OpenSearchServerless::AccessPolicy"]
+        VpceEP["AWS::OpenSearchServerless::VpcEndpoint"]
+        Collection["AWS::OpenSearchServerless::Collection"]
+    end
+
+    subgraph OpenSearchServerlessApp["OpenSearchServerlessApp"]
+        VpceAccess["AWS::EC2::SecurityGroupIngress"]
+    end
+
+    VPC --> |contains| IsolSub
+
+    VpeSG --> |in| VPC
+    VpceEP --> |secured by| VpeSG
+    VpceEP --> |placed in| IsolSub
+    VpceEP --> |in| VPC
+    NetPol --> |allows access via| VpceEP
+    EncryptPol --> |encrypts| Collection
+    NetPol --> |controls access to| Collection
+    DataAccPol --> |governs access to| Collection
+
+    VpceAccess --> |opens :443 on| VpeSG
+    VpceAccess --> |allows traffic from| BastionSG
+```

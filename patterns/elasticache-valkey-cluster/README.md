@@ -2,6 +2,21 @@
 
 ## Pattern Description
 
+```
+Client (curl / browser)
+  │  HTTP
+  ▼
+SSM Port-Forward (:3000 → EC2 :3000)
+  │  HTTP
+  ▼
+Demo Server (Express, EC2)
+  │  Valkey TLS :6379  →  Config Endpoint (fetches cluster slot map)
+  ▼
+ElastiCache Cluster (cluster mode, Valkey 8)
+  ├── Shard 0 (slots 0–8191):     Primary  →  Replica  (async replication)
+  └── Shard 1 (slots 8192–16383): Primary  →  Replica  (async replication)
+```
+
 - [Amazon ElastiCache](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html) managed cache cluster running [Valkey 8](https://valkey.io/), an open-source Redis-compatible engine
 - [Cluster mode](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/Replication.Redis.Cluster.html): the keyspace (hash slots 0–16383) is distributed across multiple shards, each owned by a primary node
 - Horizontal scaling: adding shards distributes key ownership, enabling memory and throughput beyond single-node limits
@@ -13,7 +28,6 @@
 | `3` | `0` | 3 primaries, no replicas | 3 | No HA; not recommended for production |
 | `3` | `1` | 3 primaries + 3 replicas | 6 | Production-grade |
 
-- Data flow: browser/curl → SSM port-forward (port 3000) → `demo_server` on a dedicated EC2 instance (in this stack) → ElastiCache shard primary
 - Auth: [RBAC](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/Clusters.RBAC.html) via `CfnUser` / `CfnUserGroup` — `appuser` has full access; `default` user is disabled
 - TLS in transit + encryption at rest
 - VPC from [`vpc-subnets`](../vpc-subnets/) stack
