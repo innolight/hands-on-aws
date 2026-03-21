@@ -56,9 +56,9 @@ Infrastructures / Containers on AWS:
 - [x] [`ecs-fargate-apigw`](./patterns/containers/ecs-fargate-apigw): ECS Fargate + API Gateway HTTP API + VPC Link
 - [x] [`ecs-ec2-alb`](./patterns/containers/ecs-ec2-alb): ECS on EC2 (Spot) + ALB — self-managed container instances behind load balancer
 - [x] [`lambda-container`](./patterns/containers/lambda-container): Lambda container image + Function URL — serverless per-request execution
-- [ ] [`one-ec2`](./patterns/containers/one-ec2): Single EC2 instance running Docker, public-facing
-- [ ] [`ec2s-behind-alb`](./patterns/containers/ec2s-behind-alb): Auto Scaling Group of EC2s running Docker behind ALB
+- [x] [`ec2s-behind-alb`](./patterns/containers/ec2s-behind-alb): Auto Scaling Group of EC2s running Docker behind ALB
 - [ ] [`eks-fargate`](./patterns/containers/eks-fargate): EKS Fargate — Kubernetes control plane + serverless pods, no node management
+- [ ] [`one-ec2`](./patterns/containers/one-ec2): Single EC2 instance running Docker, public-facing
 
 Infrastructures:
 - [x] [`vpc-subnets`](./patterns/vpc-subnets): VPC with 3-tier subnet layout (public / private / isolated) across 3 AZs, configurable NAT Gateways

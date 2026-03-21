@@ -1,5 +1,18 @@
 # S3 Events Notification Pattern
 
+```
+S3 Bucket
+  │  OBJECT_CREATED (*.json)
+  ▼
+SNS Topic
+  │  raw message delivery
+  ▼
+SQS Queue
+  │  maxReceiveCount: 4
+  ▼
+SQS Dead Letter Queue
+```
+
 Pattern Description:
 - S3 Bucket to store objects
 - SNS topic to receive [Events Notification](https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventNotifications.html) from bucket

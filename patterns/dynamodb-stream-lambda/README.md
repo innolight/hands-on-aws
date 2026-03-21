@@ -1,5 +1,17 @@
 # DynamoDB Streams to Lambda
 
+```
+DynamoDB Table
+  │  Stream (NEW_AND_OLD_IMAGES)
+  ▼
+Lambda (polls in batches of 5)
+  │  process side effects (e.g. PENDING → PAID)
+  │
+  │  on failure (3 retries, bisect batch)
+  ▼
+SQS Dead Letter Queue
+```
+
 This pattern implements Change Data Capture (CDC) using DynamoDB Streams. When an item in the DynamoDB table is created, updated, or deleted, a record is written to a stream, which triggers a Lambda function asynchronously.
 
 - **DynamoDB Table** — configured with `StreamViewType.NEW_AND_OLD_IMAGES` to capture both pre- and post-modification states of the data.

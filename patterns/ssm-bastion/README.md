@@ -2,6 +2,19 @@
 
 ## Pattern Description
 
+```
+Operator
+  │  aws ssm start-session
+  ▼
+SSM Session Manager
+  │  secure channel (HTTPS, no inbound SG rules)
+  ▼
+EC2 Bastion (public subnet)
+  │  port forwarding
+  ▼
+Private resource (ElastiCache, RDS, …)
+```
+
 - EC2 bastion accessible exclusively via [SSM Session Manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html) — no SSH, no inbound security group rules
 - Placed in a public subnet so the SSM agent reaches AWS endpoints over the internet without a NAT gateway
 - Designed for reuse: accepts a `vpc` prop from another stack (e.g. `vpc-subnets`) and exposes `bastion` and `bastionSG` for downstream stacks to reference

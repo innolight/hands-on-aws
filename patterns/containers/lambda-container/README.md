@@ -142,3 +142,30 @@ npx cdk synth LambdaContainerStack > patterns/containers/lambda-container/cloud_
 # 7. Destroy
 npx cdk destroy LambdaContainerStack
 ```
+
+## Entity Relation of AWS Resources
+
+```mermaid
+flowchart TB
+    subgraph ECRStack["ElasticContainerRegistryStack"]
+        ECR["AWS::ECR::Repository"]
+    end
+
+    subgraph LambdaContainerStack["LambdaContainerStack"]
+        ApiKey["AWS::SecretsManager::Secret"]
+        LogGroup["AWS::Logs::LogGroup"]
+        FuncRole["AWS::IAM::Role\n(Lambda)\n···\nAWSLambdaBasicExecutionRole"]
+        Lambda["AWS::Lambda::Function"]
+        FuncUrl["AWS::Lambda::Url"]
+        PermUrl["AWS::Lambda::Permission\n(URL invoke)"]
+        PermInvoke["AWS::Lambda::Permission\n(function invoke)"]
+    end
+
+    Lambda --> |pulls :lambda image from| ECR
+    Lambda --> |runs as| FuncRole
+    Lambda --> |sends logs to| LogGroup
+    Lambda --> |reads secret from| ApiKey
+    FuncUrl --> |URL for| Lambda
+    PermUrl --> |allows public invoke on| Lambda
+    PermInvoke --> |allows public invoke on| Lambda
+```

@@ -5,6 +5,18 @@ The Docker image exposes API protected by API_KEY (stored as SSM SecureString pa
 
 ## Pattern Description
 
+```
+Dockerfile (multi-stage)
+  │  docker buildx (linux/amd64 + linux/arm64)
+  ▼
+ECR Repository
+  ├── :latest   (server target)  → ECS, App Runner
+  └── :lambda   (+ LWA extension) → Lambda container
+
+SSM Parameter Store
+  └── api-key (SecureString) → injected as API_KEY env var
+```
+
 - [ECR Repository](https://docs.aws.amazon.com/AmazonECR/latest/userguide/Repositories.html) — stores the Docker image; lifecycle rule expires untagged images after 1 day to avoid accumulating push-per-build storage costs
 - [SSM SecureString](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) — holds the API key; created manually via CLI (CloudFormation cannot create SecureString parameters); KMS-encrypted at rest
 - Express container — `GET /health` (unauthenticated, required for ALB/App Runner health checks), `GET /quote` (API-key protected)

@@ -4,6 +4,20 @@
 
 **Note: Work in Progress. solution is not working as expected yet**
 
+```
+DynamoDB Table (PITR enabled)
+  │  Glue Zero-ETL Integration
+  │  (initial snapshot + streaming CDC, ~15 min latency)
+  ▼
+Glue Database → S3 Table Bucket (Iceberg)
+  │
+  ▼
+Athena WorkGroup (engine v3)
+  │  query results
+  ▼
+S3 Bucket (results)
+```
+
 - Write order items to [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html) (TableV2, on-demand, PITR enabled)
 - [AWS Glue Zero-ETL Integration](https://docs.aws.amazon.com/glue/latest/dg/zero-etl-using.html) continuously replicates changes to [Amazon S3 Tables](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-what-is.html)
 - The integration targets an **AWS Glue Data Catalog Database**, which is configured with a `locationUri` pointing to an **S3 Table Bucket**

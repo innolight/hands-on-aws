@@ -1,5 +1,12 @@
 # S3 Cross Region Replication
 
+```
+Source Bucket (eu-central-1)
+  │  S3 replication rule (assumes IAM Role)
+  ▼
+Destination Bucket (eu-west-1)
+```
+
 Pattern Description:
 - Destination S3 Bucket in specified region
 - Source S3 Bucket in default region

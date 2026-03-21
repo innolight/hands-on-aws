@@ -1,5 +1,18 @@
 # S3 → Lambda → Rekognition → DynamoDB
 
+```
+S3 Bucket
+  │  OBJECT_CREATED (.jpg/.jpeg/.png)
+  ▼
+Lambda ──→ Rekognition detectLabels
+  │         (reads image directly from S3)
+  │  putItem
+  ▼
+DynamoDB Table
+
+On failure (3 attempts) → SQS DLQ
+```
+
 **Pattern Description**:
 - S3 bucket receives image uploads (`.jpg`, `.jpeg`, `.png`)
 - [S3 Event Notification](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html) triggers a Lambda function on each upload

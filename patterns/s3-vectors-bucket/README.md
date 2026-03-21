@@ -2,6 +2,17 @@
 
 ## Pattern Description
 
+```
+CSV (1000 embeddings, 1536-dim)
+  │  PutVectors (batches of 50)
+  ▼
+S3 Vector Bucket
+  └── Vector Index (cosine, float32)
+       │  QueryVectors (ANN search)
+       ▼
+     Nearest-neighbour results + metadata
+```
+
 Demonstrates [Amazon S3 Vectors](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-vectors.html) — AWS's native vector storage built into S3 (GA December 2025). Uses 1,000 Amazon food reviews with pre-computed 1,536-dimensional [OpenAI ada-002](https://platform.openai.com/docs/guides/embeddings) embeddings. No live embedding API calls needed — embeddings ship with the dataset.
 
 - One [VectorBucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-vectors-vector-buckets.html) — top-level container, analogous to an S3 bucket

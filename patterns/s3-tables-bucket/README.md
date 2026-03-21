@@ -2,6 +2,18 @@
 
 ## Pattern Description
 
+```
+Athena WorkGroup (engine v3)
+  │  INSERT INTO / SELECT
+  ▼
+Glue Federated Catalog (s3tablescatalog)
+  │  Lake Formation grants
+  ▼
+S3 Table Bucket
+  └── Namespace: sales_ns
+       └── Table: sales (Iceberg)
+```
+
 - Create an [Amazon S3 Table Bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-what-is.html) with a namespace and [Apache Iceberg](https://iceberg.apache.org/) sales table
 - Load sample sales data via [Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/what-is.html) `INSERT INTO` — full DML supported on S3 Tables without ETL pipelines
 - Run analytics queries (aggregations, group-by) via Athena engine v3 with native Iceberg column pruning

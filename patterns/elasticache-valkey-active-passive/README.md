@@ -2,6 +2,21 @@
 
 ## Pattern Description
 
+```
+Demo Server (local)
+  │  localhost:6379 (write) / :6380 (read)
+  ▼
+SSM Port Forwarding
+  │
+  ▼
+EC2 Bastion (public subnet)
+  │  TLS + RBAC (appuser via Secrets Manager)
+  ▼
+ElastiCache Valkey 8.2 (isolated subnet)
+  ├── Primary endpoint   (read/write)
+  └── Reader endpoint    (read-only, replicas)
+```
+
 - [Amazon ElastiCache](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html) managed cache cluster running [Valkey 8](https://valkey.io/), an open-source Redis-compatible engine
 - Non-cluster (replication group) mode: one primary node + optional read replicas, all sharing the same keyspace
 - Topology controlled via `-c minNodes=N -c maxNodes=M` at deploy time:

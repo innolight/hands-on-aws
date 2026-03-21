@@ -1,5 +1,16 @@
 # S3 Static Website + CloudFront
 
+```
+Browser
+  │  HTTPS
+  ▼
+CloudFront Distribution
+  │  cache miss → OAC signed request
+  ▼
+S3 Bucket (private, BLOCK_ALL)
+  └── index.html (deployed by BucketDeployment)
+```
+
 **Pattern Description**:
 - Private S3 bucket with [BlockPublicAccess](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html) — no public access
 - [CloudFront Distribution](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-working-with.html) serving content globally over HTTPS

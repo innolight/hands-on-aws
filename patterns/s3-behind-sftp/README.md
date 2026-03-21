@@ -2,6 +2,18 @@
 
 ## Pattern Description
 
+```
+SFTP Client
+  │  SSH key auth
+  ▼
+Transfer Family (PUBLIC endpoint)
+  │  translates SFTP → S3 API calls (assumes IAM Role)
+  ▼
+S3 Bucket
+  ├── /alice/   (LOGICAL home dir)
+  └── /bob/     (LOGICAL home dir)
+```
+
 Exposes an S3 bucket as an SFTP server using [AWS Transfer Family](https://docs.aws.amazon.com/transfer/latest/userguide/what-is-aws-transfer-family.html). Useful for integrating with legacy systems or partners that only speak [SFTP](https://en.wikipedia.org/wiki/SSH_File_Transfer_Protocol) — no EC2 instance or custom server to manage.
 
 - Transfer Family terminates the [SFTP protocol](https://docs.aws.amazon.com/transfer/latest/userguide/create-server-sftp.html) and translates each file operation into S3 API calls transparently

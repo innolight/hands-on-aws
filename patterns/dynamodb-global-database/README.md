@@ -4,6 +4,17 @@
 
 Demonstrates [DynamoDB Global Tables](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GlobalTables.html) — a managed multi-region, multi-active replication feature. Shows replication mechanics, eventual consistency, last-writer-wins conflict resolution, and automatic GSI replication.
 
+```
+       eu-central-1          us-east-1
+      ┌──────────────┐      ┌──────────────┐
+      │  DynamoDB     │◄────►│  DynamoDB     │
+      │  Replica      │      │  Replica      │
+      │  + GSI        │      │  + GSI        │
+      └──────────────┘      └──────────────┘
+         async replication (<1s)
+         last-writer-wins (LSN)
+```
+
 - One [TableV2](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_dynamodb.TableV2.html) deployed to `eu-central-1` with a replica in `us-east-1`
 - Both regions accept reads and writes with equal standing — no primary region
 - Writes propagate to all replicas asynchronously, typically within < 1 second under normal conditions
