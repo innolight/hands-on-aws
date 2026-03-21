@@ -2,14 +2,27 @@
 
 Multiple ways to run the same containerized API on AWS — each pattern showcases a different compute and networking model, from single EC2 instance to managed Kubernetes.
 
-## Shared Container
+Based on the logic from the video, here is the decision tree for deploying containers on AWS structured as a hierarchy.
 
-All patterns run the same Docker image: a simple Express API with two endpoints:
+### **AWS Container Deployment Decision Tree**
 
-- `GET /health` — unauthenticated health check (required by ALB/App Runner target group checks)
-- `GET /quote` — returns a famous quote, principle, or law from computer science (API-key protected)
+Considered the decision three belows for choosing which navigating options
 
-The image is built once and stored in ECR via the `elastic-container-registry` pattern. All other patterns reference the image URI from that stack's outputs.
+**Are you using Kubernetes?**
+* **YES** ➔ **[Amazon EKS]** (Elastic Kubernetes Service)
+* **NO** ➔ **Do you want Serverless or Provisioned infrastructure?**
+    * **Option A: Serverless (AWS manages the servers)**
+        * Are your invocations < 15 minutes?
+            * **YES** ➔ **[AWS Lambda]** (Event-driven, pay-per-use)
+            * **NO** ➔ Do you want to control all the configuration "knobs"?
+                * **YES** ➔ **[AWS Fargate]** (Full control, managed compute)
+                * **NO** ➔ **[AWS App Runner]** (Simplest for web apps & APIs)
+    * **Option B: Provisioned (You manage the servers)**
+        * Do you want a simplified, easy-to-use UI for prototypes?
+            * **YES** ➔ **[AWS Lightsail]** (Fixed price, simple UI setup, no cdk support)
+            * **NO** ➔ Do you need container orchestration?
+                * **YES** ➔ **[Amazon ECS on EC2]** (Full control over clusters)
+                * **NO** ➔ **[Amazon EC2]** (Manual deployment/Virtual Machines)
 
 ## Pattern Comparison
 
@@ -27,6 +40,15 @@ The image is built once and stored in ECR via the `elastic-container-registry` p
 \* `ecs-fargate-apigw`: the ~$10/mo is 1 Fargate task (256 CPU/512 MB). API GW + VPC Link have no idle cost, so scaling to 0 tasks would yield ~$0 — but Fargate cold start is 30–90s and the service returns 503 while at 0 tasks.
 
 † `eks-fargate` idle cost: $73/mo EKS control plane ($0.10/hr) + CoreDNS pods on Fargate (~$7/mo). ECS and EKS patterns running tasks in private subnets also require a NAT Gateway (~$32/mo) or VPC endpoints (~$7/mo each) to pull ECR images — not included in the table above.
+
+## Shared Container
+
+All patterns run the same Docker image: a simple Express API with two endpoints:
+
+- `GET /health` — unauthenticated health check (required by ALB/App Runner target group checks)
+- `GET /quote` — returns a famous quote, principle, or law from computer science (API-key protected)
+
+The image is built once and stored in ECR via the `elastic-container-registry` pattern. All other patterns reference the image URI from that stack's outputs.
 
 ## Authentication
 
@@ -51,16 +73,6 @@ All 8 compute patterns use the same approach: **application-level API key middle
 | `one-ec2` | EC2 user data script reads SSM parameter, sets env var |
 | `ec2s-behind-alb` | Launch template user data reads SSM parameter, sets env var |
 | `eks-fargate` | Kubernetes Secret sourced from SSM, mounted as env var |
-
-## Invoking the API
-
-Each pattern outputs its endpoint URL as a `CfnOutput`. Refer to each pattern's own README for detailed invocation examples.
-
-The container can also be run locally:
-
-```bash
-docker run -e API_KEY=your-key -p 3000:3000 <image-uri>
-```
 
 ## Deploy Order
 
