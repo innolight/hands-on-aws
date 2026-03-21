@@ -18,8 +18,10 @@ npx cdk destroy       # tear down a deployed stack
 
 Run a single test file:
 ```bash
-pnpm run test -- --testPathPattern=cdk.test
+npx jest patterns/<pattern-name>/stack.test.ts
 ```
+
+Note: `pnpm run test -- --testPathPattern=<pattern>` does not work — pnpm escapes the `=` in `--testPathPattern\=`, causing Jest to find zero matches even when the file exists. Use `npx jest <path>` to target a specific file.
 
 Run the demo server for a pattern (e.g., s3-events-notification):
 ```bash
@@ -52,6 +54,8 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 2. **Cost** — table with columns: Resource | Idle | ~N unit/month | Cost driver; include region and workload assumption in the header; state the dominant cost driver
 3. **Notes** — non-obvious decisions, production caveats, alternatives considered
 4. **Commands to play with stack** — deploy, interact (start demo server, curl commands to play with demo_server.ts), observe (logs), destroy, and `cdk synth` to capture CloudFormation yaml
+
+**Capturing CloudFormation yaml:** use `npx cdk synth <StackName> > cloud_formation.yaml` without `2>&1`. Mixing logs and warnings to stderr with `2>&1` produces invalid YAML.
 
 **stack.ts commenting conventions** — comments are educational, not decorative. Each comment should teach something a reader couldn't immediately infer from the code:
 
