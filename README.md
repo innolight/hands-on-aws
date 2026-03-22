@@ -30,11 +30,12 @@ Datastore / Elasticache:
 
 
 Datastore / RDS & Aurora:
-- [ ] `rds-backup-and-recovery`: Set up automated backups and point-in-time recovery for RDS
-- [ ] `rds-readable-standbys`: Multi-AZ deployment of RDS with 2 readable standby instance
-- [ ] `rds-aurora-cross-region-replication`: RDS Aurora Cross-Region replication + Write Forwarding
-- [ ] `rds-aurora-serverless-v2`: Deploying Aurora Serverless v2 with autoscaling
-- [ ] `rds-proxy`: RDS proxy in front of RDS
+- [ ] [`rds-postgres`](./patterns/rds/rds-postgres): Single-AZ → Multi-AZ failover, automated backups, PITR, Secrets Manager credential rotation, optional RDS Proxy connection pooling
+- [ ] [`rds-read-replicas`](./patterns/rds/rds-read-replicas): Async read replicas (same-region + cross-region), manual promote to standalone for DR
+- [ ] [`rds-readable-standbys`](./patterns/rds/rds-readable-standbys): Multi-AZ with 2 readable standbys — synchronous replication, <35s failover, reader endpoint
+- [ ] [`rds-aurora-provisioned`](./patterns/rds/rds-aurora-provisioned): Aurora PostgreSQL — shared distributed storage, writer + up to 15 readers, custom endpoints
+- [ ] [`rds-aurora-serverless-v2`](./patterns/rds/rds-aurora-serverless-v2): Aurora Serverless v2 — ACU-based autoscaling, mix serverless + provisioned instances
+- [ ] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database — sub-second cross-region replication, Write Forwarding, managed failover
 
 Datastore / OpenSearch:
 - [x] [`opensearch-provisioned`](./patterns/opensearch-provisioned/): Managed OpenSearch domain — parameterized from single-node dev to Multi-AZ production (node count, AZ, dedicated masters)

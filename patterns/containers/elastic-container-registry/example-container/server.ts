@@ -33,6 +33,14 @@ router.get('/quote', (req, res) => {
   res.json({quote});
 });
 
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    console.log(`${req.method} ${req.path} ${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();
+});
+
 app.use(process.env.ROUTE_PREFIX || '/', router);
 
 const server = app.listen(port, () => {

@@ -1,0 +1,223 @@
+Resources:
+  ClusterEB0386A7:
+    Type: AWS::ECS::Cluster
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/Cluster/Resource
+  Cluster3DA9CCBA:
+    Type: AWS::ECS::ClusterCapacityProviderAssociations
+    Properties:
+      CapacityProviders:
+        - Ref: AsgCapacityProvider760D11D9
+      Cluster:
+        Ref: ClusterEB0386A7
+      DefaultCapacityProviderStrategy: []
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/Cluster/Cluster
+  InstanceSG2AE1100C:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ECS EC2 instances
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/InstanceSG/Resource
+  InstanceRole3CCE2F1D:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AmazonSSMManagedInstanceCore
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/InstanceRole/Resource
+  InstanceRoleDefaultPolicy1531605C:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - ecs:DeregisterContainerInstance
+              - ecs:RegisterContainerInstance
+              - ecs:Submit*
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - ClusterEB0386A7
+                - Arn
+          - Action:
+              - ecs:Poll
+              - ecs:StartTelemetrySession
+            Condition:
+              ArnEquals:
+                ecs:cluster:
+                  Fn::GetAtt:
+                    - ClusterEB0386A7
+                    - Arn
+            Effect: Allow
+            Resource: "*"
+          - Action:
+              - ecr:GetAuthorizationToken
+              - ecs:DiscoverPollEndpoint
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Effect: Allow
+            Resource: "*"
+        Version: "2012-10-17"
+      PolicyName: InstanceRoleDefaultPolicy1531605C
+      Roles:
+        - Ref: InstanceRole3CCE2F1D
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/InstanceRole/DefaultPolicy/Resource
+  LaunchTemplateProfile94AA77CE:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: InstanceRole3CCE2F1D
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/LaunchTemplate/Profile
+  LaunchTemplate04EC5460:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Arn:
+            Fn::GetAtt:
+              - LaunchTemplateProfile94AA77CE
+              - Arn
+        ImageId:
+          Ref: SsmParameterValueawsserviceecsoptimizedamiamazonlinux2023arm64recommendedimageidC96584B6F00A464EAD1953AFF4B05118Parameter
+        InstanceType: t4g.micro
+        MetadataOptions:
+          HttpTokens: required
+        SecurityGroupIds:
+          - Fn::GetAtt:
+              - InstanceSG2AE1100C
+              - GroupId
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: EcsEc2ClusterStack/LaunchTemplate
+          - ResourceType: volume
+            Tags:
+              - Key: Name
+                Value: EcsEc2ClusterStack/LaunchTemplate
+        UserData:
+          Fn::Base64:
+            Fn::Join:
+              - ""
+              - - |-
+                  #!/bin/bash
+                  echo ECS_CLUSTER=
+                - Ref: ClusterEB0386A7
+                - " >> /etc/ecs/ecs.config"
+      TagSpecifications:
+        - ResourceType: launch-template
+          Tags:
+            - Key: Name
+              Value: EcsEc2ClusterStack/LaunchTemplate
+    DependsOn:
+      - InstanceRoleDefaultPolicy1531605C
+      - InstanceRole3CCE2F1D
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/LaunchTemplate/Resource
+  ASG46ED3070:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      CapacityRebalance: true
+      HealthCheckGracePeriod: 120
+      HealthCheckType: ELB
+      MaxSize: "4"
+      MinSize: "1"
+      MixedInstancesPolicy:
+        InstancesDistribution:
+          OnDemandBaseCapacity: 0
+          OnDemandPercentageAboveBaseCapacity: 0
+          SpotAllocationStrategy: price-capacity-optimized
+        LaunchTemplate:
+          LaunchTemplateSpecification:
+            LaunchTemplateId:
+              Ref: LaunchTemplate04EC5460
+            Version:
+              Fn::GetAtt:
+                - LaunchTemplate04EC5460
+                - LatestVersionNumber
+          Overrides:
+            - InstanceType: t4g.micro
+            - InstanceType: t4g.small
+            - InstanceType: c7g.medium
+      NewInstancesProtectedFromScaleIn: true
+      VPCZoneIdentifier:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+          - InstanceRefresh
+      AutoScalingScheduledAction:
+        IgnoreUnmodifiedGroupSizeProperties: true
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/ASG/ASG
+  AsgCapacityProvider760D11D9:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn:
+          Ref: ASG46ED3070
+        ManagedScaling:
+          Status: ENABLED
+          TargetCapacity: 100
+        ManagedTerminationProtection: ENABLED
+      Name: SpotCapacityProvider
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/AsgCapacityProvider/AsgCapacityProvider
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/41UXW8aMRD8LfFjdVwjFPWBtwtRK6SqRUCfEKoWewMbfLZrr0no6f575fsgQGibJ8zMenbsHd8wH97d5rc38BwGUu0GmtZ5NWeQuwyew88KZcirsY6B0S8rsXdSjMQHUWeVAKWKsBmDA0l8mHq7J4VejJbig1jVq2z8aLqNJ8vL8iIEKwmYrAnZFblm6wVWZyiHeTVHGT3x4Yu30Z14y4TCID25JNq6bcyc1WdfIRq5XWDpNDAuK1GC3JLBSQkb7HTIBAYjcXFwPRRORTrMW93TW2a3sDs0QYyEx1+RPCqRiRjQPwDDiZ1zA3VGUObVzOrkBUKIJar7gxhVwnkykhzoQkobDXet2pq0oZCvJ81ECQY2qKZWkyQMYtSc7RU7FN4cZ3idWHXjXdhp37utSGIdywxyOzGaDB65ZvD/Jf+t+3e2ubV03qyFk+Kx2cLOmilceHgLKzVnYCzRcDhr+164sdE6SKtJl5Gpt4+ksc4gsg0SNJlNXhWR7bz98zameyfncW0wSVciNMsualNPe2Bs5kkvqPouob+RSuiz/FwkNjxQYE/r2CajEtY8YAlG3UPA/j11e3pqil6iYdhgsbZ7vFIZnOVCayub9zpnD4ybRDpPEgeyqx5Yx1TSb1TJ/7nP73v0nlSXyzcPLF36O8FVczfmwmIJLxdI72qGa9BJQozYR8zEFkHzdrxFuQtdbXQK+BjZrrXzllHyN3w+TuGzt2UaK06MGC37qPw4PvLzsKcIXs35+4kmdJdhqusmiuChxPSVnWGw0UusM2MV5k/h4354l3/Kb2+eAtHAR8NUYj5rf/8ASBIXDvoFAAA=
+    Metadata:
+      aws:cdk:path: EcsEc2ClusterStack/CDKMetadata/Default
+Parameters:
+  SsmParameterValueawsserviceecsoptimizedamiamazonlinux2023arm64recommendedimageidC96584B6F00A464EAD1953AFF4B05118Parameter:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2023/arm64/recommended/image_id
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+Outputs:
+  ExportsOutputRefAsgCapacityProvider760D11D9D1ED1C05:
+    Value:
+      Ref: AsgCapacityProvider760D11D9
+    Export:
+      Name: EcsEc2ClusterStack:ExportsOutputRefAsgCapacityProvider760D11D9D1ED1C05
+  ExportsOutputRefClusterEB0386A796A0E3FE:
+    Value:
+      Ref: ClusterEB0386A7
+    Export:
+      Name: EcsEc2ClusterStack:ExportsOutputRefClusterEB0386A796A0E3FE
+

@@ -32,6 +32,9 @@ import {Ec2sAlbNetworkingStack, ec2sAlbNetworkingStackName} from '../patterns/co
 import {Ec2sAlbComputeStack, ec2sAlbComputeStackName} from '../patterns/containers/ec2s-behind-alb/stack_compute';
 import {LambdaContainerStack, lambdaContainerStackName} from '../patterns/containers/lambda-container/stack';
 import {AppRunnerStack, appRunnerStackName} from '../patterns/containers/app-runner/stack';
+import {EcsEc2AlbNetworkingStack, ecsEc2AlbNetworkingStackName} from '../patterns/containers/ecs-ec2-alb/stack_networking';
+import {EcsEc2ClusterStack, ecsEc2ClusterStackName} from '../patterns/containers/ecs-ec2-alb/stack_cluster';
+import {EcsEc2AlbComputeStack, ecsEc2AlbComputeStackName} from '../patterns/containers/ecs-ec2-alb/stack_compute';
 import {OpenSearchServerlessStack, opensearchServerlessStackName} from '../patterns/opensearch-serverless/stack';
 import {OpenSearchServerlessAppStack, opensearchServerlessAppStackName} from '../patterns/opensearch-serverless/app_stack';
 import {OpenSearchProvisionedStack, opensearchProvisionedStackName} from '../patterns/opensearch-provisioned/stack';
@@ -195,6 +198,25 @@ new LambdaContainerStack(app, lambdaContainerStackName, {
 
 new AppRunnerStack(app, appRunnerStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+});
+
+// --- ecs-ec2-alb ---
+const ecsEc2AlbNetworkingStack = new EcsEc2AlbNetworkingStack(app, ecsEc2AlbNetworkingStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+});
+const ecsEc2ClusterStack = new EcsEc2ClusterStack(app, ecsEc2ClusterStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+});
+new EcsEc2AlbComputeStack(app, ecsEc2AlbComputeStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  cluster: ecsEc2ClusterStack.cluster,
+  listener: ecsEc2AlbNetworkingStack.listener,
+  instanceSg: ecsEc2ClusterStack.instanceSg,
+  albSg: ecsEc2AlbNetworkingStack.albSg,
+  capacityProviderName: ecsEc2ClusterStack.capacityProviderName,
 });
 
 const ossStack = new OpenSearchServerlessStack(app, opensearchServerlessStackName, {
