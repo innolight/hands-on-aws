@@ -50,7 +50,10 @@ export class EcsEc2AlbComputeStack extends cdk.Stack {
     const repository = ecr.Repository.fromRepositoryName(this, 'Repo', 'hands-on-containers');
 
     taskDef.addContainer('app', {
-      image: ecs.ContainerImage.fromEcrRepository(repository, 'latest'),
+      image: ecs.ContainerImage.fromEcrRepository(
+        repository,
+        this.node.tryGetContext('imageDigest') ?? 'latest',
+      ),
       // EC2 task defs set CPU/memory per container (not at task level like Fargate).
       // 256 CPU units = 0.25 vCPU, 512 MiB — matches the Fargate patterns' sizing.
       cpu: 256,
@@ -102,8 +105,12 @@ export class EcsEc2AlbComputeStack extends cdk.Stack {
       // Useful for debugging: aws ecs execute-command --cluster X --task Y --interactive --command /bin/sh
       // Requires ssmmessages:* on the task role. Keep false in production — reduces attack surface.
       enableExecuteCommand: false,
-      // minHealthyPercent=100 keeps the old task running until the new one is healthy;
-      // maxHealthyPercent=200 allows a second task temporarily — zero downtime with desiredCount=1.
+      
+      // Rolling update strategy — tuned via these two knobs:
+      //   minHealthyPercent=100: old task stays alive until new one passes ALB health checks → no downtime gap.
+      //   maxHealthyPercent=200: allows a 2nd task to run temporarily during the cutover.
+      // Alternative — recreate (faster deploy, brief downtime): minHealthyPercent=0, maxHealthyPercent=100.
+      //   ECS stops the old task first, then starts the new one. No extra capacity needed.
       minHealthyPercent: 100,
       maxHealthyPercent: 200,
       // Circuit breaker: stops retrying and rolls back to the last working task definition after
