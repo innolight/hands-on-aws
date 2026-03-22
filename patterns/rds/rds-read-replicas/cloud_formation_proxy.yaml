@@ -1,0 +1,154 @@
+Resources:
+  ProxySG54E74AC9:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS Proxy security group
+      SecurityGroupEgress:
+        - CidrIp: 255.255.255.255/32
+          Description: Disallow all traffic
+          FromPort: 252
+          IpProtocol: icmp
+          ToPort: 86
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: RdsReadReplicasProxy/ProxySG/Resource
+  BastionToProxy:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: PostgreSQL from bastion to proxy
+      FromPort: 5432
+      GroupId:
+        Fn::GetAtt:
+          - ProxySG54E74AC9
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::ImportValue: SsmBastion:ExportsOutputFnGetAttBastionSGEBD2A3B1GroupId0BE655F5
+      ToPort: 5432
+    Metadata:
+      aws:cdk:path: RdsReadReplicasProxy/BastionToProxy
+  ProxyToDb:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: PostgreSQL from proxy to DB
+      FromPort: 5432
+      GroupId:
+        Fn::ImportValue: RdsReadReplicas:ExportsOutputFnGetAttDbSG0BE6ACB3GroupIdE6F8FAFE
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - ProxySG54E74AC9
+          - GroupId
+      ToPort: 5432
+    Metadata:
+      aws:cdk:path: RdsReadReplicasProxy/ProxyToDb
+  ProxyRoleEB89BDF8:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: rds.amazonaws.com
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: RdsReadReplicasProxy/ProxyRole/Resource
+  ProxyRoleDefaultPolicy90D64EE1:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - secretsmanager:DescribeSecret
+              - secretsmanager:GetSecretValue
+            Effect: Allow
+            Resource:
+              Fn::ImportValue: RdsReadReplicas:ExportsOutputRefPrimarySecretAttachment0450815C1C8331A7
+        Version: "2012-10-17"
+      PolicyName: ProxyRoleDefaultPolicy90D64EE1
+      Roles:
+        - Ref: ProxyRoleEB89BDF8
+    Metadata:
+      aws:cdk:path: RdsReadReplicasProxy/ProxyRole/DefaultPolicy/Resource
+  Proxy:
+    Type: AWS::RDS::DBProxy
+    Properties:
+      Auth:
+        - AuthScheme: SECRETS
+          IAMAuth: DISABLED
+          SecretArn:
+            Fn::ImportValue: RdsReadReplicas:ExportsOutputRefPrimarySecretAttachment0450815C1C8331A7
+      DBProxyName:
+        Fn::Sub: ${AWS::StackName}-proxy
+      EngineFamily: POSTGRESQL
+      RequireTLS: false
+      RoleArn:
+        Fn::GetAtt:
+          - ProxyRoleEB89BDF8
+          - Arn
+      VpcSecurityGroupIds:
+        - Fn::GetAtt:
+            - ProxySG54E74AC9
+            - GroupId
+      VpcSubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+    Metadata:
+      aws:cdk:path: RdsReadReplicasProxy/Proxy
+  ProxyTargetGroup:
+    Type: AWS::RDS::DBProxyTargetGroup
+    Properties:
+      DBInstanceIdentifiers:
+        - Fn::ImportValue: RdsReadReplicas:ExportsOutputRefPrimary503D659132D8A060
+      DBProxyName:
+        Ref: Proxy
+      TargetGroupName: default
+    Metadata:
+      aws:cdk:path: RdsReadReplicasProxy/ProxyTargetGroup
+  ReadOnlyEndpoint:
+    Type: AWS::RDS::DBProxyEndpoint
+    Properties:
+      DBProxyEndpointName:
+        Fn::Sub: ${AWS::StackName}-ro
+      DBProxyName:
+        Ref: Proxy
+      TargetRole: READ_ONLY
+      VpcSecurityGroupIds:
+        - Fn::GetAtt:
+            - ProxySG54E74AC9
+            - GroupId
+      VpcSubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+    Metadata:
+      aws:cdk:path: RdsReadReplicasProxy/ReadOnlyEndpoint
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/4WQQW8CIRCFf4scDVKzMT3sTW3TeNKoN2MaBNai7EBg0G4I/73ZVbdpPPTE5Hvz3sxQsGIyZuMBv4aRkOeR0QeWNsjFmfJr+ExKFCxtlIheY/PhbXS7RC5OkJIMCSVSBeG1Q23hTrgx9jo1ZhnxYCNIUlbcBJX3dF7Bn6AnsICjVyFkqnnN0toatUuEhxBrJWcNKRNxXoPQjpupEDYCPmZ2Pa1hKvpVcqaJcCm3dvVwrazRoiHlLuV9pyJy8bUAo0H1GhmSf8TulHYavfGW9oatbZWnnGcs5QY5qloBhvtKXfAtM1MvA0vzCt5mK2+/G/pbbrk/Kuz/8E7fQTqrAXNu4TKii5gpWKnYKbxcigl7ZePBKWg98hFQ14qtb+8PwpwtzwQCAAA=
+    Metadata:
+      aws:cdk:path: RdsReadReplicasProxy/CDKMetadata/Default
+Outputs:
+  ProxyReadWriteEndpoint:
+    Value:
+      Fn::GetAtt:
+        - Proxy
+        - Endpoint
+  ProxyReadOnlyEndpoint:
+    Value:
+      Fn::GetAtt:
+        - ReadOnlyEndpoint
+        - Endpoint
+  SecretArn:
+    Value:
+      Fn::ImportValue: RdsReadReplicas:ExportsOutputRefPrimarySecretAttachment0450815C1C8331A7
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

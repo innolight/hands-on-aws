@@ -39,6 +39,10 @@ import {OpenSearchServerlessStack, opensearchServerlessStackName} from '../patte
 import {OpenSearchServerlessAppStack, opensearchServerlessAppStackName} from '../patterns/opensearch-serverless/app_stack';
 import {OpenSearchProvisionedStack, opensearchProvisionedStackName} from '../patterns/opensearch-provisioned/stack';
 import {OpenSearchProvisionedAppStack, opensearchProvisionedAppStackName} from '../patterns/opensearch-provisioned/app_stack';
+import {RdsPostgresStack, rdsPostgresStackName} from '../patterns/rds/rds-postgres/stack';
+import {RdsReadReplicasStack, rdsReadReplicasStackName} from '../patterns/rds/rds-read-replicas/stack';
+import {RdsReadReplicasProxyStack, rdsReadReplicasProxyStackName} from '../patterns/rds/rds-read-replicas/stack_proxy';
+import {RdsReadableStandbysStack, rdsReadableStandbysStackName} from '../patterns/rds/rds-readable-standbys/stack';
 
 const app = new cdk.App();
 
@@ -239,4 +243,30 @@ new OpenSearchProvisionedAppStack(app, opensearchProvisionedAppStackName, {
   env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
   bastionSG: bastionStack.bastionSG,
   domainSG: ospStack.domainSG,
+});
+
+// --- rds ---
+new RdsPostgresStack(app, rdsPostgresStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  bastionSG: bastionStack.bastionSG,
+});
+
+const rdsReadReplicasStack = new RdsReadReplicasStack(app, rdsReadReplicasStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+});
+
+new RdsReadReplicasProxyStack(app, rdsReadReplicasProxyStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  bastionSG: bastionStack.bastionSG,
+  primary: rdsReadReplicasStack.primary,
+  dbSG: rdsReadReplicasStack.dbSG,
+});
+
+new RdsReadableStandbysStack(app, rdsReadableStandbysStackName, {
+  env: {account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION},
+  vpc: vpcStack.vpc,
+  bastionSG: bastionStack.bastionSG,
 });

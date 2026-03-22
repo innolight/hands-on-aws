@@ -17,6 +17,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
+    "@types/pg": "^8.20.0",
     "@types/supertest": "^7.2.0",
     "aws-cdk": "2.1108.0",
     "esbuild": "^0.27.3",
@@ -40,6 +41,7 @@
     "csv-parse": "^6.1.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "iovalkey": "^0.3.3"
+    "iovalkey": "^0.3.3",
+    "pg": "^8.20.0"
   }
 }

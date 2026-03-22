@@ -1,0 +1,131 @@
+> cdk synth RdsReadableStandbys
+Resources:
+  DbSG0BE6ACB3:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS Multi-AZ DB cluster security group
+      SecurityGroupEgress:
+        - CidrIp: 255.255.255.255/32
+          Description: Disallow all traffic
+          FromPort: 252
+          IpProtocol: icmp
+          ToPort: 86
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: RdsReadableStandbys/DbSG/Resource
+  BastionToDb:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: PostgreSQL from bastion (SSM tunnel)
+      FromPort: 5432
+      GroupId:
+        Fn::GetAtt:
+          - DbSG0BE6ACB3
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::ImportValue: SsmBastion:ExportsOutputFnGetAttBastionSGEBD2A3B1GroupId0BE655F5
+      ToPort: 5432
+    Metadata:
+      aws:cdk:path: RdsReadableStandbys/BastionToDb
+  SubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Isolated subnets for Multi-AZ DB cluster
+      SubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+    Metadata:
+      aws:cdk:path: RdsReadableStandbys/SubnetGroup
+  Cluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      AllocatedStorage: 5
+      BackupRetentionPeriod: 1
+      DBClusterInstanceClass: db.m5d.large
+      DBSubnetGroupName:
+        Ref: SubnetGroup
+      DatabaseName: demo
+      DeletionProtection: false
+      Engine: postgres
+      EngineVersion: "17.7"
+      ManageMasterUserPassword: true
+      MasterUsername: postgres
+      Port: 5432
+      StorageEncrypted: true
+      StorageType: gp3
+      VpcSecurityGroupIds:
+        - Fn::GetAtt:
+            - DbSG0BE6ACB3
+            - GroupId
+    DependsOn:
+      - SubnetGroup
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: RdsReadableStandbys/Cluster
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/2WMwWrDMBAFvyU6FnlrTOght8aB0lOgPoYSZGldlKiS0e7GBKF/D6UhUHoa3vCYDrp1C+3KLNRYd26CH6EMbOxZm4WOBW0HZUAr2fP1LSeZD0VdZqs26klp5ZBs9jP7FO/GhJCW1xD2wmOS6NRmMoGwfup+in9C/8R7/MpIVHV2BKWf4m47yBiRH/fdtg9CjLnWn7kXnoWrjskhnOj50q3hBdrVibxvskT23wgfv7wB2r3m8ekAAAA=
+    Metadata:
+      aws:cdk:path: RdsReadableStandbys/CDKMetadata/Default
+Outputs:
+  WriterEndpoint:
+    Value:
+      Fn::GetAtt:
+        - Cluster
+        - Endpoint.Address
+  ReaderEndpoint:
+    Value:
+      Fn::GetAtt:
+        - Cluster
+        - ReadEndpoint.Address
+  DbPort:
+    Value:
+      Fn::GetAtt:
+        - Cluster
+        - Endpoint.Port
+  SecretArn:
+    Value:
+      Fn::GetAtt:
+        - Cluster
+        - MasterUserSecret.SecretArn
+  DatabaseName:
+    Value: demo
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+Bundling asset S3LambdaRekognitionDynamodb/ImageProcessor/Code/Stage...
+  ...2185f5ad5db2119b499148ba0a25606d922c41d248011b64-building/index.js  2.4kb
+⚡ Done in 12ms
+[WARNING] aws-cdk-lib.aws_dynamodb.TableGrantsProps#encryptedResource is deprecated.
+  - Leave this field undefined. If the table is encrypted with a customer-managed KMS key, appropriate
+grants to the key will be automatically added.
+  This API will be removed in the next major release.
+[WARNING] aws-cdk-lib.aws_dynamodb.TableGrantsProps#policyResource is deprecated.
+  - Leave this field undefined. A best-effort attempt will be made to discover a resource policy and add
+permissions to it.
+  This API will be removed in the next major release.
+Bundling asset DynamoDBLambda/StreamProcessor/Code/Stage...
+  ...f266481132e830e26698ce216bfd7dba32c4c1f6116adb65-building/index.js  2.2kb
+⚡ Done in 1ms
+[WARNING] aws-cdk-lib.aws_iam.GrantOnPrincipalOptions#scope is deprecated.
+  The scope argument is currently unused.
+  This API will be removed in the next major release.
+[WARNING] aws-cdk-lib.aws_dynamodb.TableOptionsV2#pointInTimeRecovery is deprecated.
+  use `pointInTimeRecoverySpecification` instead
+  This API will be removed in the next major release.
+[WARNING] aws-cdk-lib.aws_dynamodb.TableGrantsProps#encryptedResource is deprecated.
+  - Leave this field undefined. If the table is encrypted with a customer-managed KMS key, appropriate
+grants to the key will be automatically added.
+  This API will be removed in the next major release.
+[WARNING] aws-cdk-lib.aws_dynamodb.TableGrantsProps#policyResource is deprecated.
+  - Leave this field undefined. A best-effort attempt will be made to discover a resource policy and add
+permissions to it.
+  This API will be removed in the next major release.
+17 feature flags are not configured. Run 'cdk flags --unstable=flags' to learn more.
