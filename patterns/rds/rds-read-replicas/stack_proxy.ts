@@ -64,19 +64,40 @@ export class RdsReadReplicasProxyStack extends cdk.Stack {
       auth: [{
         authScheme: 'SECRETS',
         secretArn: props.primary.secret!.secretArn,
-        // !! Enable IAM auth in production — avoids passing DB passwords through app config.
         iamAuth: 'DISABLED',
+        clientPasswordAuthType: rds.ClientPasswordAuthType.POSTGRES_SCRAM_SHA_256,
       }],
       vpcSubnetIds: subnetIds,
       vpcSecurityGroupIds: [proxySG.securityGroupId],
-      // !! Change the following in production.
-      requireTls: false,
+      // Enforce encryption for data in transit to proxy
+      requireTls: true,
+
+      // Connections idle for x minutes are returned to the pool and eventually closed.
+      // Must be higher than your application's typical idle timeout to avoid unexpected connection drops
+      idleClientTimeout: 15 * 60,
     });
 
     new rds.CfnDBProxyTargetGroup(this, 'ProxyTargetGroup', {
       dbProxyName: cfnProxy.ref,
       targetGroupName: 'default',
       dbInstanceIdentifiers: [props.primary.instanceIdentifier],
+      connectionPoolConfigurationInfo: {
+        // borrowTimeout: how long a client waits for a pooled connection before getting an error.
+        // The default 120s is often too long. A lower value helps your application "fail fast" and
+        // trigger retries rather than hanging during a traffic spike.
+        // 30s is a safe default; reduce for latency-sensitive workloads.
+        connectionBorrowTimeout: 30,
+        
+        // Reserves 10-20% for direct admin access, maintenance tasks, and emergency psql sessions that bypass the proxy.
+        // Max Connections managed by Proxy = maxConnectionsPercent * max_connections (a PostgreSQL config parameter that varies by instance size).
+        // max_connections is ~112 / 1GiB RAM for PostgreSQL, so a t4g.micro with 1 GiB RAM has max_connections ≈ 100, and the proxy allows up to 90 connections with this setting.
+        maxConnectionsPercent: 90,
+        
+        // Postgres processes are memory-heavy. Lowering this from the default (50%) aggressively
+        // closes inactive backend connections, saving RAM on the DB instance.
+        // Keep ≥ 10 — too low causes connection latency spikes on traffic bursts
+        maxIdleConnectionsPercent: 10,
+      },
     });
 
     // Read-only endpoint routes to replicas only; default proxy endpoint routes to primary.
@@ -90,7 +111,5 @@ export class RdsReadReplicasProxyStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'ProxyReadWriteEndpoint', {value: cfnProxy.attrEndpoint});
     new cdk.CfnOutput(this, 'ProxyReadOnlyEndpoint', {value: readOnlyEndpoint.attrEndpoint});
-    // Re-exported here so the demo server only needs to read from this stack.
-    new cdk.CfnOutput(this, 'SecretArn', {value: props.primary.secret!.secretArn});
   }
 }

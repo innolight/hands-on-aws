@@ -3,8 +3,8 @@ import {Pool, PoolConfig} from 'pg';
 import {SecretsManagerClient, GetSecretValueCommand} from '@aws-sdk/client-secrets-manager';
 import {getStackOutputs} from '../../utils';
 import {rdsPostgresStackName} from './rds-postgres/stack';
-import {rdsReadReplicasProxyStackName} from './rds-read-replicas/stack_proxy';
 import {rdsReadableStandbysStackName} from './rds-readable-standbys/stack';
+import {rdsReadReplicasStackName} from './rds-read-replicas/stack';
 
 // Shared demo server for all RDS PostgreSQL patterns.
 // Demonstrates two clients (RW + RO) and client-side best practices.
@@ -21,9 +21,8 @@ import {rdsReadableStandbysStackName} from './rds-readable-standbys/stack';
 type PatternName = 'rds-postgres' | 'rds-read-replicas' | 'rds-readable-standbys';
 
 interface PatternConfig {
+  // StackName is used to fetc outputs "SecretArn", and "DatabaseName"
   stackName: string;
-  rwOutputKey: string;
-  roOutputKey: string;
   // Local tunnel ports. Use the same port for both when the pattern has a single endpoint.
   rwTunnelPort: number;
   roTunnelPort: number;
@@ -34,24 +33,18 @@ const PATTERNS: Record<PatternName, PatternConfig> = {
   // The proxy already pools connections and reduces failover time.
   'rds-postgres': {
     stackName: rdsPostgresStackName,
-    rwOutputKey: 'ProxyEndpoint',
-    roOutputKey: 'ProxyEndpoint',
     rwTunnelPort: 5432,
     roTunnelPort: 5432,
   },
   // rds-read-replicas: proxy RW endpoint for writes, proxy RO endpoint for reads (async, may be stale).
   'rds-read-replicas': {
-    stackName: rdsReadReplicasProxyStackName,
-    rwOutputKey: 'ProxyReadWriteEndpoint',
-    roOutputKey: 'ProxyReadOnlyEndpoint',
+    stackName: rdsReadReplicasStackName,
     rwTunnelPort: 5432,
     roTunnelPort: 5433,
   },
   // rds-readable-standbys: writer endpoint for writes, reader endpoint for reads (sync).
   'rds-readable-standbys': {
     stackName: rdsReadableStandbysStackName,
-    rwOutputKey: 'WriterEndpoint',
-    roOutputKey: 'ReaderEndpoint',
     rwTunnelPort: 5432,
     roTunnelPort: 5433,
   },
@@ -74,73 +67,6 @@ app.use(express.json());
 let rwPool: Pool;
 let roPool: Pool;
 
-// Wraps a pool query with retry logic for transient connection errors.
-// During RDS failover, connections fail with ECONNRESET or error code 57P01
-// (admin_shutdown) before the DNS flips to the new primary. Retrying up to 3
-// times with a 1s delay covers the reconnect window without stalling the request.
-async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
-  const retryable = new Set(['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT']);
-  const retryablePgCodes = new Set([
-    '57P01', // admin_shutdown
-    '08006', // connection_failure
-    '08001', // sqlclient_unable_to_establish_sqlconnection
-  ]);
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fn();
-    } catch (err: unknown) {
-      const e = err as NodeJS.ErrnoException & {code?: string};
-      const isRetryable = retryable.has(e.code ?? '') || retryablePgCodes.has(e.code ?? '');
-      if (!isRetryable || i === attempts - 1) throw err;
-      await new Promise(r => setTimeout(r, 1000));
-    }
-  }
-  throw new Error('unreachable');
-}
-
-function makePoolConfig(tunnelPort: number, creds: {user: string; password: string; database: string}): PoolConfig {
-  return {
-    host: 'localhost',
-    port: tunnelPort,
-    user: creds.user,
-    password: creds.password,
-    database: creds.database,
-    // RDS requires SSL. rejectUnauthorized=false allows the SSM tunnel where the
-    // TLS certificate CN is the RDS endpoint, not localhost.
-    ssl: {rejectUnauthorized: false},
-
-    // -- Pool sizing --
-    // max: upper bound on open connections per pool. Each pool (RW + RO) holds up to
-    // this many. Keep below max_connections on the DB instance:
-    //   t4g.micro: ~87 max_connections; 10 per pool leaves room for other clients.
-    max: 10,
-    // min: connections held open even when idle. Avoids cold-connect latency on
-    // the first request after a quiet period.
-    min: 2,
-    // idleTimeoutMillis: close a connection that has been idle this long.
-    // Prevents accumulation of stale connections on the DB side.
-    idleTimeoutMillis: 30_000,
-
-    // -- Failover-friendly settings --
-    // connectionTimeoutMillis: give up trying to connect after this many ms.
-    // The pg default is effectively infinite. 5s fails fast during failover so
-    // the retry loop above can fire before the caller times out.
-    connectionTimeoutMillis: 5_000,
-    // statement_timeout: cancel any query running longer than this (ms).
-    // Prevents a runaway query from blocking the pool during a failover event.
-    // statement_timeout is a PostgreSQL parameter sent at connection time.
-    statement_timeout: 10_000,
-    // query_timeout is the pg driver-level guard (no round-trip needed).
-    query_timeout: 10_000,
-
-    // -- TCP keepalives detect dead connections sooner than the OS default (2h) --
-    // Without keepalives, a connection to a failed DB instance appears healthy
-    // until a query attempt fails. Keepalives probe every 10s after 10s idle,
-    // so dead connections are detected within ~30s instead of hours.
-    keepAlive: true,
-    keepAliveInitialDelayMillis: 10_000,
-  };
-}
 
 (async () => {
   const outputs = await getStackOutputs(pattern.stackName);
@@ -178,8 +104,8 @@ function makePoolConfig(tunnelPort: number, creds: {user: string; password: stri
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Pattern:  ${patternName}`);
-    console.log(`RW pool:  localhost:${pattern.rwTunnelPort} (${outputs[pattern.rwOutputKey]})`);
-    console.log(`RO pool:  localhost:${pattern.roTunnelPort} (${outputs[pattern.roOutputKey]})`);
+    console.log(`RW pool:  localhost:${pattern.rwTunnelPort}`);
+    console.log(`RO pool:  localhost:${pattern.roTunnelPort}`);
   });
 })();
 
@@ -281,3 +207,74 @@ app.get('/write-read-test', async (_req, res) => {
     res.status(500).json({error: String(err)});
   }
 });
+
+// Wraps a pool query with retry logic for transient connection errors.
+// During RDS failover, connections fail with ECONNRESET or error code 57P01
+// (admin_shutdown) before the DNS flips to the new primary. Retrying up to 3
+// times with a 1s delay covers the reconnect window without stalling the request.
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  const retryable = new Set(['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT']);
+  const retryablePgCodes = new Set([
+    '57P01', // admin_shutdown
+    '08006', // connection_failure
+    '08001', // sqlclient_unable_to_establish_sqlconnection
+  ]);
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      const e = err as NodeJS.ErrnoException & {code?: string};
+      const isRetryable = retryable.has(e.code ?? '') || retryablePgCodes.has(e.code ?? '');
+      if (!isRetryable || i === attempts - 1) throw err;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+  throw new Error('unreachable');
+}
+
+function makePoolConfig(tunnelPort: number, creds: {user: string; password: string; database: string}): PoolConfig {
+  return {
+    host: 'localhost',
+    port: tunnelPort,
+    user: creds.user,
+    password: creds.password,
+    database: creds.database,
+    // RDS requires SSL. rejectUnauthorized=false allows the SSM tunnel where the
+    // TLS certificate CN is the RDS endpoint, not localhost.
+    ssl: {rejectUnauthorized: false},
+
+    // -- Pool sizing --
+    // max: upper bound on open connections per pool. Each pool (RW + RO) holds up to
+    // this many. Keep below max_connections on the DB instance:
+    //   t4g.micro: ~112 max_connections; 8 per pool leaves room for other clients.
+    max: 8,
+    // min: connections held open even when idle. Avoids cold-connect latency on
+    // the first request after a quiet period.
+    min: 2,
+    // idleTimeoutMillis: close a connection that has been idle this long.
+    // Prevents accumulation of stale connections on the DB side.
+    idleTimeoutMillis: 30_000,
+
+    // -- Failover-friendly settings --
+    // connectionTimeoutMillis: give up trying to connect after this many ms.
+    // The pg default is effectively infinite. 5s fails fast during failover so
+    // the retry loop above can fire before the caller times out.
+    connectionTimeoutMillis: 5_000,
+
+    // statement_timeout not supported by RDS Proxy
+    // statement_timeout: cancel any query running longer than this (ms).
+    // Prevents a runaway query from blocking the pool during a failover event.
+    // statement_timeout is a PostgreSQL parameter sent at connection time.
+    // statement_timeout: 10_000,
+
+    // query_timeout is the pg driver-level guard (no round-trip needed).
+    query_timeout: 10_000,
+
+    // -- TCP keepalives detect dead connections sooner than the OS default (2h) --
+    // Without keepalives, a connection to a failed DB instance appears healthy
+    // until a query attempt fails. Keepalives probe every 10s after 10s idle,
+    // so dead connections are detected within ~30s instead of hours.
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
+  };
+}

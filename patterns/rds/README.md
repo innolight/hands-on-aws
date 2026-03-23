@@ -128,16 +128,18 @@ Asynchronous copies of the primary. Each replica has its own endpoint. Replicas 
 
 ### Multi-AZ Readable Standbys
 
-One primary + **two readable standbys** across three AZs. Standbys use synchronous replication (transaction committed to at least one standby before acknowledgment) and can serve read traffic via a reader endpoint. Launched in 2023.
+One primary + **two readable standbys** across three AZs. Standbys use synchronous replication (transaction committed to at least one standby before acknowledgment) and can serve read traffic via a reader endpoint. Generally Available since 2023.
 
 ```
 ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
 │    AZ-1      │   │    AZ-2      │   │    AZ-3      │
 │  ┌────────┐  │   │  ┌────────┐  │   │  ┌────────┐  │
-│  │Primary │  │──▶│  │Standby │  │──▶│  │Standby │  │
+│  │Primary │──┼──▶│  │Standby │  │   │  │Standby │  │
 │  │ (R/W)  │  │   │  │ (R/O)  │  │   │  │ (R/O)  │  │
+│  │        │──┼───┼──┼────────┼──┼──▶│  │        │  │
 │  └────────┘  │   │  └────────┘  │   │  └────────┘  │
 └──────────────┘   └──────────────┘   └──────────────┘
+     (EBS)               (EBS)               (EBS)
        ▲                                      ▲
  writer endpoint                       reader endpoint
                                     (load-balanced across standbys)
@@ -284,9 +286,9 @@ Secondary regions accept writes and forward them to the primary over the replica
 
 | Pattern | Topology | Status |
 |---|---|---|
-| [`rds-postgres`](./rds-postgres) | Single-AZ + Multi-AZ + RDS Proxy | planned |
-| [`rds-read-replicas`](./rds-read-replicas) | Async read replicas, cross-region DR | planned |
-| [`rds-readable-standbys`](./rds-readable-standbys) | Multi-AZ with 2 readable standbys | planned |
+| [`rds-postgres`](./rds-postgres) | Single-AZ + Multi-AZ + RDS Proxy | Done |
+| [`rds-read-replicas`](./rds-read-replicas) | Async read replicas, cross-region DR | Done |
+| [`rds-readable-standbys`](./rds-readable-standbys) | Multi-AZ with 2 readable standbys | Done |
 | [`rds-aurora-provisioned`](./rds-aurora-provisioned) | Aurora writer + readers, custom endpoints | planned |
 | [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling | planned |
 | [`rds-aurora-global`](./rds-aurora-global) | Aurora Global Database + Write Forwarding | planned |

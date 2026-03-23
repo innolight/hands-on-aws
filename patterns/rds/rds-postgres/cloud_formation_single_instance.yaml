@@ -68,6 +68,23 @@ Resources:
       ToPort: 5432
     Metadata:
       aws:cdk:path: RdsPostgres/BastionToDb
+  ParameterGroup5E32DECB:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Logging and timeout safety nets for RDS PostgreSQL 17
+      Family: postgres17
+      Parameters:
+        log_min_duration_statement: "1000"
+        log_statement: ddl
+        log_connections: "1"
+        log_disconnections: "1"
+        log_lock_waits: "1"
+        log_temp_files: "0"
+        log_autovacuum_min_duration: "250"
+        idle_in_transaction_session_timeout: "300000"
+        statement_timeout: "60000"
+    Metadata:
+      aws:cdk:path: RdsPostgres/ParameterGroup/Resource
   InstanceSubnetGroupF2CBA54F:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -78,6 +95,24 @@ Resources:
         - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
     Metadata:
       aws:cdk:path: RdsPostgres/Instance/SubnetGroup/Default
+  InstanceMonitoringRole3E2B4286:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: monitoring.rds.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole
+    Metadata:
+      aws:cdk:path: RdsPostgres/Instance/MonitoringRole/Resource
   RdsPostgresInstanceSecret7DB0E4B03fdaad7efa858a3daf9490cf0a702aeb:
     Type: AWS::SecretsManager::Secret
     Properties:
@@ -109,13 +144,19 @@ Resources:
     Type: AWS::RDS::DBInstance
     Properties:
       AllocatedStorage: "20"
+      AutoMinorVersionUpgrade: true
       BackupRetentionPeriod: 1
       CopyTagsToSnapshot: true
       DBInstanceClass: db.t4g.micro
+      DBInstanceIdentifier: rds-postgres-classic-instance
       DBName: demo
+      DBParameterGroupName:
+        Ref: ParameterGroup5E32DECB
       DBSubnetGroupName:
         Ref: InstanceSubnetGroupF2CBA54F
+      DatabaseInsightsMode: standard
       DeletionProtection: false
+      EnablePerformanceInsights: true
       Engine: postgres
       EngineVersion: "17.7"
       MasterUserPassword:
@@ -126,8 +167,15 @@ Resources:
             - :SecretString:password::}}
       MasterUsername: postgres
       MaxAllocatedStorage: 100
+      MonitoringInterval: 60
+      MonitoringRoleArn:
+        Fn::GetAtt:
+          - InstanceMonitoringRole3E2B4286
+          - Arn
       MultiAZ: false
+      PerformanceInsightsRetentionPeriod: 7
       PubliclyAccessible: false
+      StorageEncrypted: true
       StorageType: gp3
       VPCSecurityGroups:
         - Fn::GetAtt:
@@ -199,7 +247,7 @@ Resources:
       ConnectionPoolConfigurationInfo:
         ConnectionBorrowTimeout: 30
         MaxConnectionsPercent: 90
-        MaxIdleConnectionsPercent: 50
+        MaxIdleConnectionsPercent: 10
       DBInstanceIdentifiers:
         - Ref: InstanceC1063A87
       DBProxyName:
@@ -210,7 +258,7 @@ Resources:
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/6VV227jNhD9luXjQlED73Yf/KZ4b8a2jSG5fTGMYExNFCYUqQ7JOK6gfy94kVZbOwWKPpEazu2cOaQW+eL9dX79Bo7mitdPV1Ic8r6ywJ8yOJq7Hvki7yvkjoQ9fSHtul3PnjvOluwty1iNhpPorNAqWUBKfSykvHX2oJ2q2fIepMEh6xnU9Vo1hMaUTiJb7nxAP2R+CU775PXpFSdLDvfDPlvdqx9aOjOkMmf2mHjIqDZ5/xEsHMDgWhkLiuOuZ6gaoZAtx9321GHCFQ1/IJmAtWf3TsrpM7i08Khpbhoy1gFBixYp1P8MrZCn5G6EaiT+bpBKbcFTWHSdFBxmbMaqP4a5rtNkTYlQlxgCboA/uc5MM7kHJ61PrKDFsRORYM4wfZ/jc8crd1BojYdmwjY5ro2WYLH2OcycTBOHs89Y66QVxV9p1BnjhDUqK0BOPSWufxsbikLhPnFlNUEzmk38SsWb7l0g9qW47H0IyEu0vtzEGmGrn0FutBTc01ajsaRPgRuJ3nFD2iKPIVGf+ywSMGr8XNn/ma1/tvGWRe1+vJmVykYZVsgJbRAhp1Mo/A2noYfDGXsUJ19iI7QyacY9c/OhXwi7lBtfuHQ1rh6AgFskMysBHG/VBow5aqpXJCySgNUDqAYNW/r7eLmVhHO8WhPIDemX065nnV+3QA3a/6FFCj5JhK9ok/BPJwi3v1Rjv1wKVHYEVTj7kLJvbqvtl/JTdVetyuLXu+prcbf4+YNXmSbSx61oUTs7XfaXlVYqishskDiq2dm6lvjqufCHoYt5zpG0wNFsG2kKsIYsoW5BQYOU9/GFI7RZXKJzYS3whxaV11MMSaXtd86nh/RC2JAJaPO+1NI/i2CMa7G+OfmBdCQUFx3IgnPtJkzRxwcUfLo0Q3rQt3ozRo23YdcP8bkPNddKCoXTmR/dvx+G3n21LNrjbyIFbLU/Octzbq7ryoJFj9iklkLimHMY/P7W2c7ZIVO6xvzR/PS8eJ9/yK/fPBohrsgpK1rMy7j+DYL3zQ9OBwAA
+      Analytics: v2:deflate64:H4sIAAAAAAAA/71W227jNhD9ltXjQlEDd7sF8qZ4063RpjEsb1+MIBiTY5kJRapD0olX8L8XvEiR184CbYE+iZrLmZkzM5QmxeTDZXH5Dp7NBeNPF1Ksi66ywJ5yeDYPHbJJ0VXIHAm7/0zatasu27Usu8reZ3nG0TASrRVaJQlIqZ9LKe+cXWuneHa1AWnwkHcZcD5TNaExCycxu1p5h+6Q+0cwuk9WN28YWXJ4f7jPpxt1lNKJIIU5kUfgQ07cFN0cCBq0SH1ZqGqhMLvqT8t9i6mqKPgTyYRKu2zjpBxeg0kDj5rGokOetUchfoFGyP0R4pGI4wactF8MkoIGe5BTjgdYk2y6bC0UX+qZMhYUS7Qlqj5dH1eafwILazDYW6+6TKTjjKOyYiOQ+pyS7R99Qvn/S5MRqpboKVloC56Dsm2lYDCi4wyVxrWtJmsWCHyBweEa2JNrzfe57nkY1fQ67LuWVW6t0BpfmgnHZDgzWoJF7jHMeOJMakWeNU5aUX5N+5BnjDCQDdKMVod5lMpqgrpPwMS3FKlufwwsvpTnrdehzAVajz1QlDBuFKN96/O88ruUZ+CsvhVq6MiXtibg2KsbrYTVJFQ9UxZpB/LbCQxFDn2AtcQ50kZTE6ZJGVFvPV0Rjr8OXpDfah8q85RzIO5xT5xHlfycZ4SN3oGcaymY7zVHY0nvQ0MlerM5aYssOsSb5z6PXevX/HSf/nGLv03jfdav2ijUsGcVMkIbLphAv9DqNxwmNShH60VxXBdYC61eF9yNJ/WM2zlsfGHScZxugYAN10UMAQzv1ByMedbEpyQskoDpFlSNQ7/OpZLq7O+Oocg56Zf9qsta/1wC1Wj/wwJRsEmb88ZCEf7lBOHy96rPl0mByvZFlc5uE/r8rlp+XtxUD9V0Ud4+VL+WD5OfPvpt0UT6eSka1M4ON9TLVCsVh8jMkRiqkW7GJb6pF14ZshhjDvew52Z0jDSFsg65gKboFlr66xiMcQ3y673nqSWhmGhBloxpN4SKNt6hZHZ0mTagoEYeZlP4Xq66I9m+pGQbP7f/OlT6WC/1vPfq92HVJWxrgW1nSgqFgy58mL6rDGz5aHmUx1+A5LDUXnOCcyrmvLJgsUEVRsmnFIAj5iFPUxapoaKL/wqENo+P2JwyoHuQVZcGM5FiX2d8+CU543Y4eN2ds62zh1xpjsWj+WE3+VB8LC7fPRohLsgpKxosFvH5N8YjqfqTCQAA
     Metadata:
       aws:cdk:path: RdsPostgres/CDKMetadata/Default
 Outputs:
@@ -241,4 +289,3 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /cdk-bootstrap/hnb659fds/version
     Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
-

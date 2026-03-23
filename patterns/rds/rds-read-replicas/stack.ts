@@ -85,6 +85,7 @@ export class RdsReadReplicasStack extends cdk.Stack {
       });
     }
 
+    new cdk.CfnOutput(this, 'SecretArn', {value: this.primary.secret!.secretArn});
     new cdk.CfnOutput(this, 'DbPort', {value: this.primary.dbInstanceEndpointPort});
     new cdk.CfnOutput(this, 'DatabaseName', {value: 'demo'});
   }

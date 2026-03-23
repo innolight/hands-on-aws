@@ -28,38 +28,6 @@ RDS PostgreSQL 17 (isolated subnet)
 - DB instance and proxy placed in **isolated subnets** (no internet route)
 - VPC from [`vpc-subnets`](../../vpc-subnets/), bastion from [`ssm-bastion`](../../ssm-bastion/)
 
-## RDS Knobs
-
-### Instance
-
-| Knob | Default in this stack | When to change | When NOT to change |
-|------|----------------------|----------------|--------------------|
-| `instanceType` | `db.t4g.micro` | Scale up to `t4g.small` / `m7g.large` when CPU or memory is a bottleneck | Keep micro for dev/test; Graviton (t4g/m7g) is ~10% cheaper than x86 (t3/m6i) at the same tier |
-| `engineVersion` | `17.7` | Upgrade to newer minor releases for security patches; plan major upgrades carefully (backward-compat testing required) | Avoid downgrading — RDS doesn't support it |
-| `multiAz` | `false` | Set to `true` for any production workload where downtime is unacceptable | Single-AZ is fine for dev/test/PoC |
-| `allocatedStorage` | `20 GiB` | Raise if your dataset exceeds 20 GiB | Don't over-provision; `maxAllocatedStorage` handles growth automatically |
-| `storageType` | `GP3` | Switch to `IO2` only when you need >16,000 IOPS or sub-millisecond consistent latency | GP3 gives 3,000 IOPS and 125 MiBps baseline free — sufficient for most workloads |
-| `maxAllocatedStorage` | `100 GiB` | Raise for large datasets; set equal to `allocatedStorage` to disable autoscaling | Keep autoscaling enabled in production — RDS grows storage when free space < 10% |
-| `backupRetention` | `Duration.days(1)` | Increase to 7–35 days in production for point-in-time restore (PITR) | Don't set to 0 — that disables automated backups and blocks read replica creation |
-| `storageEncrypted` | `true` (RDS default) | Always on | Never disable — required for compliance and enables KMS key rotation |
-| `deletionProtection` | `false` | Set to `true` in production to prevent accidental deletion | Keep `false` in dev so `cdk destroy` works |
-| `removalPolicy` | `DESTROY` | Set to `SNAPSHOT` or `RETAIN` in production | Keep `DESTROY` in dev — `SNAPSHOT` leaves orphan snapshots that cost money |
-| `autoMinorVersionUpgrade` | `true` (RDS default) | Leave enabled — minor upgrades include security patches, applied during maintenance window | Disable only if your application is sensitive to minor-version behaviour changes (rare) |
-| `enablePerformanceInsights` | `false` (RDS default) | Enable for production to diagnose slow queries and wait events. Free for 7-day retention on t-class instances | Not needed for dev/test |
-| `monitoringInterval` | not set (disabled) | Set to `Duration.seconds(60)` in production to enable [Enhanced Monitoring](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.OS.html) (OS-level metrics) | Adds ~$1/mo to CloudWatch costs; skip for dev |
-| `cloudwatchLogsExports` | not set | Add `['postgresql']` to ship PostgreSQL logs to CloudWatch — useful for slow query analysis | Adds CloudWatch storage cost; filter with `log_min_duration_statement` to avoid noise |
-| `parameterGroup` / `parameters` | RDS defaults | Use a custom parameter group to tune `work_mem`, `max_connections`, `log_min_duration_statement`, etc. | Don't use both `parameterGroup` and `parameters` — they're mutually exclusive |
-
-### RDS Proxy
-
-| Knob | Default in this stack | When to change | When NOT to change |
-|------|----------------------|----------------|--------------------|
-| `maxConnectionsPercent` | `90` | Lower to 70–80 if other clients (e.g. migration tools, BI) also connect directly | Don't set to 100 — leaves no headroom for direct admin connections |
-| `maxIdleConnectionsPercent` | `50` | Lower for cost savings if workload is very spiky (idle connections still count) | Keep ≥ 10 — too low causes connection latency spikes on traffic bursts |
-| `borrowTimeout` | `30s` | Reduce to 5–10s for latency-sensitive APIs where fast failure is better than waiting | Don't reduce below the 95th-percentile DB response time — legitimate slow queries will time out |
-| `idleClientTimeout` | `15 min` | Reduce for Lambda workloads (Lambda execution time is 15 min max anyway) | Don't reduce below your application's connection keep-alive interval |
-| `requireTLS` | `true` | Always on | Never disable — data in transit must be encrypted |
-
 ## Cost
 
 Region: `eu-central-1`. Assumes 24/7 idle, minimal throughput.
@@ -86,8 +54,6 @@ Dominant cost: RDS Proxy (~$18/mo) at the minimum ACU floor. Remove the proxy if
 ## Commands
 
 ### Deploy
-
-Depends on `VpcSubnets` and `SsmBastion` stacks.
 
 ```bash
 # Single-AZ (cheapest, no HA)
@@ -166,6 +132,7 @@ flowchart TB
     subgraph Stack["RdsPostgres"]
         DbSG["AWS::EC2::SecurityGroup\n(DB)"]
         SubnetGrp["AWS::RDS::DBSubnetGroup"]
+        ParamGrp["AWS::RDS::DBParameterGroup"]
         Secret["AWS::SecretsManager::Secret"]
         SecAttach["AWS::SecretsManager::SecretTargetAttachment"]
         Instance["AWS::RDS::DBInstance\n(Multi-AZ)"]
@@ -186,6 +153,7 @@ flowchart TB
     SecAttach --> |linked to| Instance
     Instance --> |secured by| DbSG
     Instance --> |placed in| SubnetGrp
+    Instance --> |configured by| ParamGrp
 
     ProxyPol --> |grants permissions to| ProxyRole
     ProxyPol --> |allows read from| SecAttach

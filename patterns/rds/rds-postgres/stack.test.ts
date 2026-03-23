@@ -14,6 +14,12 @@ describe('RdsPostgresStack', () => {
   });
   const template = Template.fromStack(stack);
 
+  test('creates a custom parameter group with postgres17 family', () => {
+    template.hasResourceProperties('AWS::RDS::DBParameterGroup', {
+      Family: 'postgres17',
+    });
+  });
+
   test('creates a PostgreSQL 17 database instance', () => {
     template.hasResourceProperties('AWS::RDS::DBInstance', {
       Engine: 'postgres',
