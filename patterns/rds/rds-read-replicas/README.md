@@ -32,14 +32,14 @@ RDS PostgreSQL 17           RDS Read Replica(s)
 
 Region: `eu-central-1`. Assumes 24/7 idle, minimal throughput.
 
-| Resource | Idle | ~N unit/month | Cost driver |
-|----------|------|--------------|-------------|
-| RDS `db.t4g.micro` primary | ~$13/mo | — | Per-instance-hour billing |
-| RDS `db.t4g.micro` replica | ~$13/mo | — | Each replica billed as a separate instance |
-| GP3 storage 20 GiB × 2 | ~$4.60/mo | — | $0.115/GiB-month per instance |
-| RDS Proxy | ~$5–10/mo | — | Per-vCPU of target instances |
-| Secrets Manager | ~$0.40/mo | — | Per-secret fee (primary only) |
-| EC2 t4g.nano bastion | ~$3/mo | — | Instance uptime |
+| Resource                   | Idle      | ~N unit/month | Cost driver                                |
+| -------------------------- | --------- | ------------- | ------------------------------------------ |
+| RDS `db.t4g.micro` primary | ~$13/mo   | —             | Per-instance-hour billing                  |
+| RDS `db.t4g.micro` replica | ~$13/mo   | —             | Each replica billed as a separate instance |
+| GP3 storage 20 GiB × 2     | ~$4.60/mo | —             | $0.115/GiB-month per instance              |
+| RDS Proxy                  | ~$5–10/mo | —             | Per-vCPU of target instances               |
+| Secrets Manager            | ~$0.40/mo | —             | Per-secret fee (primary only)              |
+| EC2 t4g.nano bastion       | ~$3/mo    | —             | Instance uptime                            |
 
 Dominant cost: DB instances (~$13/mo each). Each additional replica adds ~$13/mo. RDS Proxy adds per-vCPU cost based on the target instance sizes.
 
@@ -52,15 +52,15 @@ Dominant cost: DB instances (~$13/mo each). Each additional replica adds ~$13/mo
 - **Replica chaining.** RDS supports up to 15 read replicas per source. Replicas can replicate from other replicas (up to 5 hops), useful for fan-out (e.g. regional distribution, multiple analytics teams), but each hop adds replication lag.
 - **Reader endpoint: RDS Proxy vs Route 53 weighted routing.** This stack uses RDS Proxy for a single load-balanced reader endpoint. An alternative is Route 53 weighted CNAME records pointing at individual replica endpoints.
 
-  | | RDS Proxy (this stack) | Route 53 Weighted CNAME |
-  |---|---|---|
-  | **Cost** | ~$20–40/mo (per-vCPU pricing) | ~$0.50/mo (hosted zone) |
-  | **Health awareness** | Built-in — stops routing to unhealthy replicas | None — needs custom Lambda health checks |
-  | **Failover** | Automatic topology rediscovery, connection draining | Manual record updates; DNS TTL causes stale routing |
-  | **Connection pooling** | Yes — multiplexes many app connections into fewer DB connections | No |
-  | **Load balancing** | Connection-level (even distribution) | DNS-level (uneven with long-lived connections) |
-  | **Added latency** | ~1–2 ms per query | None |
-  | **Subset routing** | No — routes to all replicas | Yes — separate record names per subset |
+  |                        | RDS Proxy (this stack)                                           | Route 53 Weighted CNAME                             |
+  | ---------------------- | ---------------------------------------------------------------- | --------------------------------------------------- |
+  | **Cost**               | ~$20–40/mo (per-vCPU pricing)                                    | ~$0.50/mo (hosted zone)                             |
+  | **Health awareness**   | Built-in — stops routing to unhealthy replicas                   | None — needs custom Lambda health checks            |
+  | **Failover**           | Automatic topology rediscovery, connection draining              | Manual record updates; DNS TTL causes stale routing |
+  | **Connection pooling** | Yes — multiplexes many app connections into fewer DB connections | No                                                  |
+  | **Load balancing**     | Connection-level (even distribution)                             | DNS-level (uneven with long-lived connections)      |
+  | **Added latency**      | ~1–2 ms per query                                                | None                                                |
+  | **Subset routing**     | No — routes to all replicas                                      | Yes — separate record names per subset              |
 
 ## Commands
 

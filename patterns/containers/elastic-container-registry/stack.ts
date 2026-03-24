@@ -1,8 +1,8 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 
-export const elasticContainerRegistryStackName = "ElasticContainerRegistryStack";
+export const elasticContainerRegistryStackName = 'ElasticContainerRegistryStack';
 
 // API key is created manually via CLI (CloudFormation cannot create SSM SecureString parameters)
 export const apiKeyParameterName = '/hands-on-aws/containers/api-key';
@@ -25,7 +25,7 @@ export class ElasticContainerRegistryStack extends cdk.Stack {
       lifecycleRules: [
         {
           // Untagged images accumulate on every `docker push` — expire them quickly to avoid storage costs
-          // An image becomes untagged when you push a new image with the same tag — ECR moves the tag to 
+          // An image becomes untagged when you push a new image with the same tag — ECR moves the tag to
           // the new image, leaving the old one tagless. That orphaned image is what gets deleted after 1 day.
           description: 'Expire untagged images after 1 day',
           tagStatus: ecr.TagStatus.UNTAGGED,
@@ -34,8 +34,8 @@ export class ElasticContainerRegistryStack extends cdk.Stack {
       ],
     });
 
-    new cdk.CfnOutput(this, 'RepositoryUri', {value: this.repository.repositoryUri});
-    new cdk.CfnOutput(this, 'RepositoryName', {value: this.repository.repositoryName});
-    new cdk.CfnOutput(this, 'ApiKeyParameterName', {value: this.apiKeyParameterName});
+    new cdk.CfnOutput(this, 'RepositoryUri', { value: this.repository.repositoryUri });
+    new cdk.CfnOutput(this, 'RepositoryName', { value: this.repository.repositoryName });
+    new cdk.CfnOutput(this, 'ApiKeyParameterName', { value: this.apiKeyParameterName });
   }
 }

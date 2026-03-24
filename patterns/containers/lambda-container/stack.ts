@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
@@ -84,8 +84,8 @@ export class LambdaContainerStack extends cdk.Stack {
     //   provisionedConcurrentExecutions: 1,
     // });
 
-    new cdk.CfnOutput(this, 'FunctionUrl', {value: fnUrl.url});
-    new cdk.CfnOutput(this, 'FunctionArn', {value: fn.functionArn});
-    new cdk.CfnOutput(this, 'ApiKeySecretArn', {value: apiKeySecret.secretArn});
+    new cdk.CfnOutput(this, 'FunctionUrl', { value: fnUrl.url });
+    new cdk.CfnOutput(this, 'FunctionArn', { value: fn.functionArn });
+    new cdk.CfnOutput(this, 'ApiKeySecretArn', { value: apiKeySecret.secretArn });
   }
 }

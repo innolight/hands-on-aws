@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elasticache from 'aws-cdk-lib/aws-elasticache';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
@@ -33,7 +33,7 @@ export class ElastiCacheValkeyClusterStack extends cdk.Stack {
 
     const subnetGroup = new elasticache.CfnSubnetGroup(this, 'SubnetGroup', {
       description: 'Private isolated subnets for ElastiCache',
-      subnetIds: props.vpc.isolatedSubnets.map(s => s.subnetId),
+      subnetIds: props.vpc.isolatedSubnets.map((s) => s.subnetId),
     });
 
     // The default user must exist and be disabled. ElastiCache requires a default
@@ -42,7 +42,7 @@ export class ElastiCacheValkeyClusterStack extends cdk.Stack {
     // Valkey does not allow noPasswordRequired — a password is required even for
     // disabled users. The password is irrelevant since the user cannot authenticate.
     const defaultUserSecret = new secretsmanager.Secret(this, 'DefaultUserSecret', {
-      generateSecretString: {excludePunctuation: true, passwordLength: 32},
+      generateSecretString: { excludePunctuation: true, passwordLength: 32 },
       // !! Change the following in production.
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
@@ -136,7 +136,6 @@ export class ElastiCacheValkeyClusterStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'ReplicasPerShard', {
       value: String(replicas),
     });
-
   }
 }
 
@@ -174,12 +173,12 @@ const parameterGroupConfig = {
   // Online memory defragmentation — reclaims fragmented memory without a restart.
   // Default: no. Enable on long-running instances with high churn (lots of
   // set/delete cycles) where RSS >> used_memory in INFO memory output.
-  'activedefrag': 'no',
+  activedefrag: 'no',
 
   // Close idle client connections after N seconds. Default: 0 (disabled).
   // Set to a non-zero value (e.g. 300) to prevent connection leaks from
   // clients that disconnect without closing gracefully.
-  'timeout': '0',
+  timeout: '0',
 
   // Log commands slower than N microseconds. Default: 10000 (10ms).
   // Retrieve with: SLOWLOG GET 10 — returns the last 10 slow commands.

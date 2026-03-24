@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as s3tables from 'aws-cdk-lib/aws-s3tables';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as athena from 'aws-cdk-lib/aws-athena';
@@ -42,13 +42,13 @@ export class S3TablesStack extends cdk.Stack {
       icebergMetadata: {
         icebergSchema: {
           schemaFieldList: [
-            {name: 'sale_date',    type: 'string', required: true},
-            {name: 'product',      type: 'string', required: true},
-            {name: 'category',     type: 'string', required: true},
-            {name: 'region',       type: 'string', required: true},
-            {name: 'quantity',     type: 'int',    required: true},
-            {name: 'unit_price',   type: 'double', required: true},
-            {name: 'total_amount', type: 'double', required: true},
+            { name: 'sale_date', type: 'string', required: true },
+            { name: 'product', type: 'string', required: true },
+            { name: 'category', type: 'string', required: true },
+            { name: 'region', type: 'string', required: true },
+            { name: 'quantity', type: 'int', required: true },
+            { name: 'unit_price', type: 'double', required: true },
+            { name: 'total_amount', type: 'double', required: true },
           ],
         },
       },
@@ -66,14 +66,25 @@ export class S3TablesStack extends cdk.Stack {
           Entries: [
             {
               Id: 'db-grant',
-              Principal: {DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS'},
-              Resource: {Database: {CatalogId: `${this.account}:s3tablescatalog/${tableBucket.tableBucketName}`, Name: 'sales_ns'}},
+              Principal: { DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS' },
+              Resource: {
+                Database: {
+                  CatalogId: `${this.account}:s3tablescatalog/${tableBucket.tableBucketName}`,
+                  Name: 'sales_ns',
+                },
+              },
               Permissions: ['ALL'],
             },
             {
               Id: 'table-grant',
-              Principal: {DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS'},
-              Resource: {Table: {CatalogId: `${this.account}:s3tablescatalog/${tableBucket.tableBucketName}`, DatabaseName: 'sales_ns', Name: 'sales'}},
+              Principal: { DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS' },
+              Resource: {
+                Table: {
+                  CatalogId: `${this.account}:s3tablescatalog/${tableBucket.tableBucketName}`,
+                  DatabaseName: 'sales_ns',
+                  Name: 'sales',
+                },
+              },
               Permissions: ['ALL'],
             },
           ],
@@ -113,7 +124,7 @@ export class S3TablesStack extends cdk.Stack {
     const workGroup = new athena.CfnWorkGroup(this, 'AthenaWorkGroup', {
       name: 's3-tables-demo',
       workGroupConfiguration: {
-        engineVersion: {selectedEngineVersion: 'Athena engine version 3'},
+        engineVersion: { selectedEngineVersion: 'Athena engine version 3' },
         resultConfiguration: {
           outputLocation: `s3://${athenaResultsBucket.bucketName}/results/`,
         },
@@ -121,10 +132,13 @@ export class S3TablesStack extends cdk.Stack {
       recursiveDeleteOption: true,
     });
 
-    new cdk.CfnOutput(this, 'OutputTableBucketName',     {key: 'TableBucketName',      value: tableBucket.tableBucketName});
-    new cdk.CfnOutput(this, 'OutputNamespace',           {key: 'Namespace',            value: 'sales_ns'});
-    new cdk.CfnOutput(this, 'OutputTableName',           {key: 'TableName',            value: 'sales'});
-    new cdk.CfnOutput(this, 'OutputAthenaWorkGroup',     {key: 'AthenaWorkGroupName',  value: workGroup.name});
-    new cdk.CfnOutput(this, 'OutputAthenaResultsBucket', {key: 'AthenaResultsBucket',  value: athenaResultsBucket.bucketName});
+    new cdk.CfnOutput(this, 'OutputTableBucketName', { key: 'TableBucketName', value: tableBucket.tableBucketName });
+    new cdk.CfnOutput(this, 'OutputNamespace', { key: 'Namespace', value: 'sales_ns' });
+    new cdk.CfnOutput(this, 'OutputTableName', { key: 'TableName', value: 'sales' });
+    new cdk.CfnOutput(this, 'OutputAthenaWorkGroup', { key: 'AthenaWorkGroupName', value: workGroup.name });
+    new cdk.CfnOutput(this, 'OutputAthenaResultsBucket', {
+      key: 'AthenaResultsBucket',
+      value: athenaResultsBucket.bucketName,
+    });
   }
 }

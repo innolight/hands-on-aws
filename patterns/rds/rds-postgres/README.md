@@ -32,14 +32,14 @@ RDS PostgreSQL 17 (isolated subnet)
 
 Region: `eu-central-1`. Assumes 24/7 idle, minimal throughput.
 
-| Resource | Idle | ~N unit/month | Cost driver |
-|----------|------|--------------|-------------|
-| RDS `db.t4g.micro` Single-AZ | ~$13/mo | — | Per-instance-hour billing |
-| RDS `db.t4g.micro` Multi-AZ | ~$26/mo | — | 2× instance hours (standby is invisible but billed) |
-| GP3 storage 20 GiB | ~$2.30/mo | — | $0.115/GiB-month |
-| RDS Proxy | ~$18/mo | — | $0.015/vCPU-hour × 2 ACUs (minimum) |
-| Secrets Manager | ~$0.40/mo | — | Per-secret fee |
-| EC2 t4g.nano bastion | ~$3/mo | — | Instance uptime |
+| Resource                     | Idle      | ~N unit/month | Cost driver                                         |
+| ---------------------------- | --------- | ------------- | --------------------------------------------------- |
+| RDS `db.t4g.micro` Single-AZ | ~$13/mo   | —             | Per-instance-hour billing                           |
+| RDS `db.t4g.micro` Multi-AZ  | ~$26/mo   | —             | 2× instance hours (standby is invisible but billed) |
+| GP3 storage 20 GiB           | ~$2.30/mo | —             | $0.115/GiB-month                                    |
+| RDS Proxy                    | ~$18/mo   | —             | $0.015/vCPU-hour × 2 ACUs (minimum)                 |
+| Secrets Manager              | ~$0.40/mo | —             | Per-secret fee                                      |
+| EC2 t4g.nano bastion         | ~$3/mo    | —             | Instance uptime                                     |
 
 Dominant cost: RDS Proxy (~$18/mo) at the minimum ACU floor. Remove the proxy if your workload is not Lambda-based and you don't need fast failover.
 

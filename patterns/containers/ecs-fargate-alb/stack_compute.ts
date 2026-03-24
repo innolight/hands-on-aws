@@ -1,12 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
-import {apiKeyParameterName} from '../elastic-container-registry/stack';
+import { apiKeyParameterName } from '../elastic-container-registry/stack';
 
 export const ecsFargateAlbComputeStackName = 'EcsFargateAlbComputeStack';
 
@@ -54,9 +54,9 @@ export class EcsFargateAlbComputeStack extends cdk.Stack {
 
     taskDef.addContainer('app', {
       image: ecs.ContainerImage.fromEcrRepository(repository, 'latest'),
-      portMappings: [{containerPort: 3000}],
+      portMappings: [{ containerPort: 3000 }],
       // if you don't add a logging driver to the container definition, there are no logs at all
-      logging: ecs.LogDrivers.awsLogs({logGroup: taskLogGroup, streamPrefix: 'ecs'}),
+      logging: ecs.LogDrivers.awsLogs({ logGroup: taskLogGroup, streamPrefix: 'ecs' }),
       // CDK auto-grants ssm:GetParameters on the execution role (not the task role)
       secrets: {
         API_KEY: ecs.Secret.fromSsmParameter(apiKey),
@@ -82,8 +82,8 @@ export class EcsFargateAlbComputeStack extends cdk.Stack {
       // !! Change the following in production: use desiredCount >= 2 across AZs
       desiredCount: 1,
       securityGroups: [taskSg],
-      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS},
-      deploymentController: {type: ecs.DeploymentControllerType.ECS},
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      deploymentController: { type: ecs.DeploymentControllerType.ECS },
       // When true, enables `aws ecs execute-command` to shell into running tasks (via SSM).
       // Requires SSM agent in the image and ssm:StartSession + ssmmessages:* on the task role.
       // Keep false in production unless actively debugging — reduces attack surface.
@@ -94,7 +94,7 @@ export class EcsFargateAlbComputeStack extends cdk.Stack {
       maxHealthyPercent: 200,
       // Circuit breaker: stops retrying and rolls back to the last working task definition after
       // ~10 consecutive failures, instead of looping forever (default ECS behavior).
-      circuitBreaker: {enable: true, rollback: true},
+      circuitBreaker: { enable: true, rollback: true },
     });
 
     // IP target type required for Fargate — tasks register directly by IP, not EC2 instance ID

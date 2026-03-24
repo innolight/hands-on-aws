@@ -1,12 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 
 export class S3PolishedConfigurationStack extends cdk.Stack {
-
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
 
     // Create the S3 Bucket with best practices
     const secureBucket = new s3.Bucket(this, 'PolishedS3Bucket', {
@@ -31,7 +29,6 @@ export class S3PolishedConfigurationStack extends cdk.Stack {
       // See more in blog post https://crishantha.medium.com/aws-s3-server-side-encryption-608d01231ce1
       encryption: s3.BucketEncryption.S3_MANAGED,
 
-
       // Intelligent Tiering automatically moves objects between storage tiers based on access patterns
       // Suitable for data with unknown or unpredictable access patterns
       // For small monitoring and automation fee, we get automatic cost savings by moving data on a granular object
@@ -43,7 +40,7 @@ export class S3PolishedConfigurationStack extends cdk.Stack {
           // Filter by Object Tags (up to 10 tags / object)
           // Tags use cases: lifecycle policies, cost allocation, access control, search
           // Tags can be after object is created.
-          tags: [{key: 'key', value: 'value'}],
+          tags: [{ key: 'key', value: 'value' }],
 
           // Archive Access tier for data that can be accessed asynchronously
           archiveAccessTierTime: cdk.Duration.days(365),
@@ -75,14 +72,14 @@ export class S3PolishedConfigurationStack extends cdk.Stack {
           objectSizeGreaterThan: cdk.Size.kibibytes(1).toBytes(), // Apply rule only if > 1KB
           prefix: 'logs/',
           tagFilters: {
-            'tag_key': 'tag_value',
+            tag_key: 'tag_value',
           },
         },
         {
           id: 'DeleteEverythingIn2030',
           enabled: true,
           expirationDate: new Date(2030, 1, 1),
-        }
+        },
       ],
 
       //  !! Change the following in production.
@@ -90,6 +87,6 @@ export class S3PolishedConfigurationStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    new cdk.CfnOutput(this, 'BucketName', {value: secureBucket.bucketName});
+    new cdk.CfnOutput(this, 'BucketName', { value: secureBucket.bucketName });
   }
 }

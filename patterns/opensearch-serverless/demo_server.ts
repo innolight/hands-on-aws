@@ -1,9 +1,9 @@
-import {Client} from '@opensearch-project/opensearch';
-import {AwsSigv4Signer} from '@opensearch-project/opensearch/aws-v3';
-import {CloudFormationClient} from '@aws-sdk/client-cloudformation';
-import {getStackOutputs} from '../../utils';
-import {opensearchServerlessStackName} from './stack';
-import {createApp} from './app';
+import { Client } from '@opensearch-project/opensearch';
+import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws-v3';
+import { CloudFormationClient } from '@aws-sdk/client-cloudformation';
+import { getStackOutputs } from '../../utils';
+import { opensearchServerlessStackName } from './stack';
+import { createApp } from './app';
 
 // Demo server for OpenSearch Serverless pattern.
 // Runs locally — connects via SSM port-forward tunnel to the AOSS VPC endpoint.
@@ -31,7 +31,7 @@ const REGION = process.env.AWS_REGION || 'eu-central-1';
 
   // Reuse CloudFormationClient's credential provider — already a direct dependency.
   // It resolves the full chain: env vars → ~/.aws/credentials → SSO → instance metadata.
-  const cfnClient = new CloudFormationClient({region: REGION});
+  const cfnClient = new CloudFormationClient({ region: REGION });
   const credentialsProvider = cfnClient.config.credentials;
 
   const client = new Client({
@@ -46,7 +46,7 @@ const REGION = process.env.AWS_REGION || 'eu-central-1';
     node: `https://localhost:${TUNNEL_PORT}`,
     // Override Host so SigV4 signature matches the real endpoint, not 'localhost'.
     // The signature includes the Host header; a mismatch causes 403 SignatureDoesNotMatch.
-    headers: {Host: collectionHostname},
+    headers: { Host: collectionHostname },
     ssl: {
       // !! Required when tunneling — in production (direct VPC access), remove this.
       // The VPC endpoint certificate is issued for the collection hostname, not 'localhost'.

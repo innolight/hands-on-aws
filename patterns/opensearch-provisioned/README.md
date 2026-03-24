@@ -20,6 +20,7 @@ curl / browser
 ```
 
 Components:
+
 - **[OpenSearch Service (provisioned)](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/what-is.html)** — self-managed cluster with explicit node types, counts, and EBS storage. You control capacity; billing is per-instance-hour + EBS volume.
 - **[Domain security group](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/vpc.html)** — controls network access to the domain's ENIs inside the VPC. Consumer stacks add ingress rules via `CfnSecurityGroupIngress`.
 - **[IAM resource policy](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#ac-types-resource)** — domain access policy granting `es:*` to the deploying account's root.
@@ -27,6 +28,7 @@ Components:
 - **[SigV4 signing](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html)** — all requests signed with `service: 'es'`; provisioned domains use `'es'`, not `'aoss'` (Serverless).
 
 Data flow:
+
 1. Demo server signs each HTTP request with SigV4 (service `es`) using local AWS credentials
 2. Request is sent to `https://localhost:8443` — the local end of the SSM tunnel
 3. SSM forwards it to the OpenSearch domain endpoint inside the VPC
@@ -36,12 +38,12 @@ Data flow:
 
 > Region: eu-central-1. Minimum config: 2x t3.small.search + 2x 10 GB gp3.
 
-| Resource | Idle | ~10K docs/month | Cost driver |
-|---|---|---|---|
-| OpenSearch Domain (2x t3.small) | **~$35/mo** | ~$35/mo | Instance uptime |
-| EBS gp3 (2x 10 GB) | ~$2/mo | ~$2/mo | Volume size |
-| EC2 bastion (t4g.nano) | ~$3/mo | ~$3/mo | Instance uptime (shared) |
-| **Total** | **~$40/mo** | **~$40/mo** | Data node instances dominate |
+| Resource                        | Idle        | ~10K docs/month | Cost driver                  |
+| ------------------------------- | ----------- | --------------- | ---------------------------- |
+| OpenSearch Domain (2x t3.small) | **~$35/mo** | ~$35/mo         | Instance uptime              |
+| EBS gp3 (2x 10 GB)              | ~$2/mo      | ~$2/mo          | Volume size                  |
+| EC2 bastion (t4g.nano)          | ~$3/mo      | ~$3/mo          | Instance uptime (shared)     |
+| **Total**                       | **~$40/mo** | **~$40/mo**     | Data node instances dominate |
 
 **~10x cheaper at idle than [OpenSearch Serverless](../opensearch-serverless/README.md)** (~$40/mo vs ~$356/mo) because provisioned billing is per-instance, while Serverless has a 2-OCU minimum ($0.48/hr) regardless of traffic.
 
@@ -109,11 +111,13 @@ AWS_REGION=eu-central-1 npx ts-node patterns/opensearch-provisioned/demo_server.
 ### Interact
 
 **Create index** (run once before indexing):
+
 ```bash
 curl -s -X PUT http://localhost:3000/index | jq
 ```
 
 **Index a product:**
+
 ```bash
 curl -s -X POST http://localhost:3000/products \
   -H 'Content-Type: application/json' \
@@ -121,6 +125,7 @@ curl -s -X POST http://localhost:3000/products \
 ```
 
 **Bulk index products:**
+
 ```bash
 curl -s -X POST http://localhost:3000/products/_bulk \
   -H 'Content-Type: application/json' \
@@ -134,6 +139,7 @@ curl -s -X POST http://localhost:3000/products/_bulk \
 Wait ~1s for the refresh before searching (provisioned default refresh_interval is 1s, vs ~10s for AOSS).
 
 **Full-text search:**
+
 ```bash
 curl -s "http://localhost:3000/search?q=coffee" | jq
 curl -s "http://localhost:3000/search?q=headphones&limit=5" | jq
@@ -143,6 +149,7 @@ curl -s "http://localhost:3000/search?q=&limit=2&search_after=%5B1.0%2C%22p1%22%
 ```
 
 **Advanced search with filters and aggregations:**
+
 ```bash
 # Electronics under $130, in stock
 curl -s "http://localhost:3000/search/advanced?category=electronics&maxPrice=130&inStock=true" | jq
@@ -152,16 +159,19 @@ curl -s "http://localhost:3000/search/advanced?q=grinder&minPrice=40&maxPrice=10
 ```
 
 **Get by ID:**
+
 ```bash
 curl -s http://localhost:3000/products/p1 | jq
 ```
 
 **Delete a document:**
+
 ```bash
 curl -s -X DELETE http://localhost:3000/products/p1 | jq
 ```
 
 **Delete index:**
+
 ```bash
 curl -s -X DELETE http://localhost:3000/index | jq
 ```

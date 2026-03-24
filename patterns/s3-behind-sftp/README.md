@@ -28,13 +28,13 @@ Data flow: `SFTP client → Transfer Family public endpoint → IAM role → S3 
 > eu-central-1, assuming ~10 GB uploaded and downloaded per month.
 > **Warning**: Transfer Family charges $0.30/hr per protocol endpoint regardless of connections. Destroy promptly after experimenting.
 
-| Resource | Idle | ~10 GB/month | Cost driver |
-|---|---|---|---|
-| Transfer Family server | ~$216/mo | ~$216/mo | $0.30/hr per protocol endpoint |
-| Data transfer | $0.00 | ~$0.30 | $0.04/GB uploaded or downloaded |
-| S3 storage | $0.00 | ~$0.24 | $0.0245/GB stored |
-| S3 requests | $0.00 | ~$0.01 | $0.0054/1K PUTs |
-| CloudWatch Logs | $0.00 | ~$0.00 | Minimal access log output |
+| Resource               | Idle     | ~10 GB/month | Cost driver                     |
+| ---------------------- | -------- | ------------ | ------------------------------- |
+| Transfer Family server | ~$216/mo | ~$216/mo     | $0.30/hr per protocol endpoint  |
+| Data transfer          | $0.00    | ~$0.30       | $0.04/GB uploaded or downloaded |
+| S3 storage             | $0.00    | ~$0.24       | $0.0245/GB stored               |
+| S3 requests            | $0.00    | ~$0.01       | $0.0054/1K PUTs                 |
+| CloudWatch Logs        | $0.00    | ~$0.00       | Minimal access log output       |
 
 **Dominant cost driver**: the Transfer Family server endpoint at ~$216/month idle. Data transfer and S3 costs are negligible by comparison.
 
@@ -83,8 +83,7 @@ aws cloudformation describe-stacks \
 
 - **Tail access logs**: `aws logs tail /aws/transfer/s3-sftp --follow`
 
-
-- **Connect as alice, bob  and upload a file**:
+- **Connect as alice, bob and upload a file**:
 
 ```bash
 ENDPOINT=<SftpEndpoint from outputs>
@@ -103,7 +102,6 @@ BUCKET=<BucketName from outputs>
 aws s3 ls s3://$BUCKET/alice/
 aws s3 ls s3://$BUCKET/bob/
 ```
-
 
 - **Capture CloudFormation template**: `npx cdk synth S3BehindSftp > patterns/s3-behind-sftp/cloud_formation.yaml`
 

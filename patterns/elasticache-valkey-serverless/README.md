@@ -28,25 +28,25 @@ curl localhost:3000 ──▶ │  EC2 t4g.nano          │    │  ElastiCache
 
 ### Serverless vs node-based comparison
 
-| | Serverless | Node-based (cluster) |
-|---|---|---|
-| Capacity planning | None — auto-scales | Node type + shard count + replicas |
-| Billing unit | ECPUs/sec + GB-hour | Instance hours (always on) |
-| Parameter group | Not supported — AWS manages | Configurable (eviction, slow log, etc.) |
-| Subnet group | Not needed — subnets passed directly | Required |
-| Multi-AZ | Always — automatic | Requires `multiAzEnabled: true` + replicas |
-| Minimum idle cost | ~$90/month (1000 ECPU/s baseline) | ~$12/month (cache.t4g.micro × 1) |
-| Best for | Variable / unpredictable traffic | Steady, predictable workloads |
+|                   | Serverless                           | Node-based (cluster)                       |
+| ----------------- | ------------------------------------ | ------------------------------------------ |
+| Capacity planning | None — auto-scales                   | Node type + shard count + replicas         |
+| Billing unit      | ECPUs/sec + GB-hour                  | Instance hours (always on)                 |
+| Parameter group   | Not supported — AWS manages          | Configurable (eviction, slow log, etc.)    |
+| Subnet group      | Not needed — subnets passed directly | Required                                   |
+| Multi-AZ          | Always — automatic                   | Requires `multiAzEnabled: true` + replicas |
+| Minimum idle cost | ~$90/month (1000 ECPU/s baseline)    | ~$12/month (cache.t4g.micro × 1)           |
+| Best for          | Variable / unpredictable traffic     | Steady, predictable workloads              |
 
 ## Cost
 
 > Region: `eu-central-1`. Workload assumption: idle demo (minimal ECPUs consumed, 1 GB storage cap).
 
-| Resource | Idle | ~100k ops/day | Cost driver |
-|---|---|---|---|
-| Serverless compute | ~$90/month | ~$90/month | 1000 ECPU/s minimum floor |
-| Serverless storage | ~$0.10/month | ~$0.10/month | 1 GB × $0.10/GB-hour |
-| App Server EC2 t4g.nano | ~$3/month | ~$3/month | Instance hours |
+| Resource                | Idle         | ~100k ops/day | Cost driver               |
+| ----------------------- | ------------ | ------------- | ------------------------- |
+| Serverless compute      | ~$90/month   | ~$90/month    | 1000 ECPU/s minimum floor |
+| Serverless storage      | ~$0.10/month | ~$0.10/month  | 1 GB × $0.10/GB-hour      |
+| App Server EC2 t4g.nano | ~$3/month    | ~$3/month     | Instance hours            |
 
 **Dominant cost driver**: the 1000 ECPU/s minimum baseline (~$0.0034/ECPU-hour). Even at zero traffic you pay for the floor. Node-based cache.t4g.micro costs ~$12/month — serverless is more expensive at low utilisation but cheaper than large node fleets under burst traffic.
 

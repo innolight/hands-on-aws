@@ -27,12 +27,12 @@ Data flow: `write to any region → DynamoDB Global Table replicates to all repl
 
 > eu-central-1 + us-east-1, assuming ~1K writes/month across both regions.
 
-| Resource | Idle | ~1K writes/month | Cost driver |
-|---|---|---|---|
-| DynamoDB writes (writing region) | $0.00 | ~$0.00 | $1.25/M WCU |
-| DynamoDB replicated writes | $0.00 | ~$0.00 | $1.875/M rWCU per replica (1.5× WCU price) |
-| DynamoDB reads (on-demand) | $0.00 | ~$0.00 | $0.25/M RCU |
-| Global Table storage | $0.00 | ~$0.00 | $0.25/GB/month per region |
+| Resource                         | Idle  | ~1K writes/month | Cost driver                                |
+| -------------------------------- | ----- | ---------------- | ------------------------------------------ |
+| DynamoDB writes (writing region) | $0.00 | ~$0.00           | $1.25/M WCU                                |
+| DynamoDB replicated writes       | $0.00 | ~$0.00           | $1.875/M rWCU per replica (1.5× WCU price) |
+| DynamoDB reads (on-demand)       | $0.00 | ~$0.00           | $0.25/M RCU                                |
+| Global Table storage             | $0.00 | ~$0.00           | $0.25/GB/month per region                  |
 
 **Dominant cost driver**: replicated write cost. Each write to a Global Table costs 1 WCU in the writing region plus 1 rWCU per replica, where rWCU is priced at 1.5× WCU — making Global Tables ~2.5× the write cost of a single-region table.
 

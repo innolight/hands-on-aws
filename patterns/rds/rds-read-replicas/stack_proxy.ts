@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as rds from 'aws-cdk-lib/aws-rds';
@@ -54,19 +54,21 @@ export class RdsReadReplicasProxyStack extends cdk.Stack {
     });
     props.primary.secret!.grantRead(proxyRole);
 
-    const subnetIds = props.vpc.selectSubnets({subnetType: ec2.SubnetType.PRIVATE_ISOLATED}).subnetIds;
+    const subnetIds = props.vpc.selectSubnets({ subnetType: ec2.SubnetType.PRIVATE_ISOLATED }).subnetIds;
 
     // CfnDBProxy auto-discovers replicas through the primary — no per-replica config needed.
     const cfnProxy = new rds.CfnDBProxy(this, 'Proxy', {
       dbProxyName: cdk.Fn.sub('${AWS::StackName}-proxy'),
       engineFamily: 'POSTGRESQL',
       roleArn: proxyRole.roleArn,
-      auth: [{
-        authScheme: 'SECRETS',
-        secretArn: props.primary.secret!.secretArn,
-        iamAuth: 'DISABLED',
-        clientPasswordAuthType: rds.ClientPasswordAuthType.POSTGRES_SCRAM_SHA_256,
-      }],
+      auth: [
+        {
+          authScheme: 'SECRETS',
+          secretArn: props.primary.secret!.secretArn,
+          iamAuth: 'DISABLED',
+          clientPasswordAuthType: rds.ClientPasswordAuthType.POSTGRES_SCRAM_SHA_256,
+        },
+      ],
       vpcSubnetIds: subnetIds,
       vpcSecurityGroupIds: [proxySG.securityGroupId],
       // Enforce encryption for data in transit to proxy
@@ -87,12 +89,12 @@ export class RdsReadReplicasProxyStack extends cdk.Stack {
         // trigger retries rather than hanging during a traffic spike.
         // 30s is a safe default; reduce for latency-sensitive workloads.
         connectionBorrowTimeout: 30,
-        
+
         // Reserves 10-20% for direct admin access, maintenance tasks, and emergency psql sessions that bypass the proxy.
         // Max Connections managed by Proxy = maxConnectionsPercent * max_connections (a PostgreSQL config parameter that varies by instance size).
         // max_connections is ~112 / 1GiB RAM for PostgreSQL, so a t4g.micro with 1 GiB RAM has max_connections ≈ 100, and the proxy allows up to 90 connections with this setting.
         maxConnectionsPercent: 90,
-        
+
         // Postgres processes are memory-heavy. Lowering this from the default (50%) aggressively
         // closes inactive backend connections, saving RAM on the DB instance.
         // Keep ≥ 10 — too low causes connection latency spikes on traffic bursts
@@ -109,7 +111,7 @@ export class RdsReadReplicasProxyStack extends cdk.Stack {
       targetRole: 'READ_ONLY',
     });
 
-    new cdk.CfnOutput(this, 'ProxyReadWriteEndpoint', {value: cfnProxy.attrEndpoint});
-    new cdk.CfnOutput(this, 'ProxyReadOnlyEndpoint', {value: readOnlyEndpoint.attrEndpoint});
+    new cdk.CfnOutput(this, 'ProxyReadWriteEndpoint', { value: cfnProxy.attrEndpoint });
+    new cdk.CfnOutput(this, 'ProxyReadOnlyEndpoint', { value: readOnlyEndpoint.attrEndpoint });
   }
 }

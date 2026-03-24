@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
-import {Match, Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from './stack';
+import { Match, Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from './stack';
 
 describe('VpcSubnetsStack', () => {
   describe('default (natGateways=0)', () => {
@@ -28,8 +28,8 @@ describe('VpcSubnetsStack', () => {
   });
 
   describe('natGateways=1, aws-managed', () => {
-    const app = new cdk.App({'context': {natGateways: '1'}});
-    const stack = new VpcSubnetsStack(app, 'TestStack', {natProviderType: 'aws-managed'});
+    const app = new cdk.App({ context: { natGateways: '1' } });
+    const stack = new VpcSubnetsStack(app, 'TestStack', { natProviderType: 'aws-managed' });
     const template = Template.fromStack(stack);
 
     test('creates 1 NAT Gateway', () => {
@@ -42,8 +42,8 @@ describe('VpcSubnetsStack', () => {
   });
 
   describe('natGateways=3, aws-managed', () => {
-    const app = new cdk.App({'context': {natGateways: '3'}});
-    const stack = new VpcSubnetsStack(app, 'TestStack', {natProviderType: 'aws-managed'});
+    const app = new cdk.App({ context: { natGateways: '3' } });
+    const stack = new VpcSubnetsStack(app, 'TestStack', { natProviderType: 'aws-managed' });
     const template = Template.fromStack(stack);
 
     // natGateways=3 is capped to the AZ count (2 in test env).
@@ -57,7 +57,7 @@ describe('VpcSubnetsStack', () => {
   });
 
   describe('natGateways=1, self-managed (default)', () => {
-    const app = new cdk.App({'context': {natGateways: '1'}});
+    const app = new cdk.App({ context: { natGateways: '1' } });
     // natProviderType defaults to 'self-managed'
     const stack = new VpcSubnetsStack(app, 'TestStack');
     const template = Template.fromStack(stack);
@@ -75,7 +75,7 @@ describe('VpcSubnetsStack', () => {
         GroupDescription: 'Security Group for NAT instances',
         SecurityGroupIngress: Match.arrayWith([
           Match.objectLike({
-            CidrIp: Match.objectLike({'Fn::GetAtt': Match.arrayWith(['Vpc8378EB38', 'CidrBlock'])}),
+            CidrIp: Match.objectLike({ 'Fn::GetAtt': Match.arrayWith(['Vpc8378EB38', 'CidrBlock']) }),
             IpProtocol: '-1',
           }),
         ]),

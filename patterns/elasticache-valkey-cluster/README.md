@@ -22,11 +22,11 @@ ElastiCache Cluster (cluster mode, Valkey 8)
 - Horizontal scaling: adding shards distributes key ownership, enabling memory and throughput beyond single-node limits
 - Topology controlled via `-c shards=N -c replicas=M` at deploy time:
 
-| `-c shards=` | `-c replicas=` | Topology | Total nodes | Notes |
-|---|---|---|---|---|
-| `2` (default) | `1` (default) | 2 primaries + 2 replicas | 4 | Multi-AZ HA |
-| `3` | `0` | 3 primaries, no replicas | 3 | No HA; not recommended for production |
-| `3` | `1` | 3 primaries + 3 replicas | 6 | Production-grade |
+| `-c shards=`  | `-c replicas=` | Topology                 | Total nodes | Notes                                 |
+| ------------- | -------------- | ------------------------ | ----------- | ------------------------------------- |
+| `2` (default) | `1` (default)  | 2 primaries + 2 replicas | 4           | Multi-AZ HA                           |
+| `3`           | `0`            | 3 primaries, no replicas | 3           | No HA; not recommended for production |
+| `3`           | `1`            | 3 primaries + 3 replicas | 6           | Production-grade                      |
 
 - Auth: [RBAC](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/Clusters.RBAC.html) via `CfnUser` / `CfnUserGroup` — `appuser` has full access; `default` user is disabled
 - TLS in transit + encryption at rest
@@ -39,12 +39,12 @@ ElastiCache Cluster (cluster mode, Valkey 8)
 
 Region: `eu-central-1`. Assumes 24/7 idle, minimal throughput.
 
-| Resource | Idle | ~1 unit/mo | Cost driver |
-|---|---|---|---|
-| cache.t4g.micro | ~$12/node/mo | — | Per-node-hour billing |
-| EC2 t4g.nano (demo server) | ~$3/mo | — | Instance uptime |
-| Secrets Manager | ~$0.40/mo | — | Per-secret fee |
-| NAT gateway | $0 | — | None (SSM via public subnet) |
+| Resource                   | Idle         | ~1 unit/mo | Cost driver                  |
+| -------------------------- | ------------ | ---------- | ---------------------------- |
+| cache.t4g.micro            | ~$12/node/mo | —          | Per-node-hour billing        |
+| EC2 t4g.nano (demo server) | ~$3/mo       | —          | Instance uptime              |
+| Secrets Manager            | ~$0.40/mo    | —          | Per-secret fee               |
+| NAT gateway                | $0           | —          | None (SSM via public subnet) |
 
 Default config (`shards=2`, `replicas=1`): 4 nodes × $12 = **~$48/mo** in cache alone.
 
@@ -60,7 +60,6 @@ Dominant cost: total node count. Every extra shard + its replicas adds `(1 + rep
 - **`automaticFailoverEnabled` is mandatory for cluster mode**: ElastiCache requires it when `numNodeGroups > 1`. Setting `replicas=0` is allowed but leaves no standby for failover.
 - **Multi-key commands and hash tags**: commands like `MSET`, `MGET`, `SMEMBERS` applied across keys on different shards fail with `CROSSSLOT` errors. Solution: prefix related keys with a shared hash tag — `{session}:user`, `{session}:cart` both hash only `session` and land on the same shard. The `/slot` endpoint shows the hash tag in effect.
 - **Running inside the VPC**: the demo server runs on a dedicated EC2 in `ElastiCacheValkeyClusterApp`, inside the VPC. It connects directly to all shard IPs via the config endpoint — no SSM tunnels per shard or natMap needed. Running locally would require one SSM tunnel per shard primary plus natMap to translate internal shard IPs to localhost ports.
-
 
 ## Commands
 

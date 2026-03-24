@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../vpc-subnets/stack';
-import {OpenSearchProvisionedStack} from './stack';
+import { Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../vpc-subnets/stack';
+import { OpenSearchProvisionedStack } from './stack';
 
 describe('OpenSearchProvisionedStack', () => {
   const app = new cdk.App();
@@ -31,9 +31,9 @@ describe('OpenSearchProvisionedStack', () => {
 
   test('enforces HTTPS, encryption at rest, node-to-node encryption', () => {
     template.hasResourceProperties('AWS::OpenSearchService::Domain', {
-      DomainEndpointOptions: {EnforceHTTPS: true},
-      EncryptionAtRestOptions: {Enabled: true},
-      NodeToNodeEncryptionOptions: {Enabled: true},
+      DomainEndpointOptions: { EnforceHTTPS: true },
+      EncryptionAtRestOptions: { Enabled: true },
+      NodeToNodeEncryptionOptions: { Enabled: true },
     });
   });
 

@@ -1,13 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../../vpc-subnets/stack';
-import {SsmBastionStack} from '../../ssm-bastion/stack';
-import {RdsReadableStandbysStack} from './stack';
+import { Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../../vpc-subnets/stack';
+import { SsmBastionStack } from '../../ssm-bastion/stack';
+import { RdsReadableStandbysStack } from './stack';
 
 describe('RdsReadableStandbysStack', () => {
   const app = new cdk.App();
   const vpcStack = new VpcSubnetsStack(app, 'VpcStack');
-  const bastionStack = new SsmBastionStack(app, 'BastionStack', {vpc: vpcStack.vpc});
+  const bastionStack = new SsmBastionStack(app, 'BastionStack', { vpc: vpcStack.vpc });
   const stack = new RdsReadableStandbysStack(app, 'RdsReadableStandbysStack', {
     vpc: vpcStack.vpc,
     bastionSG: bastionStack.bastionSG,

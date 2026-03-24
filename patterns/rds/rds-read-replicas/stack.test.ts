@@ -1,9 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../../vpc-subnets/stack';
-import {SsmBastionStack} from '../../ssm-bastion/stack';
-import {RdsReadReplicasStack} from './stack';
-import {RdsReadReplicasProxyStack} from './stack_proxy';
+import { Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../../vpc-subnets/stack';
+import { SsmBastionStack } from '../../ssm-bastion/stack';
+import { RdsReadReplicasStack } from './stack';
+import { RdsReadReplicasProxyStack } from './stack_proxy';
 
 describe('RdsReadReplicasStack', () => {
   const app = new cdk.App();
@@ -66,29 +66,41 @@ describe('RdsReadReplicasStack validation', () => {
   const vpcStack = new VpcSubnetsStack(app, 'VpcStackV');
 
   test('throws on replicaCount = 0', () => {
-    expect(() => new RdsReadReplicasStack(app, 'Zero', {
-      vpc: vpcStack.vpc, replicaCount: 0,
-    })).toThrow(/replicaCount must be an integer between 1 and 15/);
+    expect(
+      () =>
+        new RdsReadReplicasStack(app, 'Zero', {
+          vpc: vpcStack.vpc,
+          replicaCount: 0,
+        }),
+    ).toThrow(/replicaCount must be an integer between 1 and 15/);
   });
 
   test('throws on replicaCount = 16', () => {
-    expect(() => new RdsReadReplicasStack(app, 'TooMany', {
-      vpc: vpcStack.vpc, replicaCount: 16,
-    })).toThrow(/replicaCount must be an integer between 1 and 15/);
+    expect(
+      () =>
+        new RdsReadReplicasStack(app, 'TooMany', {
+          vpc: vpcStack.vpc,
+          replicaCount: 16,
+        }),
+    ).toThrow(/replicaCount must be an integer between 1 and 15/);
   });
 
   test('throws on non-integer replicaCount', () => {
-    expect(() => new RdsReadReplicasStack(app, 'Float', {
-      vpc: vpcStack.vpc, replicaCount: 2.5,
-    })).toThrow(/replicaCount must be an integer between 1 and 15/);
+    expect(
+      () =>
+        new RdsReadReplicasStack(app, 'Float', {
+          vpc: vpcStack.vpc,
+          replicaCount: 2.5,
+        }),
+    ).toThrow(/replicaCount must be an integer between 1 and 15/);
   });
 });
 
 describe('RdsReadReplicasProxyStack', () => {
   const app = new cdk.App();
   const vpcStack = new VpcSubnetsStack(app, 'VpcStackP');
-  const bastionStack = new SsmBastionStack(app, 'BastionStackP', {vpc: vpcStack.vpc});
-  const rdsStack = new RdsReadReplicasStack(app, 'RdsStackP', {vpc: vpcStack.vpc});
+  const bastionStack = new SsmBastionStack(app, 'BastionStackP', { vpc: vpcStack.vpc });
+  const rdsStack = new RdsReadReplicasStack(app, 'RdsStackP', { vpc: vpcStack.vpc });
   const stack = new RdsReadReplicasProxyStack(app, 'ProxyStack', {
     vpc: vpcStack.vpc,
     bastionSG: bastionStack.bastionSG,

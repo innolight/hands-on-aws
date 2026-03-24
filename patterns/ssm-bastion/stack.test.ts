@@ -1,12 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../vpc-subnets/stack';
-import {SsmBastionStack} from './stack';
+import { Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../vpc-subnets/stack';
+import { SsmBastionStack } from './stack';
 
 describe('SsmBastionStack', () => {
   const app = new cdk.App();
   const vpcStack = new VpcSubnetsStack(app, 'VpcStack');
-  const stack = new SsmBastionStack(app, 'TestStack', {vpc: vpcStack.vpc});
+  const stack = new SsmBastionStack(app, 'TestStack', { vpc: vpcStack.vpc });
   const template = Template.fromStack(stack);
 
   test('creates 1 EC2 instance', () => {
@@ -21,7 +21,7 @@ describe('SsmBastionStack', () => {
     template.hasResourceProperties('AWS::IAM::Role', {
       ManagedPolicyArns: [
         {
-          'Fn::Join': ['', ['arn:', {Ref: 'AWS::Partition'}, ':iam::aws:policy/AmazonSSMManagedInstanceCore']],
+          'Fn::Join': ['', ['arn:', { Ref: 'AWS::Partition' }, ':iam::aws:policy/AmazonSSMManagedInstanceCore']],
         },
       ],
     });

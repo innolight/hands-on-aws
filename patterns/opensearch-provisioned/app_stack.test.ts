@@ -1,15 +1,15 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template, Match} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../vpc-subnets/stack';
-import {SsmBastionStack} from '../ssm-bastion/stack';
-import {OpenSearchProvisionedStack} from './stack';
-import {OpenSearchProvisionedAppStack} from './app_stack';
+import { Template, Match } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../vpc-subnets/stack';
+import { SsmBastionStack } from '../ssm-bastion/stack';
+import { OpenSearchProvisionedStack } from './stack';
+import { OpenSearchProvisionedAppStack } from './app_stack';
 
 describe('OpenSearchProvisionedAppStack', () => {
   const app = new cdk.App();
   const vpcStack = new VpcSubnetsStack(app, 'VpcStack');
-  const bastionStack = new SsmBastionStack(app, 'BastionStack', {vpc: vpcStack.vpc});
-  const ospStack = new OpenSearchProvisionedStack(app, 'OspStack', {vpc: vpcStack.vpc});
+  const bastionStack = new SsmBastionStack(app, 'BastionStack', { vpc: vpcStack.vpc });
+  const ospStack = new OpenSearchProvisionedStack(app, 'OspStack', { vpc: vpcStack.vpc });
   const stack = new OpenSearchProvisionedAppStack(app, 'TestStack', {
     bastionSG: bastionStack.bastionSG,
     domainSG: ospStack.domainSG,

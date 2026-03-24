@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
@@ -7,7 +7,7 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as autoscaling from 'aws-cdk-lib/aws-autoscaling';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
-import {apiKeyParameterName} from '../elastic-container-registry/stack';
+import { apiKeyParameterName } from '../elastic-container-registry/stack';
 
 export const ec2sAlbComputeStackName = 'Ec2sAlbComputeStack';
 
@@ -81,7 +81,7 @@ export class Ec2sAlbComputeStack extends cdk.Stack {
 
     const launchTemplate = new ec2.LaunchTemplate(this, 'LaunchTemplate', {
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
-      machineImage: ec2.MachineImage.latestAmazonLinux2023({cpuType: ec2.AmazonLinuxCpuType.ARM_64}),
+      machineImage: ec2.MachineImage.latestAmazonLinux2023({ cpuType: ec2.AmazonLinuxCpuType.ARM_64 }),
       userData,
       role,
       securityGroup: instanceSg,
@@ -91,7 +91,7 @@ export class Ec2sAlbComputeStack extends cdk.Stack {
 
     const asg = new autoscaling.AutoScalingGroup(this, 'ASG', {
       vpc: props.vpc,
-      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS},
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       // mixedInstancesPolicy is the only way to use Spot with fleet-level controls (allocation strategy,
       // On-Demand/Spot ratio, multi-type diversity). Without it, a bare launchTemplate gives 100% On-Demand
       // with a single instance type; the legacy spotPrice field on the launch template is deprecated.
@@ -109,12 +109,12 @@ export class Ec2sAlbComputeStack extends cdk.Stack {
         // With a single type, the algorithm has only one pool per AZ — no diversity to optimize over.
         // All types must be ARM64 to match the launch template's AMI (Amazon Linux 2023 ARM_64).
         launchTemplateOverrides: [
-          {instanceType: new ec2.InstanceType('t4g.micro')},
-          {instanceType: new ec2.InstanceType('t4g.small')},
-          {instanceType: new ec2.InstanceType('c7g.medium')},
+          { instanceType: new ec2.InstanceType('t4g.micro') },
+          { instanceType: new ec2.InstanceType('t4g.small') },
+          { instanceType: new ec2.InstanceType('c7g.medium') },
         ],
       },
-      // !! in production set minCapacity to minimze Spot instance disruption risk 
+      // !! in production set minCapacity to minimze Spot instance disruption risk
       minCapacity: 1,
       maxCapacity: 4,
       // Proactively replaces Spot instances that receive a rebalance recommendation

@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../vpc-subnets/stack';
-import {OpenSearchServerlessStack} from './stack';
+import { Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../vpc-subnets/stack';
+import { OpenSearchServerlessStack } from './stack';
 
 describe('OpenSearchServerlessStack', () => {
   const app = new cdk.App();

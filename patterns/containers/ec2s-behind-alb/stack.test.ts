@@ -1,8 +1,8 @@
 import * as cdk from 'aws-cdk-lib';
-import {Match, Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../../vpc-subnets/stack';
-import {Ec2sAlbNetworkingStack} from './stack_networking';
-import {Ec2sAlbComputeStack} from './stack_compute';
+import { Match, Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../../vpc-subnets/stack';
+import { Ec2sAlbNetworkingStack } from './stack_networking';
+import { Ec2sAlbComputeStack } from './stack_compute';
 
 describe('Ec2sAlbNetworkingStack', () => {
   const app = new cdk.App();
@@ -26,7 +26,7 @@ describe('Ec2sAlbNetworkingStack', () => {
       DefaultActions: Match.arrayWith([
         Match.objectLike({
           Type: 'fixed-response',
-          FixedResponseConfig: {StatusCode: '404'},
+          FixedResponseConfig: { StatusCode: '404' },
         }),
       ]),
     });
@@ -77,7 +77,7 @@ describe('Ec2sAlbComputeStack', () => {
       Conditions: Match.arrayWith([
         Match.objectLike({
           Field: 'path-pattern',
-          PathPatternConfig: {Values: ['/ec2s-alb', '/ec2s-alb/*']},
+          PathPatternConfig: { Values: ['/ec2s-alb', '/ec2s-alb/*'] },
         }),
       ]),
     });

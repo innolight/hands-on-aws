@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3tables from 'aws-cdk-lib/aws-s3tables';
 import * as glue from 'aws-cdk-lib/aws-glue';
@@ -24,8 +24,8 @@ export class DynamodbToS3Stack extends cdk.Stack {
     // Schema: pk=ORDER#<orderId> | sk=ITEM#<itemId> | product | quantity | price | status
     const table = new dynamodb.TableV2(this, 'DemoTable', {
       tableName: 'zero-etl-demo',
-      partitionKey: {name: 'pk', type: dynamodb.AttributeType.STRING},
-      sortKey: {name: 'sk', type: dynamodb.AttributeType.STRING},
+      partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       billing: dynamodb.Billing.onDemand(),
       // PITR is mandatory for Zero-ETL — Glue uses it for the initial full-table export.
       pointInTimeRecovery: true,
@@ -43,18 +43,20 @@ export class DynamodbToS3Stack extends cdk.Stack {
           ResourceArn: table.tableArn,
           Policy: JSON.stringify({
             Version: '2012-10-17',
-            Statement: [{
-              Effect: 'Allow',
-              Principal: {Service: 'glue.amazonaws.com'},
-              Action: [
-                'dynamodb:ExportTableToPointInTime',
-                'dynamodb:DescribeTable',
-                'dynamodb:DescribeExport',
-                'dynamodb:Scan',
-                'dynamodb:DescribeContinuousBackups',
-              ],
-              Resource: table.tableArn,
-            }],
+            Statement: [
+              {
+                Effect: 'Allow',
+                Principal: { Service: 'glue.amazonaws.com' },
+                Action: [
+                  'dynamodb:ExportTableToPointInTime',
+                  'dynamodb:DescribeTable',
+                  'dynamodb:DescribeExport',
+                  'dynamodb:Scan',
+                  'dynamodb:DescribeContinuousBackups',
+                ],
+                Resource: table.tableArn,
+              },
+            ],
           }),
         },
         physicalResourceId: cr.PhysicalResourceId.of(table.tableArn),
@@ -62,9 +64,9 @@ export class DynamodbToS3Stack extends cdk.Stack {
       onDelete: {
         service: 'DynamoDB',
         action: 'deleteResourcePolicy',
-        parameters: {ResourceArn: table.tableArn},
+        parameters: { ResourceArn: table.tableArn },
       },
-      policy: cr.AwsCustomResourcePolicy.fromSdkCalls({resources: [table.tableArn]}),
+      policy: cr.AwsCustomResourcePolicy.fromSdkCalls({ resources: [table.tableArn] }),
     });
 
     // S3 Table Bucket stores Iceberg tables. Account+region suffix ensures name uniqueness
@@ -95,10 +97,7 @@ export class DynamodbToS3Stack extends cdk.Stack {
             new iam.PolicyStatement({
               // Full s3tables access scoped to this table bucket.
               actions: ['s3tables:*'],
-              resources: [
-                tableBucket.attrTableBucketArn,
-                `${tableBucket.attrTableBucketArn}/*`,
-              ],
+              resources: [tableBucket.attrTableBucketArn, `${tableBucket.attrTableBucketArn}/*`],
             }),
             new iam.PolicyStatement({
               // Glue needs s3tables:GetTableBucket to resolve the catalog endpoint.
@@ -110,16 +109,12 @@ export class DynamodbToS3Stack extends cdk.Stack {
               actions: ['cloudwatch:PutMetricData'],
               resources: ['*'],
               conditions: {
-                StringEquals: {'cloudwatch:namespace': 'AWS/Glue/ZeroETL'},
+                StringEquals: { 'cloudwatch:namespace': 'AWS/Glue/ZeroETL' },
               },
             }),
             new iam.PolicyStatement({
               // Glue writes integration logs to CloudWatch Logs for observability.
-              actions: [
-                'logs:CreateLogGroup',
-                'logs:CreateLogStream',
-                'logs:PutLogEvents',
-              ],
+              actions: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
               resources: ['arn:aws:logs:*:*:log-group:/aws/glue/*'],
             }),
           ],
@@ -149,14 +144,14 @@ export class DynamodbToS3Stack extends cdk.Stack {
               {
                 // Glue service principal authorizes itself to manage the inbound data flow.
                 Effect: 'Allow',
-                Principal: {Service: 'glue.amazonaws.com'},
+                Principal: { Service: 'glue.amazonaws.com' },
                 Action: 'glue:AuthorizeInboundIntegration',
                 Resource: [glueCatalogArn, glueDatabaseArn],
               },
               {
                 // Glue allows the principal in this account to create the integration.
                 Effect: 'Allow',
-                Principal: {AWS: `arn:aws:iam::${glueAccountId}:root`},
+                Principal: { AWS: `arn:aws:iam::${glueAccountId}:root` },
                 Action: 'glue:CreateInboundIntegration',
                 Resource: [glueCatalogArn, glueDatabaseArn],
               },
@@ -223,7 +218,7 @@ export class DynamodbToS3Stack extends cdk.Stack {
     const workGroup = new athena.CfnWorkGroup(this, 'AthenaWorkGroup', {
       name: 'zero-etl-demo',
       workGroupConfiguration: {
-        engineVersion: {selectedEngineVersion: 'Athena engine version 3'},
+        engineVersion: { selectedEngineVersion: 'Athena engine version 3' },
         resultConfiguration: {
           outputLocation: `s3://${athenaResultsBucket.bucketName}/results/`,
         },
@@ -231,10 +226,13 @@ export class DynamodbToS3Stack extends cdk.Stack {
       recursiveDeleteOption: true,
     });
 
-    new cdk.CfnOutput(this, 'OutputTableName', {key: 'TableName', value: table.tableName});
-    new cdk.CfnOutput(this, 'OutputTableBucketArn', {key: 'TableBucketArn', value: tableBucket.attrTableBucketArn});
-    new cdk.CfnOutput(this, 'OutputAthenaWorkGroup', {key: 'AthenaWorkGroupName', value: workGroup.name});
-    new cdk.CfnOutput(this, 'OutputAthenaResultsBucket', {key: 'AthenaResultsBucket', value: athenaResultsBucket.bucketName});
-    new cdk.CfnOutput(this, 'OutputIntegrationName', {key: 'IntegrationName', value: integration.integrationName});
+    new cdk.CfnOutput(this, 'OutputTableName', { key: 'TableName', value: table.tableName });
+    new cdk.CfnOutput(this, 'OutputTableBucketArn', { key: 'TableBucketArn', value: tableBucket.attrTableBucketArn });
+    new cdk.CfnOutput(this, 'OutputAthenaWorkGroup', { key: 'AthenaWorkGroupName', value: workGroup.name });
+    new cdk.CfnOutput(this, 'OutputAthenaResultsBucket', {
+      key: 'AthenaResultsBucket',
+      value: athenaResultsBucket.bucketName,
+    });
+    new cdk.CfnOutput(this, 'OutputIntegrationName', { key: 'IntegrationName', value: integration.integrationName });
   }
 }

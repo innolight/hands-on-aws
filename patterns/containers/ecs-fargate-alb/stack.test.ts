@@ -1,9 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
-import {Match, Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../../vpc-subnets/stack';
-import {EcsClusterStack} from '../ecs-fargate-apigw/stack_ecs_cluster';
-import {EcsFargateAlbNetworkingStack} from './stack_networking';
-import {EcsFargateAlbComputeStack} from './stack_compute';
+import { Match, Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../../vpc-subnets/stack';
+import { EcsClusterStack } from '../ecs-fargate-apigw/stack_ecs_cluster';
+import { EcsFargateAlbNetworkingStack } from './stack_networking';
+import { EcsFargateAlbComputeStack } from './stack_compute';
 
 describe('EcsFargateAlbNetworkingStack', () => {
   const app = new cdk.App();
@@ -27,7 +27,7 @@ describe('EcsFargateAlbNetworkingStack', () => {
       DefaultActions: Match.arrayWith([
         Match.objectLike({
           Type: 'fixed-response',
-          FixedResponseConfig: {StatusCode: '404'},
+          FixedResponseConfig: { StatusCode: '404' },
         }),
       ]),
     });
@@ -81,7 +81,7 @@ describe('EcsFargateAlbComputeStack', () => {
       Conditions: Match.arrayWith([
         Match.objectLike({
           Field: 'path-pattern',
-          PathPatternConfig: {Values: ['/quote-service', '/quote-service/*']},
+          PathPatternConfig: { Values: ['/quote-service', '/quote-service/*'] },
         }),
       ]),
     });

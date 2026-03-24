@@ -1,10 +1,11 @@
 import express from 'express';
-import {Pool, PoolConfig} from 'pg';
-import {SecretsManagerClient, GetSecretValueCommand} from '@aws-sdk/client-secrets-manager';
-import {getStackOutputs} from '../../utils';
-import {rdsPostgresStackName} from './rds-postgres/stack';
-import {rdsReadableStandbysStackName} from './rds-readable-standbys/stack';
-import {rdsReadReplicasStackName} from './rds-read-replicas/stack';
+import { Pool, PoolConfig } from 'pg';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { getStackOutputs } from '../../utils';
+import { rdsPostgresStackName } from './rds-postgres/stack';
+import { rdsReadableStandbysStackName } from './rds-readable-standbys/stack';
+import { rdsReadReplicasStackName } from './rds-read-replicas/stack';
+import { rdsAuroraProvisionedStackName } from './rds-aurora-provisioned/stack';
 
 // Shared demo server for all RDS PostgreSQL patterns.
 // Demonstrates two clients (RW + RO) and client-side best practices.
@@ -13,12 +14,13 @@ import {rdsReadReplicasStackName} from './rds-read-replicas/stack';
 //   AWS_REGION=eu-central-1 npx ts-node patterns/rds/demo_server.ts rds-postgres
 //   AWS_REGION=eu-central-1 npx ts-node patterns/rds/demo_server.ts rds-read-replicas
 //   AWS_REGION=eu-central-1 npx ts-node patterns/rds/demo_server.ts rds-readable-standbys
+//   AWS_REGION=eu-central-1 npx ts-node patterns/rds/demo_server.ts rds-aurora-provisioned
 //
 // Requires SSM port-forward tunnels before starting:
 //   localhost:5432 -> RW endpoint (writer / primary / proxy)
 //   localhost:5433 -> RO endpoint (reader / replica) — same port as RW for rds-postgres
 
-type PatternName = 'rds-postgres' | 'rds-read-replicas' | 'rds-readable-standbys';
+type PatternName = 'rds-postgres' | 'rds-read-replicas' | 'rds-readable-standbys' | 'rds-aurora-provisioned';
 
 interface PatternConfig {
   // StackName is used to fetc outputs "SecretArn", and "DatabaseName"
@@ -48,6 +50,12 @@ const PATTERNS: Record<PatternName, PatternConfig> = {
     rwTunnelPort: 5432,
     roTunnelPort: 5433,
   },
+  // rds-aurora-provisioned: writer endpoint for writes, reader endpoint for reads (zero-lag, shared storage).
+  'rds-aurora-provisioned': {
+    stackName: rdsAuroraProvisionedStackName,
+    rwTunnelPort: 5432,
+    roTunnelPort: 5433,
+  },
 };
 
 const patternName = process.argv[2] as PatternName;
@@ -67,7 +75,6 @@ app.use(express.json());
 let rwPool: Pool;
 let roPool: Pool;
 
-
 (async () => {
   const outputs = await getStackOutputs(pattern.stackName);
   console.log(`Stack outputs for ${pattern.stackName}:`, outputs);
@@ -78,10 +85,10 @@ let roPool: Pool;
   // Fetch credentials from Secrets Manager. The managed secret contains {username, password}.
   // Endpoint and port come from stack outputs (not the secret) because the managed-password
   // secret format omits host/port.
-  const smClient = new SecretsManagerClient({region});
-  const secretResult = await smClient.send(new GetSecretValueCommand({SecretId: secretArn}));
+  const smClient = new SecretsManagerClient({ region });
+  const secretResult = await smClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
   const secret = JSON.parse(secretResult.SecretString!);
-  const creds = {user: secret.username, password: secret.password, database: dbName};
+  const creds = { user: secret.username, password: secret.password, database: dbName };
 
   const rwPoolConfig = makePoolConfig(pattern.rwTunnelPort, creds);
   const roPoolConfig = makePoolConfig(pattern.roTunnelPort, creds);
@@ -98,7 +105,7 @@ let roPool: Pool;
         author     TEXT,
         created_at TIMESTAMPTZ DEFAULT now()
       )
-    `)
+    `),
   );
 
   app.listen(PORT, () => {
@@ -112,31 +119,26 @@ let roPool: Pool;
 // POST /quotes — write a quote via RW pool
 // Body: { "text": "The only way to do great work is to love what you do.", "author": "Steve Jobs" }
 app.post('/quotes', async (req, res) => {
-  const {text, author} = req.body as {text?: string; author?: string};
+  const { text, author } = req.body as { text?: string; author?: string };
   if (!text) {
-    res.status(400).json({error: 'text is required'});
+    res.status(400).json({ error: 'text is required' });
     return;
   }
   try {
     const result = await withRetry(() =>
-      rwPool.query(
-        'INSERT INTO quotes (text, author) VALUES ($1, $2) RETURNING *',
-        [text, author ?? null]
-      )
+      rwPool.query('INSERT INTO quotes (text, author) VALUES ($1, $2) RETURNING *', [text, author ?? null]),
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
 // GET /quotes — read all quotes via RO pool
 app.get('/quotes', async (_req, res) => {
   try {
-    const result = await withRetry(() =>
-      roPool.query('SELECT * FROM quotes ORDER BY created_at DESC')
-    );
+    const result = await withRetry(() => roPool.query('SELECT * FROM quotes ORDER BY created_at DESC'));
     res.json({
       quotes: result.rows,
       // endpoint shows which pool served the read — useful for verifying that
@@ -145,7 +147,7 @@ app.get('/quotes', async (_req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -162,7 +164,7 @@ app.get('/health', async (_req, res) => {
         waiting: pool.waitingCount,
       };
     } catch (err) {
-      return {status: 'error', label, error: String(err)};
+      return { status: 'error', label, error: String(err) };
     }
   };
   const [rw, ro] = await Promise.all([
@@ -170,7 +172,7 @@ app.get('/health', async (_req, res) => {
     check(roPool, `ro localhost:${pattern.roTunnelPort}`),
   ]);
   const ok = rw.status === 'ok' && ro.status === 'ok';
-  res.status(ok ? 200 : 503).json({rw, ro});
+  res.status(ok ? 200 : 503).json({ rw, ro });
 });
 
 // GET /write-read-test — writes a quote via RW, immediately reads via RO.
@@ -182,13 +184,11 @@ app.get('/write-read-test', async (_req, res) => {
   const text = `test-${Date.now()}`;
   try {
     const writeResult = await withRetry(() =>
-      rwPool.query('INSERT INTO quotes (text, author) VALUES ($1, $2) RETURNING id', [text, 'write-read-test'])
+      rwPool.query('INSERT INTO quotes (text, author) VALUES ($1, $2) RETURNING id', [text, 'write-read-test']),
     );
-    const {id} = writeResult.rows[0];
+    const { id } = writeResult.rows[0];
 
-    const readResult = await withRetry(() =>
-      roPool.query('SELECT * FROM quotes WHERE id = $1', [id])
-    );
+    const readResult = await withRetry(() => roPool.query('SELECT * FROM quotes WHERE id = $1', [id]));
     const found = readResult.rows.length > 0;
 
     // Clean up the test row via RW pool.
@@ -204,7 +204,7 @@ app.get('/write-read-test', async (_req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -223,16 +223,16 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
     try {
       return await fn();
     } catch (err: unknown) {
-      const e = err as NodeJS.ErrnoException & {code?: string};
+      const e = err as NodeJS.ErrnoException & { code?: string };
       const isRetryable = retryable.has(e.code ?? '') || retryablePgCodes.has(e.code ?? '');
       if (!isRetryable || i === attempts - 1) throw err;
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
     }
   }
   throw new Error('unreachable');
 }
 
-function makePoolConfig(tunnelPort: number, creds: {user: string; password: string; database: string}): PoolConfig {
+function makePoolConfig(tunnelPort: number, creds: { user: string; password: string; database: string }): PoolConfig {
   return {
     host: 'localhost',
     port: tunnelPort,
@@ -241,7 +241,7 @@ function makePoolConfig(tunnelPort: number, creds: {user: string; password: stri
     database: creds.database,
     // RDS requires SSL. rejectUnauthorized=false allows the SSM tunnel where the
     // TLS certificate CN is the RDS endpoint, not localhost.
-    ssl: {rejectUnauthorized: false},
+    ssl: { rejectUnauthorized: false },
 
     // -- Pool sizing --
     // max: upper bound on open connections per pool. Each pool (RW + RO) holds up to

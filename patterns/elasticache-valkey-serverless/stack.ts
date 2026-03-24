@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elasticache from 'aws-cdk-lib/aws-elasticache';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
@@ -43,7 +43,7 @@ export class ElastiCacheValkeyServerlessStack extends cdk.Stack {
     // Valkey does not allow noPasswordRequired — a password is required even for
     // disabled users. The password is irrelevant since the user cannot authenticate.
     const defaultUserSecret = new secretsmanager.Secret(this, 'DefaultUserSecret', {
-      generateSecretString: {excludePunctuation: true, passwordLength: 32},
+      generateSecretString: { excludePunctuation: true, passwordLength: 32 },
       // !! Change the following in production.
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
@@ -90,7 +90,7 @@ export class ElastiCacheValkeyServerlessStack extends cdk.Stack {
       serverlessCacheName: 'valkey-serverless',
       engine: 'valkey',
       majorEngineVersion: '8',
-      subnetIds: props.vpc.isolatedSubnets.map(s => s.subnetId),
+      subnetIds: props.vpc.isolatedSubnets.map((s) => s.subnetId),
       securityGroupIds: [this.cacheSG.securityGroupId],
       userGroupId: userGroup.ref,
       cacheUsageLimits: {

@@ -30,12 +30,12 @@ ECS Fargate Task  (private subnet, port 3000)
 
 Region: eu-central-1 — 1 task running 24/7, ~10k requests/month
 
-| Resource | Idle | ~10k req/month | Cost driver |
-|---|---|---|---|
-| Fargate (256 CPU / 512 MB) | ~$9/mo | ~$9/mo | $0.04048/vCPU·hr + $0.004445/GB·hr |
-| ALB | ~$20/mo | ~$20/mo | $0.008/LCU·hr + $0.028/hr fixed |
-| CloudWatch Logs | ~$0.50/mo | ~$0.50/mo | Ingestion cost |
-| **Total** | **~$30/mo** | **~$30/mo** | ALB fixed cost dominates |
+| Resource                   | Idle        | ~10k req/month | Cost driver                        |
+| -------------------------- | ----------- | -------------- | ---------------------------------- |
+| Fargate (256 CPU / 512 MB) | ~$9/mo      | ~$9/mo         | $0.04048/vCPU·hr + $0.004445/GB·hr |
+| ALB                        | ~$20/mo     | ~$20/mo        | $0.008/LCU·hr + $0.028/hr fixed    |
+| CloudWatch Logs            | ~$0.50/mo   | ~$0.50/mo      | Ingestion cost                     |
+| **Total**                  | **~$30/mo** | **~$30/mo**    | ALB fixed cost dominates           |
 
 The ALB costs ~$20/mo regardless of traffic — roughly 2× more expensive than the API GW + VPC Link approach at low request volumes. The tradeoff: ALB handles WebSocket, gRPC, and sticky sessions which API Gateway HTTP API does not.
 

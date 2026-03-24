@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -24,7 +24,7 @@ export class EcsEc2ClusterStack extends cdk.Stack {
     // Dedicated cluster for ECS-on-EC2. The shared EcsClusterStack is Fargate-only;
     // adding an EC2 capacity provider there would change its blast radius and force
     // a redeploy of shared infrastructure whenever this pattern's ASG config changes.
-    this.cluster = new ecs.Cluster(this, 'Cluster', {vpc: props.vpc});
+    this.cluster = new ecs.Cluster(this, 'Cluster', { vpc: props.vpc });
 
     // --- Instance SG ---
     // No explicit inbound rules — the compute stack's attachToApplicationTargetGroup() call
@@ -73,7 +73,7 @@ export class EcsEc2ClusterStack extends cdk.Stack {
     // with a single instance type; the legacy spotPrice field on the launch template is deprecated.
     const asg = new autoscaling.AutoScalingGroup(this, 'ASG', {
       vpc: props.vpc,
-      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS},
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       mixedInstancesPolicy: {
         launchTemplate,
         instancesDistribution: {
@@ -90,9 +90,9 @@ export class EcsEc2ClusterStack extends cdk.Stack {
         // With a single type, the algorithm has only one pool per AZ — no diversity to optimize over.
         // All types must be ARM64 to match the launch template's ECS-optimized AMI (Amazon Linux 2023 ARM).
         launchTemplateOverrides: [
-          {instanceType: new ec2.InstanceType('t4g.micro')},  // 2 vCPU, 1 GiB — ~$0.0042/hr Spot
-          {instanceType: new ec2.InstanceType('t4g.small')},  // 2 vCPU, 2 GiB
-          {instanceType: new ec2.InstanceType('c7g.medium')}, // 1 vCPU, 2 GiB — compute-optimized
+          { instanceType: new ec2.InstanceType('t4g.micro') }, // 2 vCPU, 1 GiB — ~$0.0042/hr Spot
+          { instanceType: new ec2.InstanceType('t4g.small') }, // 2 vCPU, 2 GiB
+          { instanceType: new ec2.InstanceType('c7g.medium') }, // 1 vCPU, 2 GiB — compute-optimized
         ],
       },
       // !! Change in production: set minCapacity >= 2 for multi-AZ Spot instance diversity

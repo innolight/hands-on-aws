@@ -1,11 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3_assets from 'aws-cdk-lib/aws-s3-assets';
 import * as path from 'path';
-import {execSync} from 'child_process';
+import { execSync } from 'child_process';
 
 export const elasticacheValkeyClusterAppStackName = 'ElastiCacheValkeyClusterApp';
 
@@ -48,9 +48,7 @@ export class ElastiCacheValkeyClusterAppStack extends cdk.Stack {
     // AmazonSSMManagedInstanceCore allows SSM agent to register and accept port-forward sessions.
     const demoServerRole = new iam.Role(this, 'DemoServerRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
-      ],
+      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore')],
     });
 
     // Bundle demo_server.ts into a single JS file with esbuild and upload to S3.
@@ -64,7 +62,7 @@ export class ElastiCacheValkeyClusterAppStack extends cdk.Stack {
             try {
               execSync(
                 `npx esbuild demo_server.ts --bundle --platform=node --target=node20 --outfile=${outputDir}/demo_server.js`,
-                {stdio: 'inherit', cwd: __dirname},
+                { stdio: 'inherit', cwd: __dirname },
               );
               return true;
             } catch {
@@ -74,17 +72,23 @@ export class ElastiCacheValkeyClusterAppStack extends cdk.Stack {
         },
         // Docker fallback if esbuild is not available locally.
         image: cdk.DockerImage.fromRegistry('public.ecr.aws/docker/library/node:20-alpine'),
-        command: ['sh', '-c', 'npx esbuild demo_server.ts --bundle --platform=node --target=node20 --outfile=/asset-output/demo_server.js'],
+        command: [
+          'sh',
+          '-c',
+          'npx esbuild demo_server.ts --bundle --platform=node --target=node20 --outfile=/asset-output/demo_server.js',
+        ],
       },
     });
 
     // All three grants target demoServerRole, which lives in this stack — no cross-stack IAM cycle.
     demoServerAsset.grantRead(demoServerRole); // server can read S3
     props.appUserSecret.grantRead(demoServerRole); // server can get password from Secrets Manager
-    demoServerRole.addToPrincipalPolicy(new iam.PolicyStatement({
-      actions: ['cloudformation:DescribeStacks'],
-      resources: ['*'],
-    }));
+    demoServerRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ['cloudformation:DescribeStacks'],
+        resources: ['*'],
+      }),
+    );
 
     // ARM + t4g.nano (~$3/mo). Public subnet: SSM requires internet access; with the default
     // natGateways=0, private subnets have no outbound route to SSM endpoints.
@@ -95,19 +99,16 @@ export class ElastiCacheValkeyClusterAppStack extends cdk.Stack {
       machineImage: ec2.MachineImage.latestAmazonLinux2023({
         cpuType: ec2.AmazonLinuxCpuType.ARM_64,
       }),
-      vpcSubnets: {subnetType: ec2.SubnetType.PUBLIC},
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroup: demoServerSG,
       role: demoServerRole,
       // No SSH key — access is exclusively via SSM port-forwarding.
     });
 
     // Node.js 20 LTS — installed on first boot via user data.
-    demoServer.addUserData(
-      'dnf install -y nodejs20',
-      'ln -sf /usr/bin/node20 /usr/local/bin/node',
-    );
+    demoServer.addUserData('dnf install -y nodejs20', 'ln -sf /usr/bin/node20 /usr/local/bin/node');
 
-    new cdk.CfnOutput(this, 'DemoServerInstanceId', {value: demoServer.instanceId});
-    new cdk.CfnOutput(this, 'DemoServerAssetS3Url', {value: demoServerAsset.s3ObjectUrl});
+    new cdk.CfnOutput(this, 'DemoServerInstanceId', { value: demoServer.instanceId });
+    new cdk.CfnOutput(this, 'DemoServerAssetS3Url', { value: demoServerAsset.s3ObjectUrl });
   }
 }

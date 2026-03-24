@@ -27,11 +27,11 @@ SSM Parameter Store
 
 Region: eu-central-1 — 1 instance, low request volume
 
-| Resource | Idle | ~1k req/day | Cost driver |
-|---|---|---|---|
-| App Runner provisioned instance | ~$2.50/mo | ~$2.50/mo | Memory: $0.007/GB-hr × 0.5 GB × 720 hr |
-| App Runner active compute | $0 | ~$0.01/mo | $0.064/vCPU-hr, billed only while handling requests |
-| CloudWatch logs | ~$0 | ~$0 | $0.57/GB ingested; tiny log volume |
+| Resource                        | Idle      | ~1k req/day | Cost driver                                         |
+| ------------------------------- | --------- | ----------- | --------------------------------------------------- |
+| App Runner provisioned instance | ~$2.50/mo | ~$2.50/mo   | Memory: $0.007/GB-hr × 0.5 GB × 720 hr              |
+| App Runner active compute       | $0        | ~$0.01/mo   | $0.064/vCPU-hr, billed only while handling requests |
+| CloudWatch logs                 | ~$0       | ~$0         | $0.57/GB ingested; tiny log volume                  |
 
 Dominant cost: provisioned instance memory (~$2.50/mo). No true scale-to-zero — one instance stays warm at all times. Manual pause stops billing entirely, but the service becomes unavailable.
 
@@ -101,7 +101,7 @@ aws logs describe-log-groups --log-group-name-prefix /aws/apprunner/app-runner-c
   --query 'logGroups[].logGroupName' --output text --no-cli-pager
 
 # Tail application logs (your Express server stdout/stderr)
-aws logs tail --follow /aws/apprunner/app-runner-container/<service-id>/application 
+aws logs tail --follow /aws/apprunner/app-runner-container/<service-id>/application
 
 # Tail service logs (App Runner system events: deployments, health checks, scaling)
 aws logs tail --follow /aws/apprunner/app-runner-container/<service-id>/service

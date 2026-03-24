@@ -1,12 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
-import {apiKeyParameterName} from '../elastic-container-registry/stack';
+import { apiKeyParameterName } from '../elastic-container-registry/stack';
 
 export const ecsFargateComputeStackName = 'EcsFargateComputeStack';
 
@@ -59,9 +59,9 @@ export class EcsFargateComputeStack extends cdk.Stack {
 
     taskDef.addContainer('app', {
       image: ecs.ContainerImage.fromEcrRepository(repository, 'latest'),
-      portMappings: [{containerPort: 3000}],
+      portMappings: [{ containerPort: 3000 }],
       // if you don't add a logging driver to the container definition, there are no logs at all
-      logging: ecs.LogDrivers.awsLogs({logGroup: taskLogGroup, streamPrefix: 'ecs'}),
+      logging: ecs.LogDrivers.awsLogs({ logGroup: taskLogGroup, streamPrefix: 'ecs' }),
       // CDK auto-grants ssm:GetParameters on the execution role (not the task role)
       secrets: {
         API_KEY: ecs.Secret.fromSsmParameter(apiKey),
@@ -83,17 +83,17 @@ export class EcsFargateComputeStack extends cdk.Stack {
       // !! Change the following in production: use desiredCount >= 2 across AZs
       desiredCount: 1,
       securityGroups: [this.taskSg],
-      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS},
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       // Rolling update: replaces tasks in-place without a load balancer.
       // Alternatives: CODE_DEPLOY (blue/green, requires ALB) or EXTERNAL (third-party controller).
-      deploymentController: {type: ecs.DeploymentControllerType.ECS},
+      deploymentController: { type: ecs.DeploymentControllerType.ECS },
       // minHealthyPercent=100 keeps the old task running until the new one is healthy;
       // maxHealthyPercent=200 allows a second task temporarily — zero downtime with desiredCount=1.
       minHealthyPercent: 100,
       maxHealthyPercent: 200,
       // Circuit breaker: stops retrying and rolls back to the last working task definition after
       // ~10 consecutive failures, instead of looping forever (default ECS behavior).
-      circuitBreaker: {enable: true, rollback: true},
+      circuitBreaker: { enable: true, rollback: true },
       // Register tasks with Cloud Map so API Gateway can discover them via VPC Link
       cloudMapOptions: {
         cloudMapNamespace: props.namespace,

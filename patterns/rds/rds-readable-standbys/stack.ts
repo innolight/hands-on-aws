@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as rds from 'aws-cdk-lib/aws-rds';
 
@@ -35,7 +35,7 @@ export class RdsReadableStandbysStack extends cdk.Stack {
     // L1 constructs do not auto-create a subnet group.
     const subnetGroup = new rds.CfnDBSubnetGroup(this, 'SubnetGroup', {
       dbSubnetGroupDescription: 'Isolated subnets for Multi-AZ DB cluster',
-      subnetIds: props.vpc.isolatedSubnets.map(s => s.subnetId),
+      subnetIds: props.vpc.isolatedSubnets.map((s) => s.subnetId),
     });
 
     // Multi-AZ DB cluster: CfnDBCluster with engine='postgres'
@@ -81,10 +81,10 @@ export class RdsReadableStandbysStack extends cdk.Stack {
     cluster.applyRemovalPolicy(cdk.RemovalPolicy.DESTROY);
     cluster.addDependency(subnetGroup);
 
-    new cdk.CfnOutput(this, 'WriterEndpoint', {value: cluster.attrEndpointAddress});
-    new cdk.CfnOutput(this, 'ReaderEndpoint', {value: cluster.attrReadEndpointAddress});
-    new cdk.CfnOutput(this, 'DbPort', {value: cluster.attrEndpointPort});
-    new cdk.CfnOutput(this, 'SecretArn', {value: cluster.attrMasterUserSecretSecretArn});
-    new cdk.CfnOutput(this, 'DatabaseName', {value: cluster.databaseName!});
+    new cdk.CfnOutput(this, 'WriterEndpoint', { value: cluster.attrEndpointAddress });
+    new cdk.CfnOutput(this, 'ReaderEndpoint', { value: cluster.attrReadEndpointAddress });
+    new cdk.CfnOutput(this, 'DbPort', { value: cluster.attrEndpointPort });
+    new cdk.CfnOutput(this, 'SecretArn', { value: cluster.attrMasterUserSecretSecretArn });
+    new cdk.CfnOutput(this, 'DatabaseName', { value: cluster.databaseName! });
   }
 }

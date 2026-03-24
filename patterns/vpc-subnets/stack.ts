@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 
 export const vpcSubnetsStackName = 'VpcSubnets';
@@ -45,16 +45,16 @@ export class VpcSubnetsStack extends cdk.Stack {
       subnetConfiguration: [
         // Public subnets: attached to the Internet Gateway. Use for load balancers,
         // NAT Gateways, and bastion hosts — not application workloads.
-        {name: 'Public', subnetType: ec2.SubnetType.PUBLIC, cidrMask: 20},
+        { name: 'Public', subnetType: ec2.SubnetType.PUBLIC, cidrMask: 20 },
 
         // Private subnets: outbound internet via NAT Gateway. Use for app servers,
         // Lambda, ECS tasks that need to call external APIs.
         // When natGateways=0, these subnets have no internet route (effectively isolated).
-        {name: 'Private', subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS, cidrMask: 20},
+        { name: 'Private', subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS, cidrMask: 20 },
 
         // Isolated subnets: no route to internet in either direction. Use for databases,
         // caches, and internal services — the most restrictive tier.
-        {name: 'Isolated', subnetType: ec2.SubnetType.PRIVATE_ISOLATED, cidrMask: 20},
+        { name: 'Isolated', subnetType: ec2.SubnetType.PRIVATE_ISOLATED, cidrMask: 20 },
       ],
     });
 
@@ -67,18 +67,18 @@ export class VpcSubnetsStack extends cdk.Stack {
         // only private subnets have routes pointing to the NAT instance anyway, so public/isolated subnet traffic never arrives here.
         ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
         // allows all protocols and ports (maps to IpProtocol: "-1")
-        ec2.Port.allTraffic(), 
+        ec2.Port.allTraffic(),
         'Allow traffic from private subnets for NAT forwarding',
       );
     }
 
-    new cdk.CfnOutput(this, 'VpcId', {value: this.vpc.vpcId});
-    new cdk.CfnOutput(this, 'VpcCidr', {value: this.vpc.vpcCidrBlock});
-    new cdk.CfnOutput(this, 'AvailabilityZones', {value: this.vpc.availabilityZones.join(', ')});
-    new cdk.CfnOutput(this, 'NatGatewayCount', {value: String(natGateways)});
-    new cdk.CfnOutput(this, 'PublicSubnetIds', {value: this.vpc.publicSubnets.map(s => s.subnetId).join(', ')});
+    new cdk.CfnOutput(this, 'VpcId', { value: this.vpc.vpcId });
+    new cdk.CfnOutput(this, 'VpcCidr', { value: this.vpc.vpcCidrBlock });
+    new cdk.CfnOutput(this, 'AvailabilityZones', { value: this.vpc.availabilityZones.join(', ') });
+    new cdk.CfnOutput(this, 'NatGatewayCount', { value: String(natGateways) });
+    new cdk.CfnOutput(this, 'PublicSubnetIds', { value: this.vpc.publicSubnets.map((s) => s.subnetId).join(', ') });
     // privateSubnets = PRIVATE_WITH_EGRESS tier
-    new cdk.CfnOutput(this, 'PrivateSubnetIds', {value: this.vpc.privateSubnets.map(s => s.subnetId).join(', ')});
-    new cdk.CfnOutput(this, 'IsolatedSubnetIds', {value: this.vpc.isolatedSubnets.map(s => s.subnetId).join(', ')});
+    new cdk.CfnOutput(this, 'PrivateSubnetIds', { value: this.vpc.privateSubnets.map((s) => s.subnetId).join(', ') });
+    new cdk.CfnOutput(this, 'IsolatedSubnetIds', { value: this.vpc.isolatedSubnets.map((s) => s.subnetId).join(', ') });
   }
 }

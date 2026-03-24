@@ -1,5 +1,5 @@
-import {handler} from './handler';
-import {DynamoDBStreamEvent} from 'aws-lambda';
+import { handler } from './handler';
+import { DynamoDBStreamEvent } from 'aws-lambda';
 
 describe('Lambda Handler', () => {
   let logSpy: jest.SpyInstance;
@@ -23,13 +23,13 @@ describe('Lambda Handler', () => {
           eventName: 'INSERT',
           dynamodb: {
             NewImage: {
-              orderId: {S: 'order-1'},
-              status: {S: 'PENDING'},
-              amount: {N: '100'}
-            }
-          }
-        }
-      ]
+              orderId: { S: 'order-1' },
+              status: { S: 'PENDING' },
+              amount: { N: '100' },
+            },
+          },
+        },
+      ],
     };
 
     await handler(event as DynamoDBStreamEvent);
@@ -46,16 +46,16 @@ describe('Lambda Handler', () => {
           eventName: 'MODIFY',
           dynamodb: {
             OldImage: {
-              orderId: {S: 'order-2'},
-              status: {S: 'PENDING'}
+              orderId: { S: 'order-2' },
+              status: { S: 'PENDING' },
             },
             NewImage: {
-              orderId: {S: 'order-2'},
-              status: {S: 'PAID'}
-            }
-          }
-        }
-      ]
+              orderId: { S: 'order-2' },
+              status: { S: 'PAID' },
+            },
+          },
+        },
+      ],
     };
 
     await handler(event as DynamoDBStreamEvent);
@@ -71,12 +71,12 @@ describe('Lambda Handler', () => {
           eventName: 'INSERT',
           dynamodb: {
             NewImage: {
-              orderId: {S: 'FAIL-999'},
-              status: {S: 'PENDING'}
-            }
-          }
-        }
-      ]
+              orderId: { S: 'FAIL-999' },
+              status: { S: 'PENDING' },
+            },
+          },
+        },
+      ],
     };
 
     await expect(handler(event as DynamoDBStreamEvent)).rejects.toThrow('Poison pill detected: FAIL-999');
@@ -91,12 +91,12 @@ describe('Lambda Handler', () => {
           eventName: 'REMOVE',
           dynamodb: {
             OldImage: {
-              orderId: {S: 'order-4'},
-              status: {S: 'PAID'}
-            }
-          }
-        }
-      ]
+              orderId: { S: 'order-4' },
+              status: { S: 'PAID' },
+            },
+          },
+        },
+      ],
     };
 
     await handler(event as DynamoDBStreamEvent);

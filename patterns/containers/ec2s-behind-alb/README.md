@@ -32,13 +32,13 @@ EC2 instances  (private subnet, Spot, t4g.micro ARM64)
 
 Region: eu-central-1 — 2 Spot t4g.micro instances running 24/7, ~10k requests/month
 
-| Resource | Idle | ~10k req/month | Cost driver |
-|---|---|---|---|
-| Spot t4g.micro × 2 | ~$6/mo | ~$6/mo | ~$0.0038/hr per instance (Spot ~60% off $0.0096 On-Demand) |
-| ALB | ~$20/mo | ~$20/mo | $0.008/LCU·hr + $0.028/hr fixed |
-| Self-managed NAT | ~$3.40/mo | ~$3.40/mo | t4g.nano Spot instance |
-| CloudWatch Logs | ~$0.50/mo | ~$0.50/mo | Ingestion cost |
-| **Total** | **~$30/mo** | **~$30/mo** | ALB fixed cost dominates |
+| Resource           | Idle        | ~10k req/month | Cost driver                                                |
+| ------------------ | ----------- | -------------- | ---------------------------------------------------------- |
+| Spot t4g.micro × 2 | ~$6/mo      | ~$6/mo         | ~$0.0038/hr per instance (Spot ~60% off $0.0096 On-Demand) |
+| ALB                | ~$20/mo     | ~$20/mo        | $0.008/LCU·hr + $0.028/hr fixed                            |
+| Self-managed NAT   | ~$3.40/mo   | ~$3.40/mo      | t4g.nano Spot instance                                     |
+| CloudWatch Logs    | ~$0.50/mo   | ~$0.50/mo      | Ingestion cost                                             |
+| **Total**          | **~$30/mo** | **~$30/mo**    | ALB fixed cost dominates                                   |
 
 ## Notes
 

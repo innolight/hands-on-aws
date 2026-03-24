@@ -9,33 +9,34 @@ Based on the logic from the video, here is the decision tree for deploying conta
 Considered the decision three belows for choosing which navigating options
 
 **Are you using Kubernetes?**
-* **YES** ➔ **[Amazon EKS]** (Elastic Kubernetes Service)
-* **NO** ➔ **Do you want Serverless or Provisioned infrastructure?**
-    * **Option A: Serverless (AWS manages the servers)**
-        * Are your invocations < 15 minutes?
-            * **YES** ➔ **[AWS Lambda]** (Event-driven, pay-per-use)
-            * **NO** ➔ Do you want to control all the configuration "knobs"?
-                * **YES** ➔ **[AWS Fargate]** (Full control, managed compute)
-                * **NO** ➔ **[AWS App Runner]** (Simplest for web apps & APIs)
-    * **Option B: Provisioned (You manage the servers)**
-        * Do you want a simplified, easy-to-use UI for prototypes?
-            * **YES** ➔ **[AWS Lightsail]** (Fixed price, simple UI setup, no cdk support)
-            * **NO** ➔ Do you need container orchestration?
-                * **YES** ➔ **[Amazon ECS on EC2]** (Full control over clusters)
-                * **NO** ➔ **[Amazon EC2]** (Manual deployment/Virtual Machines)
+
+- **YES** ➔ **[Amazon EKS]** (Elastic Kubernetes Service)
+- **NO** ➔ **Do you want Serverless or Provisioned infrastructure?**
+  - **Option A: Serverless (AWS manages the servers)**
+    - Are your invocations < 15 minutes?
+      - **YES** ➔ **[AWS Lambda]** (Event-driven, pay-per-use)
+      - **NO** ➔ Do you want to control all the configuration "knobs"?
+        - **YES** ➔ **[AWS Fargate]** (Full control, managed compute)
+        - **NO** ➔ **[AWS App Runner]** (Simplest for web apps & APIs)
+  - **Option B: Provisioned (You manage the servers)**
+    - Do you want a simplified, easy-to-use UI for prototypes?
+      - **YES** ➔ **[AWS Lightsail]** (Fixed price, simple UI setup, no cdk support)
+      - **NO** ➔ Do you need container orchestration?
+        - **YES** ➔ **[Amazon ECS on EC2]** (Full control over clusters)
+        - **NO** ➔ **[Amazon EC2]** (Manual deployment/Virtual Machines)
 
 ## Pattern Comparison
 
-| Pattern | Compute | Networking | Scale-to-zero | Idle cost | Ops burden | CDK complexity |
-|---|---|---|---|---|---|---|
-| `lambda-container` ✅ | Lambda | Function URL | Yes | ~$0 | Low | Medium |
-| `app-runner` ✅ | App Runner | Built-in HTTPS | Pause only | ~$5/mo | Lowest | Low |
-| `ecs-fargate-alb` ✅ | ECS Fargate | ALB | No | ~$20/mo | Low | Medium |
-| `ecs-fargate-apigw` ✅ | ECS Fargate | API GW + VPC Link | Yes* | ~$10/mo* | Medium | High |
-| `eks-fargate` | EKS + Fargate pods | K8s Ingress/ALB | No | ~$80/mo† | High | High |
-| `ecs-ec2-alb` | ECS on EC2 (Spot) | ALB | No | ~$20/mo | Medium | High |
-| `ec2s-behind-alb` | ASG of EC2s + Docker | ALB | No | ~$20/mo | High | Medium |
-| `one-ec2` | Single EC2 + Docker | Public IP | No | ~$4/mo | High | Low |
+| Pattern                | Compute              | Networking        | Scale-to-zero | Idle cost | Ops burden | CDK complexity |
+| ---------------------- | -------------------- | ----------------- | ------------- | --------- | ---------- | -------------- |
+| `lambda-container` ✅  | Lambda               | Function URL      | Yes           | ~$0       | Low        | Medium         |
+| `app-runner` ✅        | App Runner           | Built-in HTTPS    | Pause only    | ~$5/mo    | Lowest     | Low            |
+| `ecs-fargate-alb` ✅   | ECS Fargate          | ALB               | No            | ~$20/mo   | Low        | Medium         |
+| `ecs-fargate-apigw` ✅ | ECS Fargate          | API GW + VPC Link | Yes\*         | ~$10/mo\* | Medium     | High           |
+| `eks-fargate`          | EKS + Fargate pods   | K8s Ingress/ALB   | No            | ~$80/mo†  | High       | High           |
+| `ecs-ec2-alb`          | ECS on EC2 (Spot)    | ALB               | No            | ~$20/mo   | Medium     | High           |
+| `ec2s-behind-alb`      | ASG of EC2s + Docker | ALB               | No            | ~$20/mo   | High       | Medium         |
+| `one-ec2`              | Single EC2 + Docker  | Public IP         | No            | ~$4/mo    | High       | Low            |
 
 \* `ecs-fargate-apigw`: the ~$10/mo is 1 Fargate task (256 CPU/512 MB). API GW + VPC Link have no idle cost, so scaling to 0 tasks would yield ~$0 — but Fargate cold start is 30–90s and the service returns 503 while at 0 tasks.
 
@@ -63,16 +64,16 @@ All 8 compute patterns use the same approach: **application-level API key middle
 
 **How the API key reaches the container per pattern:**
 
-| Pattern | Injection mechanism |
-|---|---|
-| `app-runner` | `ImageConfiguration.runtimeEnvironmentSecrets` referencing SSM parameter |
-| `ecs-fargate-alb` | Task definition `secrets` from SSM parameter |
-| `ecs-fargate-apigw` | Task definition `secrets` from SSM parameter |
-| `ecs-ec2-alb` | Task definition `secrets` from SSM parameter |
-| `lambda-container` | Lambda environment variable from SSM parameter |
-| `one-ec2` | EC2 user data script reads SSM parameter, sets env var |
-| `ec2s-behind-alb` | Launch template user data reads SSM parameter, sets env var |
-| `eks-fargate` | Kubernetes Secret sourced from SSM, mounted as env var |
+| Pattern             | Injection mechanism                                                      |
+| ------------------- | ------------------------------------------------------------------------ |
+| `app-runner`        | `ImageConfiguration.runtimeEnvironmentSecrets` referencing SSM parameter |
+| `ecs-fargate-alb`   | Task definition `secrets` from SSM parameter                             |
+| `ecs-fargate-apigw` | Task definition `secrets` from SSM parameter                             |
+| `ecs-ec2-alb`       | Task definition `secrets` from SSM parameter                             |
+| `lambda-container`  | Lambda environment variable from SSM parameter                           |
+| `one-ec2`           | EC2 user data script reads SSM parameter, sets env var                   |
+| `ec2s-behind-alb`   | Launch template user data reads SSM parameter, sets env var              |
+| `eks-fargate`       | Kubernetes Secret sourced from SSM, mounted as env var                   |
 
 ## Deploy Order
 

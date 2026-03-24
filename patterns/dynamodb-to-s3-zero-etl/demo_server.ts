@@ -1,18 +1,14 @@
 import express from 'express';
-import {
-  DynamoDBClient,
-  PutItemCommand,
-  BatchWriteItemCommand,
-} from '@aws-sdk/client-dynamodb';
-import {marshall} from '@aws-sdk/util-dynamodb';
+import { DynamoDBClient, PutItemCommand, BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
 import {
   AthenaClient,
   StartQueryExecutionCommand,
   GetQueryExecutionCommand,
   GetQueryResultsCommand,
 } from '@aws-sdk/client-athena';
-import {getStackOutputs} from '../../utils';
-import {dynamodbToS3StackName} from './stack';
+import { getStackOutputs } from '../../utils';
+import { dynamodbToS3StackName } from './stack';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,9 +37,9 @@ let athenaClient: AthenaClient;
 // POST /items
 // body: { orderId, itemId, product, quantity, price, status }
 app.post('/items', async (req, res) => {
-  const {orderId, itemId, product, quantity, price, status} = req.body;
+  const { orderId, itemId, product, quantity, price, status } = req.body;
   if (!orderId || !itemId || !product) {
-    res.status(400).json({error: 'orderId, itemId, and product are required'});
+    res.status(400).json({ error: 'orderId, itemId, and product are required' });
     return;
   }
   try {
@@ -56,11 +52,11 @@ app.post('/items', async (req, res) => {
       status: status ?? 'pending',
       createdAt: new Date().toISOString(),
     });
-    await ddbClient.send(new PutItemCommand({TableName: TABLE_NAME, Item: item}));
-    res.json({written: {orderId, itemId, product}});
+    await ddbClient.send(new PutItemCommand({ TableName: TABLE_NAME, Item: item }));
+    res.json({ written: { orderId, itemId, product } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -72,7 +68,7 @@ app.post('/items/batch', async (req, res) => {
   const products = ['Widget A', 'Widget B', 'Gadget X', 'Gadget Y', 'Doohickey Z'];
   const statuses = ['pending', 'shipped', 'delivered'];
 
-  const requests = Array.from({length: 25}, (_, i) => ({
+  const requests = Array.from({ length: 25 }, (_, i) => ({
     PutRequest: {
       Item: marshall({
         pk: `ORDER#${String(i + 1).padStart(3, '0')}`,
@@ -87,13 +83,15 @@ app.post('/items/batch', async (req, res) => {
   }));
 
   try {
-    await ddbClient.send(new BatchWriteItemCommand({
-      RequestItems: {[TABLE_NAME]: requests},
-    }));
-    res.json({seeded: 25});
+    await ddbClient.send(
+      new BatchWriteItemCommand({
+        RequestItems: { [TABLE_NAME]: requests },
+      }),
+    );
+    res.json({ seeded: 25 });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -104,21 +102,23 @@ app.post('/items/batch', async (req, res) => {
 // POST /query
 // body: { sql } — e.g. "SELECT * FROM \"zero-etl-demo\".\"zero-etl-demo\" LIMIT 10"
 app.post('/query', async (req, res) => {
-  const {sql} = req.body;
+  const { sql } = req.body;
   if (!sql) {
-    res.status(400).json({error: 'sql is required'});
+    res.status(400).json({ error: 'sql is required' });
     return;
   }
   try {
-    const result = await athenaClient.send(new StartQueryExecutionCommand({
-      QueryString: sql,
-      WorkGroup: WORKGROUP,
-      ResultConfiguration: {OutputLocation: `s3://${RESULTS_BUCKET}/results/`},
-    }));
-    res.json({queryExecutionId: result.QueryExecutionId});
+    const result = await athenaClient.send(
+      new StartQueryExecutionCommand({
+        QueryString: sql,
+        WorkGroup: WORKGROUP,
+        ResultConfiguration: { OutputLocation: `s3://${RESULTS_BUCKET}/results/` },
+      }),
+    );
+    res.json({ queryExecutionId: result.QueryExecutionId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -126,24 +126,22 @@ app.post('/query', async (req, res) => {
 //
 // GET /query/:id
 app.get('/query/:id', async (req, res) => {
-  const {id} = req.params;
+  const { id } = req.params;
   try {
-    const exec = await athenaClient.send(new GetQueryExecutionCommand({QueryExecutionId: id}));
+    const exec = await athenaClient.send(new GetQueryExecutionCommand({ QueryExecutionId: id }));
     const state = exec.QueryExecution?.Status?.State;
     if (state !== 'SUCCEEDED') {
-      res.json({state, reason: exec.QueryExecution?.Status?.StateChangeReason});
+      res.json({ state, reason: exec.QueryExecution?.Status?.StateChangeReason });
       return;
     }
-    const results = await athenaClient.send(new GetQueryResultsCommand({QueryExecutionId: id}));
+    const results = await athenaClient.send(new GetQueryResultsCommand({ QueryExecutionId: id }));
     const [header, ...rows] = results.ResultSet?.Rows ?? [];
-    const columns = header?.Data?.map(d => d.VarCharValue ?? '') ?? [];
-    const data = rows.map(row =>
-      Object.fromEntries(row.Data?.map((d, i) => [columns[i], d.VarCharValue]) ?? []),
-    );
-    res.json({state, columns, data});
+    const columns = header?.Data?.map((d) => d.VarCharValue ?? '') ?? [];
+    const data = rows.map((row) => Object.fromEntries(row.Data?.map((d, i) => [columns[i], d.VarCharValue]) ?? []));
+    res.json({ state, columns, data });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 

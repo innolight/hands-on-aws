@@ -1,13 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../../vpc-subnets/stack';
-import {SsmBastionStack} from '../../ssm-bastion/stack';
-import {RdsPostgresStack} from './stack';
+import { Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../../vpc-subnets/stack';
+import { SsmBastionStack } from '../../ssm-bastion/stack';
+import { RdsPostgresStack } from './stack';
 
 describe('RdsPostgresStack', () => {
   const app = new cdk.App();
   const vpcStack = new VpcSubnetsStack(app, 'VpcStack');
-  const bastionStack = new SsmBastionStack(app, 'BastionStack', {vpc: vpcStack.vpc});
+  const bastionStack = new SsmBastionStack(app, 'BastionStack', { vpc: vpcStack.vpc });
   const stack = new RdsPostgresStack(app, 'RdsPostgresStack', {
     vpc: vpcStack.vpc,
     bastionSG: bastionStack.bastionSG,
@@ -62,9 +62,9 @@ describe('RdsPostgresStack', () => {
 });
 
 describe('RdsPostgresStack with multiAz=true', () => {
-  const app2 = new cdk.App({context: {multiAz: 'true'}});
+  const app2 = new cdk.App({ context: { multiAz: 'true' } });
   const vpcStack2 = new VpcSubnetsStack(app2, 'VpcStack2');
-  const bastionStack2 = new SsmBastionStack(app2, 'BastionStack2', {vpc: vpcStack2.vpc});
+  const bastionStack2 = new SsmBastionStack(app2, 'BastionStack2', { vpc: vpcStack2.vpc });
   const stack2 = new RdsPostgresStack(app2, 'RdsPostgresStack2', {
     vpc: vpcStack2.vpc,
     bastionSG: bastionStack2.bastionSG,

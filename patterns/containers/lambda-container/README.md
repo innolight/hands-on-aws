@@ -25,14 +25,14 @@ Express :3000
 
 Region: eu-central-1. Workload: idle vs ~100K requests/month at 200ms avg duration, 512 MB.
 
-| Resource | Idle | ~100K req/mo | Cost driver |
-|---|---|---|---|
-| Lambda requests | $0 | ~$0.02 | First 1M req/mo free |
-| Lambda duration | $0 | ~$0.05 | GB-seconds (512 MB × 200ms × 100K) |
-| ECR storage | ~$0.01 | ~$0.01 | ~100 MB image |
-| Secrets Manager | $0.40 | $0.40 | $0.40/secret/mo; API calls negligible |
-| CloudWatch Logs | $0 | ~$0.01 | 1-week retention |
-| **Total** | **~$0.42** | **~$0.49** | Secrets Manager at idle, Lambda duration at scale |
+| Resource        | Idle       | ~100K req/mo | Cost driver                                       |
+| --------------- | ---------- | ------------ | ------------------------------------------------- |
+| Lambda requests | $0         | ~$0.02       | First 1M req/mo free                              |
+| Lambda duration | $0         | ~$0.05       | GB-seconds (512 MB × 200ms × 100K)                |
+| ECR storage     | ~$0.01     | ~$0.01       | ~100 MB image                                     |
+| Secrets Manager | $0.40      | $0.40        | $0.40/secret/mo; API calls negligible             |
+| CloudWatch Logs | $0         | ~$0.01       | 1-week retention                                  |
+| **Total**       | **~$0.42** | **~$0.49**   | Secrets Manager at idle, Lambda duration at scale |
 
 Dominant cost driver: Lambda duration (scales with invocations, not time). At idle, cost is effectively $0 — Lambda scales to zero between requests.
 
@@ -52,6 +52,7 @@ The app code requires zero changes — Express does not know it runs inside Lamb
 **Lambda containers vs Lambda zip**
 
 Prefer container packaging over zip when:
+
 - **Existing web app** — you already have an Express/Flask app and want scale-to-zero without rewriting it into a Lambda handler. LWA bridges the gap.
 - **Large dependencies** — zip is limited to 50 MB (250 MB unzipped). Container images go up to 10 GB. ML libraries, native binaries, sharp, ffmpeg, etc.
 - **Local testing** — `docker run` the image and `curl localhost:3000` for a fast feedback loop without deploying to AWS.
@@ -62,14 +63,14 @@ Trade-offs: container cold starts are slower (1–3s vs 200–500ms for zip) and
 
 Lambda suits **low-to-moderate traffic, short-lived, stateless request/response workloads** where you want zero idle cost. Move to Fargate or App Runner when you hit the constraints below:
 
-| Constraint | Why Lambda hurts | Alternative |
-|---|---|---|
-| Consistent high traffic | Per-request pricing becomes expensive; cold starts add latency at scale | ECS Fargate / App Runner — fixed compute cost, no cold starts |
-| Long-running requests (>15 min) | Lambda hard timeout | ECS Fargate — no timeout |
-| Streaming responses (SSE, WebSockets) | LWA buffers the full response; no persistent connections | ECS Fargate + ALB or App Runner |
-| Response > 6 MB | Lambda payload limit | ECS Fargate + ALB |
-| Stateful processes (in-memory cache, connection pools) | Execution environment is ephemeral and frozen between invocations | ECS Fargate — long-lived process |
-| Consistent low latency (<50ms p99) | Cold starts of 1–3s unavoidable without provisioned concurrency (~$15/mo per instance) | ECS Fargate with minimum task count |
+| Constraint                                             | Why Lambda hurts                                                                       | Alternative                                                   |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Consistent high traffic                                | Per-request pricing becomes expensive; cold starts add latency at scale                | ECS Fargate / App Runner — fixed compute cost, no cold starts |
+| Long-running requests (>15 min)                        | Lambda hard timeout                                                                    | ECS Fargate — no timeout                                      |
+| Streaming responses (SSE, WebSockets)                  | LWA buffers the full response; no persistent connections                               | ECS Fargate + ALB or App Runner                               |
+| Response > 6 MB                                        | Lambda payload limit                                                                   | ECS Fargate + ALB                                             |
+| Stateful processes (in-memory cache, connection pools) | Execution environment is ephemeral and frozen between invocations                      | ECS Fargate — long-lived process                              |
+| Consistent low latency (<50ms p99)                     | Cold starts of 1–3s unavoidable without provisioned concurrency (~$15/mo per instance) | ECS Fargate with minimum task count                           |
 
 **Cold start**
 
@@ -79,14 +80,14 @@ No provisioned concurrency is configured (the commented-out block in `stack.ts` 
 
 **Failure modes**
 
-| Failure | Symptom | Mitigation |
-|---|---|---|
-| Cold start timeout | HTTP 500 (Lambda timeout); cold starts usually <3s but can spike | Increase `timeout` in `stack.ts` (max 15 min) |
-| Bad deploy | Function returns 500/init error | No automatic rollback — push a known-good image with the `lambda` tag and `npx cdk deploy LambdaContainerStack` |
-| Throttling | HTTP 429 from Function URL when >10 concurrent requests | Increase `reservedConcurrentExecutions` in `stack.ts`; or remove the cap for production |
-| Read-only filesystem | `EROFS: read-only file system` at runtime | Write only to `/tmp` (up to 10 GB). Common when porting an Express app that writes logs or caches to disk. |
-| Platform mismatch | `exec format error` — build succeeds, fails on invocation | Always pass `--platform linux/arm64` to `docker build` (or use `docker buildx`). This stack deploys ARM64. |
-| Stale image after tag push | No error — function works but serves old code | Push new image with same `:lambda` tag → Lambda still runs the old image. Two production approaches: (1) **`fromImageAsset`** — CDK builds, hashes, pushes, and updates the function in one `cdk deploy`. Simplest, but CDK owns the build. (2) **Digest pinning** — CI pushes the image, passes the digest to CDK via context: `npx cdk deploy LambdaContainerStack -c imageDigest=sha256:abc...`. CDK sees a changed value and updates the function. |
+| Failure                    | Symptom                                                          | Mitigation                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Cold start timeout         | HTTP 500 (Lambda timeout); cold starts usually <3s but can spike | Increase `timeout` in `stack.ts` (max 15 min)                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Bad deploy                 | Function returns 500/init error                                  | No automatic rollback — push a known-good image with the `lambda` tag and `npx cdk deploy LambdaContainerStack`                                                                                                                                                                                                                                                                                                                                        |
+| Throttling                 | HTTP 429 from Function URL when >10 concurrent requests          | Increase `reservedConcurrentExecutions` in `stack.ts`; or remove the cap for production                                                                                                                                                                                                                                                                                                                                                                |
+| Read-only filesystem       | `EROFS: read-only file system` at runtime                        | Write only to `/tmp` (up to 10 GB). Common when porting an Express app that writes logs or caches to disk.                                                                                                                                                                                                                                                                                                                                             |
+| Platform mismatch          | `exec format error` — build succeeds, fails on invocation        | Always pass `--platform linux/arm64` to `docker build` (or use `docker buildx`). This stack deploys ARM64.                                                                                                                                                                                                                                                                                                                                             |
+| Stale image after tag push | No error — function works but serves old code                    | Push new image with same `:lambda` tag → Lambda still runs the old image. Two production approaches: (1) **`fromImageAsset`** — CDK builds, hashes, pushes, and updates the function in one `cdk deploy`. Simplest, but CDK owns the build. (2) **Digest pinning** — CI pushes the image, passes the digest to CDK via context: `npx cdk deploy LambdaContainerStack -c imageDigest=sha256:abc...`. CDK sees a changed value and updates the function. |
 
 **Synchronous invocation model**
 

@@ -1,8 +1,8 @@
 import express from 'express';
 import Valkey from 'iovalkey';
-import {SecretsManagerClient, GetSecretValueCommand} from '@aws-sdk/client-secrets-manager';
-import {getStackOutputs} from '../../utils';
-import {elasticacheValkeyActivePassiveStackName} from './stack';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { getStackOutputs } from '../../utils';
+import { elasticacheValkeyActivePassiveStackName } from './stack';
 
 // Demo server for ElastiCache Valkey pattern.
 // Uses two clients (RW + RO) to show the client-side best practice:
@@ -29,14 +29,14 @@ let roClient: Valkey;
   const region = process.env.AWS_REGION || 'eu-central-1';
 
   // Retrieve the Valkey password from Secrets Manager at startup.
-  const smClient = new SecretsManagerClient({region});
-  const secretResult = await smClient.send(new GetSecretValueCommand({SecretId: secretArn}));
+  const smClient = new SecretsManagerClient({ region });
+  const secretResult = await smClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
   const password = secretResult.SecretString!;
 
   const tlsOptions = (servername: string) => ({
     // servername is required so the TLS client sends SNI matching the ElastiCache
     // certificate CN, even though the TCP connection goes to localhost (SSM tunnel).
-    tls: {servername},
+    tls: { servername },
   });
 
   // RW client connects to local port 6379 (SSM tunnel to primary endpoint).
@@ -68,33 +68,33 @@ let roClient: Valkey;
 
 // GET /set?key=x&value=y — write via primary (RW client)
 app.get('/set', async (req, res) => {
-  const {key, value} = req.query as {key: string; value: string};
+  const { key, value } = req.query as { key: string; value: string };
   if (!key || value === undefined) {
-    res.status(400).json({error: 'key and value are required'});
+    res.status(400).json({ error: 'key and value are required' });
     return;
   }
   try {
     await rwClient.set(key, value);
-    res.json({ok: true, key, value});
+    res.json({ ok: true, key, value });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
 // GET /get?key=x — read via reader (RO client); may return stale data under replication lag
 app.get('/get', async (req, res) => {
-  const {key} = req.query as {key: string};
+  const { key } = req.query as { key: string };
   if (!key) {
-    res.status(400).json({error: 'key is required'});
+    res.status(400).json({ error: 'key is required' });
     return;
   }
   try {
     const value = await roClient.get(key);
-    res.json({key, value});
+    res.json({ key, value });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -104,26 +104,26 @@ app.get('/get', async (req, res) => {
 app.get('/keys', async (_req, res) => {
   try {
     const keys = await roClient.keys('*');
-    res.json({keys});
+    res.json({ keys });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
 // GET /del?key=x — delete via primary (RW client)
 app.get('/del', async (req, res) => {
-  const {key} = req.query as {key: string};
+  const { key } = req.query as { key: string };
   if (!key) {
-    res.status(400).json({error: 'key is required'});
+    res.status(400).json({ error: 'key is required' });
     return;
   }
   try {
     const deleted = await rwClient.del(key);
-    res.json({key, deleted});
+    res.json({ key, deleted });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -132,17 +132,14 @@ app.get('/del', async (req, res) => {
 // Useful for observing whether replicas are in sync with the primary.
 app.get('/info', async (_req, res) => {
   try {
-    const [primaryInfo, readerInfo] = await Promise.all([
-      rwClient.info('replication'),
-      roClient.info('replication'),
-    ]);
+    const [primaryInfo, readerInfo] = await Promise.all([rwClient.info('replication'), roClient.info('replication')]);
     res.json({
-      rwClient: {host: 'localhost', port: 6379, info: primaryInfo},
-      roClient: {host: 'localhost', port: 6380, info: readerInfo},
+      rwClient: { host: 'localhost', port: 6379, info: primaryInfo },
+      roClient: { host: 'localhost', port: 6380, info: readerInfo },
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -167,6 +164,6 @@ app.get('/write-read-test', async (_req, res) => {
     await rwClient.del(key);
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });

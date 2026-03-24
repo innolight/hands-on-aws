@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {LambdaContainerStack, lambdaContainerStackName} from './stack';
+import { Template } from 'aws-cdk-lib/assertions';
+import { LambdaContainerStack, lambdaContainerStackName } from './stack';
 
 describe('LambdaContainerStack', () => {
   const app = new cdk.App();

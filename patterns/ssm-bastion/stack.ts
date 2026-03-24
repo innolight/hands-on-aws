@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 
@@ -28,9 +28,7 @@ export class SsmBastionStack extends cdk.Stack {
     // Bastion is in a public subnet so it reaches SSM endpoints over the internet directly.
     const bastionRole = new iam.Role(this, 'BastionRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
-      ],
+      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore')],
     });
 
     // ARM + t4g.nano (~$3/mo) is the cheapest option; Amazon Linux 2023 ARM AMI used.
@@ -40,12 +38,12 @@ export class SsmBastionStack extends cdk.Stack {
       machineImage: ec2.MachineImage.latestAmazonLinux2023({
         cpuType: ec2.AmazonLinuxCpuType.ARM_64,
       }),
-      vpcSubnets: {subnetType: ec2.SubnetType.PUBLIC},
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroup: this.bastionSG,
       role: bastionRole,
       // No SSH key — access is exclusively via SSM.
     });
 
-    new cdk.CfnOutput(this, 'BastionInstanceId', {value: this.bastion.instanceId});
+    new cdk.CfnOutput(this, 'BastionInstanceId', { value: this.bastion.instanceId });
   }
 }

@@ -7,13 +7,13 @@ export class S3CrossRegionReplicationStackStep2 extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const replicationRoleArn = new cdk.CfnParameter(this, "replicationRoleArn", {
-      type: "String",
-      description: "The ARN of the replication role in the source account",
+    const replicationRoleArn = new cdk.CfnParameter(this, 'replicationRoleArn', {
+      type: 'String',
+      description: 'The ARN of the replication role in the source account',
     });
-    const destinationBucketArn = new cdk.CfnParameter(this, "destinationBucketArn", {
-      type: "String",
-      description: "The ARN of the replication role in the source account",
+    const destinationBucketArn = new cdk.CfnParameter(this, 'destinationBucketArn', {
+      type: 'String',
+      description: 'The ARN of the replication role in the source account',
     });
 
     const sourceBucket = new s3.Bucket(this, 'SourceBucket', {
@@ -41,10 +41,10 @@ export class S3CrossRegionReplicationStackStep2 extends cdk.Stack {
           id: 'SourceToDestination',
           priority: 1,
           status: 'Enabled',
-          deleteMarkerReplication: {status: 'Disabled'},
+          deleteMarkerReplication: { status: 'Disabled' },
           filter: {},
           destination: {
-            bucket: destinationBucketArn.valueAsString
+            bucket: destinationBucketArn.valueAsString,
           },
         },
       ],

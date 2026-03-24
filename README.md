@@ -8,28 +8,31 @@ popular architectural patterns in AWS.
 Discover AWS patterns in folder [patterns](./patterns):
 
 Datastore / S3:
+
 - [x] [`s3-polished-configuration`](./patterns/s3-polished-configuration): S3 with encryption, versioning enabled, lifecycle rule, data archiver with Glacier
-- [x] [`s3-events-notification`](./patterns/s3-events-notification): S3 → SNS → SQS → SQS (DLQ) 
+- [x] [`s3-events-notification`](./patterns/s3-events-notification): S3 → SNS → SQS → SQS (DLQ)
 - [x] [`s3-cross-region-replication`](./patterns/s3-cross-region-replication): S3 → S3 (another region); Multi-region Access Point for S3
 - [x] [`s3-static-website-cloudfront`](./patterns/s3-static-website-cloudfront): S3 hosting a HTTPS static website, using CloudFront for global delivery
 - [x] [`s3-lambda-rekognition-dynamodb`](./patterns/s3-lambda-rekognition-dynamodb): image processing pipeline and metadata storage
-- [x] [`s3-behind-sftp`](./patterns/s3-behind-sftp/): SFTP access to S3 using AWS Transfer 
+- [x] [`s3-behind-sftp`](./patterns/s3-behind-sftp/): SFTP access to S3 using AWS Transfer
 - [x] [`s3-vectors-bucket`](./patterns/s3-vectors-bucket/): S3 Vector Bucket + Index for similarity search on food reviews
 - [ ] `s3-serverless-data-lake`: S3 (Storage) → AWS Glue (Data Catalog/Crawler) → Amazon Athena (Query Engine)
 
 Datastore / Dynamodb:
+
 - [x] [`dynamodb-global-database`](./patterns/dynamodb-global-database/): Dynamodb Global Database (multi-write architecture)
 - [x] [`dynamodb-stream-lambda`](./patterns/dynamodb-stream-lambda): Dynamodb → Dynamodb Stream → Lambda
 - [ ] `dynamodb-to-s3-zero-etl`: Dynamodb → S3 with Zero-ETL
 - [ ] `dynamodb-kinesis-opensearch`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → S3 | AWS OpenSearch
 
 Datastore / Elasticache:
+
 - [x] [`elasticache-valkey-active-passive`](./patterns/elasticache-valkey-active-passive): ElastiCache Valkey replication group (1 primary + N replicas), RBAC, TLS, SSM port forwarding via ssm-bastion
-- [x] [`elasticache-valkey-cluster`](./patterns/elasticache-valkey-cluster): ElastiCache Valkey cluster mode (N shards × M replicas), hash-slot distribution  with consistent hashing
+- [x] [`elasticache-valkey-cluster`](./patterns/elasticache-valkey-cluster): ElastiCache Valkey cluster mode (N shards × M replicas), hash-slot distribution with consistent hashing
 - [x] [`elasticache-valkey-serverless`](./patterns/elasticache-valkey-serverless): ElastiCache Valkey Serverless (auto-scaling, ECPU billing, no capacity planning), retry backoff + jitter, command pipelining
 
-
 Datastore / RDS & Aurora:
+
 - [x] [`rds-postgres`](./patterns/rds/rds-postgres): Single-AZ → Multi-AZ failover, automated backups, PITR, Secrets Manager credential rotation, optional RDS Proxy connection pooling
 - [x] [`rds-read-replicas`](./patterns/rds/rds-read-replicas): Async read replicas (same-region + cross-region), manual promote to standalone for DR
 - [x] [`rds-readable-standbys`](./patterns/rds/rds-readable-standbys): Multi-AZ with 2 readable standbys — synchronous replication, <35s failover, reader endpoint
@@ -38,19 +41,23 @@ Datastore / RDS & Aurora:
 - [ ] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database — sub-second cross-region replication, Write Forwarding, managed failover
 
 Datastore / OpenSearch:
+
 - [x] [`opensearch-provisioned`](./patterns/opensearch-provisioned/): Managed OpenSearch domain — parameterized from single-node dev to Multi-AZ production (node count, AZ, dedicated masters)
 - [x] [`opensearch-serverless`](./patterns/opensearch-serverless): OpenSearch Serverless collection with OCU-based billing, zero capacity management
 
 Messaging & Event-Driven:
+
 - [ ] `sqs-lambda`: SQS → Lambda with DLQ and batch processing
 - [ ] `step-functions-workflow`: Step Functions orchestrating multiple Lambdas (validate → process → notify), error handling & retries
 - [ ] `eventbridge-sns-fanout`: EventBridge rule with content filtering → SNS → multiple SQS subscribers
 
 API & Auth:
+
 - [ ] `apigw-lambda-cognito`: API Gateway REST API + Lambda + Cognito User Pool authorizer
 - [ ] `apigw-websocket`: API Gateway WebSocket API + Lambda + DynamoDB connection tracking
 
 Infrastructures / Containers on AWS:
+
 - [x] [`elastic-container-registry`](./patterns/containers/elastic-container-registry): ECR repository provisioning, Docker image build & push
 - [x] [`app-runner`](./patterns/containers/app-runner): App Runner — fully managed, source-to-URL container hosting
 - [x] [`ecs-fargate-alb`](./patterns/containers/ecs-fargate-alb): ECS Fargate + ALB — serverless containers behind Application Load Balancer
@@ -62,9 +69,10 @@ Infrastructures / Containers on AWS:
 - [ ] [`one-ec2`](./patterns/containers/one-ec2): Single EC2 instance running Docker, public-facing
 
 Infrastructures:
+
 - [x] [`vpc-subnets`](./patterns/vpc-subnets): VPC with 3-tier subnet layout (public / private / isolated) across 3 AZs, configurable NAT Gateways
 - [x] [`ssm-bastion`](./patterns/ssm-bastion): EC2 bastion accessible via SSM Session Manager (no SSH, no inbound rules) — used for port forwarding to isolated resources
-- [ ] `event-bridge-lambda-job`: Lightweight job with event bridge triggering lambda function using cron schedule  
+- [ ] `event-bridge-lambda-job`: Lightweight job with event bridge triggering lambda function using cron schedule
 - [ ] `msk-lambda`: Kafka cluster setup via Amazon Managed Streaming for Kafka (MSK), Lambda consumer
 - [ ] `waf-shield-ddos-protection`: AWS WAF + Shield for DDoS protection on CloudFront
 - [ ] `sagemaker-pipeline`: Building an end-to-end ML pipeline with AWS SageMaker and CDK
@@ -75,15 +83,15 @@ Infrastructures:
 
 ### Useful Commands
 
-| Command | Description |
-|---|---|
-| `pnpm run build` | Compile TypeScript to JS |
-| `pnpm run watch` | Watch for changes and compile |
-| `pnpm run test` | Run Jest unit tests |
-| `npx cdk synth` | Emit synthesized CloudFormation template |
-| `npx cdk diff` | Compare deployed stack with current state |
-| `npx cdk deploy` | Deploy stack to your default AWS account/region |
-| `npx cdk destroy` | Tear down a deployed stack |
+| Command           | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `pnpm run build`  | Compile TypeScript to JS                        |
+| `pnpm run watch`  | Watch for changes and compile                   |
+| `pnpm run test`   | Run Jest unit tests                             |
+| `npx cdk synth`   | Emit synthesized CloudFormation template        |
+| `npx cdk diff`    | Compare deployed stack with current state       |
+| `npx cdk deploy`  | Deploy stack to your default AWS account/region |
+| `npx cdk destroy` | Tear down a deployed stack                      |
 
 ### Prerequisites
 
@@ -136,13 +144,14 @@ Demo servers use `getStackOutputs()` from `utils/stackoutput.ts` to discover dep
 
 CDK organizes cloud resources into three levels of abstraction called **constructs**:
 
-| Level | Name | What it is | Example |
-|---|---|---|---|
-| **L1** | CFN Resources | 1:1 mapping to CloudFormation resources. Prefixed with `Cfn`. No defaults — you configure every property yourself. | `CfnBucket`, `CfnFunction` |
-| **L2** | Curated Constructs | AWS-vetted wrappers around L1. Provide sensible defaults, helper methods (e.g., `bucket.grantRead(lambda)`), and a higher-level API. Most of what you'll use day-to-day. | `s3.Bucket`, `lambda.Function` |
-| **L3** | Patterns | Opinionated multi-resource compositions. Wire together several L2 constructs into a common architecture. | `LambdaRestApi` (API Gateway + Lambda), `S3BucketDeployment` (S3 + Lambda + Custom Resource) |
+| Level  | Name               | What it is                                                                                                                                                               | Example                                                                                      |
+| ------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| **L1** | CFN Resources      | 1:1 mapping to CloudFormation resources. Prefixed with `Cfn`. No defaults — you configure every property yourself.                                                       | `CfnBucket`, `CfnFunction`                                                                   |
+| **L2** | Curated Constructs | AWS-vetted wrappers around L1. Provide sensible defaults, helper methods (e.g., `bucket.grantRead(lambda)`), and a higher-level API. Most of what you'll use day-to-day. | `s3.Bucket`, `lambda.Function`                                                               |
+| **L3** | Patterns           | Opinionated multi-resource compositions. Wire together several L2 constructs into a common architecture.                                                                 | `LambdaRestApi` (API Gateway + Lambda), `S3BucketDeployment` (S3 + Lambda + Custom Resource) |
 
 **When to use which:**
+
 - **Start with L2** — covers ~90% of cases with good defaults and grant helpers that auto-generate least-privilege IAM policies.
 - **Drop to L1** when you need a property that L2 doesn't expose yet (use `node.defaultChild` to escape-hatch from L2 to L1).
 - **Use L3** when a well-known pattern exists and you don't need to customize the wiring between resources.
@@ -171,4 +180,3 @@ CDK organizes cloud resources into three levels of abstraction called **construc
 - `npx cdk destroy <StackName>` — delete the CloudFormation stack and all resources within it. Prompts for confirmation before deleting.
 
 > **Note:** All patterns use `removalPolicy: DESTROY` and `autoDeleteObjects: true` for easy cleanup. These settings are **not production-safe**.
-

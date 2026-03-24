@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template, Match} from 'aws-cdk-lib/assertions';
-import {DynamoDBLambdaStack} from './stack';
+import { Template, Match } from 'aws-cdk-lib/assertions';
+import { DynamoDBLambdaStack } from './stack';
 
 describe('DynamoDBLambdaStack', () => {
   const app = new cdk.App();
@@ -10,7 +10,7 @@ describe('DynamoDBLambdaStack', () => {
   test('DynamoDB table has stream enabled with NEW_AND_OLD_IMAGES', () => {
     template.hasResourceProperties('AWS::DynamoDB::Table', {
       TableName: 'orders-cdc-demo',
-      StreamSpecification: {StreamViewType: 'NEW_AND_OLD_IMAGES'},
+      StreamSpecification: { StreamViewType: 'NEW_AND_OLD_IMAGES' },
     });
   });
 
@@ -27,7 +27,7 @@ describe('DynamoDBLambdaStack', () => {
       MaximumRetryAttempts: 3,
       DestinationConfig: {
         OnFailure: {
-          Destination: {'Fn::GetAtt': [Match.stringLikeRegexp('StreamDeadLetterQueue'), 'Arn']},
+          Destination: { 'Fn::GetAtt': [Match.stringLikeRegexp('StreamDeadLetterQueue'), 'Arn'] },
         },
       },
     });

@@ -1,1 +1,1 @@
-export * from './stackoutput'
+export * from './stackoutput';

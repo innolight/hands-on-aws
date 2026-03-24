@@ -1,6 +1,6 @@
-import {RekognitionClient, DetectLabelsCommand} from '@aws-sdk/client-rekognition';
-import {DynamoDBClient, PutItemCommand} from '@aws-sdk/client-dynamodb';
-import {S3Event} from 'aws-lambda';
+import { RekognitionClient, DetectLabelsCommand } from '@aws-sdk/client-rekognition';
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { S3Event } from 'aws-lambda';
 
 const rekognition = new RekognitionClient({});
 const dynamodb = new DynamoDBClient({});
@@ -17,32 +17,36 @@ export async function handler(event: S3Event): Promise<void> {
     // - DetectFaces: emotion detection for engagement analysis
     // - DetectModerationLabels: content safety for users uploaded images
     // - RecognizeCelebrities: identify historical figures in photos
-    const detectResponse = await rekognition.send(new DetectLabelsCommand({
-      Image: {S3Object: {Bucket: bucket, Name: key}},
-      MaxLabels: 10,
-      MinConfidence: 70,
-      Settings: {
-        GeneralLabels: {
-          LabelCategoryInclusionFilters: ['Animals and Pets'],
+    const detectResponse = await rekognition.send(
+      new DetectLabelsCommand({
+        Image: { S3Object: { Bucket: bucket, Name: key } },
+        MaxLabels: 10,
+        MinConfidence: 70,
+        Settings: {
+          GeneralLabels: {
+            LabelCategoryInclusionFilters: ['Animals and Pets'],
+          },
         },
-      },
-    }));
+      }),
+    );
 
-    const labels = (detectResponse.Labels ?? []).map(l => ({
+    const labels = (detectResponse.Labels ?? []).map((l) => ({
       M: {
-        name: {S: l.Name ?? 'Unknown'},
-        confidence: {N: String(l.Confidence ?? 0)},
+        name: { S: l.Name ?? 'Unknown' },
+        confidence: { N: String(l.Confidence ?? 0) },
       },
     }));
 
-    await dynamodb.send(new PutItemCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        imageKey: {S: key},
-        bucket: {S: bucket},
-        labels: {L: labels},
-        processedAt: {S: new Date().toISOString()},
-      },
-    }));
+    await dynamodb.send(
+      new PutItemCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          imageKey: { S: key },
+          bucket: { S: bucket },
+          labels: { L: labels },
+          processedAt: { S: new Date().toISOString() },
+        },
+      }),
+    );
   }
 }

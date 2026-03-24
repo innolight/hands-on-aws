@@ -14,6 +14,7 @@ On failure (3 attempts) → SQS DLQ
 ```
 
 **Pattern Description**:
+
 - S3 bucket receives image uploads (`.jpg`, `.jpeg`, `.png`)
 - [S3 Event Notification](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html) triggers a Lambda function on each upload
 - Lambda calls [Rekognition DetectLabels](https://docs.aws.amazon.com/rekognition/latest/dg/labels-detect-labels-image.html) to identify objects, scenes, and concepts in the image
@@ -21,25 +22,26 @@ On failure (3 attempts) → SQS DLQ
 
 **DynamoDB record**:
 
-| Attribute | Type | Description |
-|---|---|---|
-| `imageKey` (PK) | String | S3 object key |
-| `bucket` | String | S3 bucket name |
-| `labels` | List | `{name, confidence}` pairs from Rekognition (max 10, min confidence 70%) |
-| `processedAt` | String | ISO timestamp of analysis |
+| Attribute       | Type   | Description                                                              |
+| --------------- | ------ | ------------------------------------------------------------------------ |
+| `imageKey` (PK) | String | S3 object key                                                            |
+| `bucket`        | String | S3 bucket name                                                           |
+| `labels`        | List   | `{name, confidence}` pairs from Rekognition (max 10, min confidence 70%) |
+| `processedAt`   | String | ISO timestamp of analysis                                                |
 
 **Cost** (eu-central-1, ~1K images/month, 5 MB avg):
 
-| Resource | Idle | ~1K images | Cost driver |
-|---|---|---|---|
-| Rekognition | $0.00 | ~$1.00 | $0.001/image (first 1M/month) |
-| Lambda | $0.00 | ~$0.00 | Free tier covers 1K × ~3s × 128 MB easily |
-| DynamoDB | $0.00 | ~$0.00 | $1.25/M WCU on-demand — 1K writes ≈ $0.00 |
-| S3 storage | $0.00 | ~$0.12 | $0.0245/GB — 5 GB for 1K images |
-| S3 requests | $0.00 | ~$0.01 | $0.0054/1K PUTs |
-| CloudWatch Logs | $0.00 | ~$0.00 | Minimal Lambda log output |
+| Resource        | Idle  | ~1K images | Cost driver                               |
+| --------------- | ----- | ---------- | ----------------------------------------- |
+| Rekognition     | $0.00 | ~$1.00     | $0.001/image (first 1M/month)             |
+| Lambda          | $0.00 | ~$0.00     | Free tier covers 1K × ~3s × 128 MB easily |
+| DynamoDB        | $0.00 | ~$0.00     | $1.25/M WCU on-demand — 1K writes ≈ $0.00 |
+| S3 storage      | $0.00 | ~$0.12     | $0.0245/GB — 5 GB for 1K images           |
+| S3 requests     | $0.00 | ~$0.01     | $0.0054/1K PUTs                           |
+| CloudWatch Logs | $0.00 | ~$0.00     | Minimal Lambda log output                 |
 
 **Notes**:
+
 - Rekognition operates on the S3 object directly (no data transfer through Lambda); the Lambda role needs `s3:GetObject` on the bucket so Rekognition can access it
 - Image size limit: 15 MB (Rekognition constraint)
 - Rekognition is not available in all regions; `eu-central-1` is supported
@@ -51,7 +53,7 @@ On failure (3 attempts) → SQS DLQ
   - The DLQ can trigger downstream automation — e.g. an SNS topic for email alerts, or another Lambda that retries/reprocesses failed images
   - The `onFailure` destination wraps the original event in an [envelope](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async.html#invocation-async-destinations) containing error context (`requestContext`, `responseContext`); to retrigger the Lambda, extract the original S3 event from `requestPayload`
   - The handler is naturally **idempotent** — `PutItem` with the same `imageKey` overwrites the previous record, so retries are safe
-  - This differs from *synchronous* invocation (API Gateway, SDK `Invoke`) where the caller receives errors directly and is responsible for retries
+  - This differs from _synchronous_ invocation (API Gateway, SDK `Invoke`) where the caller receives errors directly and is responsible for retries
 - **Alternative: S3 → SQS → Lambda (synchronous invocation model)**: instead of S3 invoking Lambda directly (async), S3 sends the event to an [SQS queue](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html), and Lambda [polls the queue](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html) via an event source mapping. This changes the invocation model from async to **synchronous** (Lambda's SQS poller calls `Invoke` synchronously) and improves error handling:
   - Failed messages return to the queue automatically and are retried based on the queue's `VisibilityTimeout` and `maxReceiveCount` — more control than Lambda's built-in 2-retry async behavior
   - After `maxReceiveCount` attempts, SQS moves the message to a [dead-letter queue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html) natively — no need for Lambda's `onFailure` destination
@@ -60,6 +62,7 @@ On failure (3 attempts) → SQS DLQ
   - Tradeoff: adds SQS cost (~$0.40/M requests) and a slight delay (SQS long-polling interval, typically ≤20s), but both are negligible at low volumes
 
 **Commands to play with stack**:
+
 - Deploy: `npx cdk deploy S3LambdaRekognitionDynamodb`
 - Upload a test image:
   ```bash

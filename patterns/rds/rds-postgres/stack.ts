@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as rds from 'aws-cdk-lib/aws-rds';
 
@@ -42,7 +42,6 @@ export class RdsPostgresStack extends cdk.Stack {
       version: rds.PostgresEngineVersion.VER_17_7,
     });
 
-
     const instance = new rds.DatabaseInstance(this, 'Instance', {
       instanceIdentifier: 'rds-postgres-classic-instance',
       databaseName: 'demo',
@@ -56,7 +55,7 @@ export class RdsPostgresStack extends cdk.Stack {
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
       vpc: props.vpc,
       // Isolated subnets have no internet route — DB never needs outbound access.
-      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_ISOLATED},
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroups: [dbSG],
       multiAz,
       // fromGeneratedSecret creates a Secrets Manager secret with username + auto-generated password.
@@ -80,10 +79,10 @@ export class RdsPostgresStack extends cdk.Stack {
       // Enable encrypt data at rest
       storageEncrypted: true,
 
-      // RDS default is enabled; minor upgrades ship security patches during the maintenance window. 
+      // RDS default is enabled; minor upgrades ship security patches during the maintenance window.
       // Disable only if your app is sensitive to minor-version behaviour changes (rare).
-      autoMinorVersionUpgrade: true,  
-      
+      autoMinorVersionUpgrade: true,
+
       // Enables Enhanced Monitoring (OS-level metrics) beyond Standard RDS metrics.
       //   + CPU: Total utilization % => Per-process CPU, user/system/idle/wait breakdown
       //   + Memory: Freeable memory only => Total, free, cached, buffered, active, inactive
@@ -91,8 +90,8 @@ export class RdsPostgresStack extends cdk.Stack {
       //   + Network: Total throughput => Per-interface throughput and packet metrics
       //   + Processes: No visibility => Top processes by CPU and memory
       // RDS Default is disabled. Enabling adds ~$1/mo to CloudWatch costs
-      monitoringInterval: cdk.Duration.seconds(60),  
-      
+      monitoringInterval: cdk.Duration.seconds(60),
+
       parameterGroup: new rds.ParameterGroup(this, 'ParameterGroup', {
         engine,
         description: 'Logging and timeout safety nets for RDS PostgreSQL 17',
@@ -100,12 +99,12 @@ export class RdsPostgresStack extends cdk.Stack {
       }),
 
       // Enable in Performance Insights to monitor database workload and wait events
-      enablePerformanceInsights: true,  
+      enablePerformanceInsights: true,
       databaseInsightsMode: rds.DatabaseInsightsMode.STANDARD,
       // 7 days free, up to 2 years with extra cost.
       // 'ADVANCED' databaseInsightsMode mode require 15 months retention.
-      performanceInsightRetention: rds.PerformanceInsightRetention.DEFAULT, 
-      
+      performanceInsightRetention: rds.PerformanceInsightRetention.DEFAULT,
+
       // !! Change the following in production: use SNAPSHOT/RETAIN to prevent data loss on stack
       // destroy; set deletionProtection=true to block accidental deletion (stack destroy will fail
       // until you disable it first). Keep DESTROY/false in dev so `cdk destroy` works cleanly.
@@ -122,7 +121,7 @@ export class RdsPostgresStack extends cdk.Stack {
     //      multiplexes those to a fraction of max_connections on the DB instance.
     const proxy = instance.addProxy('Proxy', {
       vpc: props.vpc,
-      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_ISOLATED},
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       secrets: [instance.secret!],
       securityGroups: [dbSG],
       // Enforce encryption for data in transit to proxy
@@ -130,18 +129,18 @@ export class RdsPostgresStack extends cdk.Stack {
       // SCRAM-SHA-256 is the default auth for PostgreSQL 14+. Use POSTGRES_MD5 only for
       // compatibility with very old client libraries.
       clientPasswordAuthType: rds.ClientPasswordAuthType.POSTGRES_SCRAM_SHA_256,
-      
+
       // borrowTimeout: how long a client waits for a pooled connection before getting an error.
       // The default 120s is often too long. A lower value helps your application "fail fast" and
       // trigger retries rather than hanging during a traffic spike.
       // 30s is a safe default; reduce for latency-sensitive workloads.
       borrowTimeout: cdk.Duration.seconds(30),
-      
+
       // Reserves 10-20% for direct admin access, maintenance tasks, and emergency psql sessions that bypass the proxy.
       // Max Connections managed by Proxy = maxConnectionsPercent * max_connections (a PostgreSQL config parameter that varies by instance size).
       // max_connections is ~112 / 1GiB RAM for PostgreSQL, so a t4g.micro with 1 GiB RAM has max_connections ≈ 100, and the proxy allows up to 90 connections with this setting.
       maxConnectionsPercent: 90,
-      
+
       // Postgres processes are memory-heavy. Lowering this from the default (50%) aggressively
       // closes inactive backend connections, saving RAM on the DB instance.
       // Keep ≥ 10 — too low causes connection latency spikes on traffic bursts
@@ -152,12 +151,12 @@ export class RdsPostgresStack extends cdk.Stack {
       idleClientTimeout: cdk.Duration.minutes(15),
     });
 
-    new cdk.CfnOutput(this, 'DbEndpoint', {value: instance.dbInstanceEndpointAddress});
-    new cdk.CfnOutput(this, 'DbPort', {value: instance.dbInstanceEndpointPort});
-    new cdk.CfnOutput(this, 'ProxyEndpoint', {value: proxy.endpoint});
-    new cdk.CfnOutput(this, 'SecretArn', {value: instance.secret!.secretArn});
-    new cdk.CfnOutput(this, 'DatabaseName', {value: 'demo'});
-    new cdk.CfnOutput(this, 'MultiAz', {value: String(multiAz)});
+    new cdk.CfnOutput(this, 'DbEndpoint', { value: instance.dbInstanceEndpointAddress });
+    new cdk.CfnOutput(this, 'DbPort', { value: instance.dbInstanceEndpointPort });
+    new cdk.CfnOutput(this, 'ProxyEndpoint', { value: proxy.endpoint });
+    new cdk.CfnOutput(this, 'SecretArn', { value: instance.secret!.secretArn });
+    new cdk.CfnOutput(this, 'DatabaseName', { value: 'demo' });
+    new cdk.CfnOutput(this, 'MultiAz', { value: String(multiAz) });
   }
 }
 
@@ -167,33 +166,33 @@ const parameterGroupParameters = {
   // Single most useful knob for finding performance bottlenecks. Logs any query that
   // takes longer than 1s. Set to 0 temporarily to capture all queries; keep ≥1000 in
   // steady state to avoid log noise. Default: -1 (disabled).
-  'log_min_duration_statement': '1000',
+  log_min_duration_statement: '1000',
 
   // Log DDL statements (CREATE/ALTER/DROP) for change auditing.
   // 'all' captures every query but generates excessive volume; 'ddl' is the right
   // steady-state level for schema change tracking. Default: none.
-  'log_statement': 'ddl',
+  log_statement: 'ddl',
 
   // Track connection open/close events with client IP and username.
   // Essential for diagnosing connection storms, leaks, and unexpected reconnects.
   // Default: off.
-  'log_connections': '1',
-  'log_disconnections': '1',
+  log_connections: '1',
+  log_disconnections: '1',
 
   // Log when a session waits longer than deadlock_timeout (default 1s) for a row lock.
   // Surfaces lock contention that would otherwise be invisible. Default: off.
-  'log_lock_waits': '1',
+  log_lock_waits: '1',
 
   // Log any query that spills a sort or hash operation to disk, with the file size.
   // A temp file means work_mem is too low for that query — increase work_mem or
   // rewrite the query. Value 0 = log all; a positive value is a minimum size in kB.
   // Default: -1 (disabled).
-  'log_temp_files': '0',
+  log_temp_files: '0',
 
   // Log any autovacuum run that takes longer than 250ms. Helps spot tables with
   // excessive dead-row churn or tables that need per-table autovacuum tuning.
   // Default: -1 (disabled). Changed to 10000 in recent PG versions, still too high.
-  'log_autovacuum_min_duration': '250',
+  log_autovacuum_min_duration: '250',
 
   // -- Timeouts: safety nets --
 
@@ -202,11 +201,11 @@ const parameterGroupParameters = {
   // sessions hold row locks and prevent autovacuum from cleaning dead tuples, causing
   // table bloat. !! Lower to 30–60s in production for latency-sensitive workloads.
   // Default: 0 (disabled).
-  'idle_in_transaction_session_timeout': '300000',
+  idle_in_transaction_session_timeout: '300000',
 
   // Kill any individual query running longer than 60s. Safety net against runaway
   // queries (e.g. accidental full table scan, or a query using a bad plan after a stats
   // refresh). Set per-role in production — shorter for web app roles (5–30s), 0 for
   // migration/ETL roles. Default: 0 (disabled).
-  'statement_timeout': '60000',
+  statement_timeout: '60000',
 };

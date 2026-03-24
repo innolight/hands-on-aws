@@ -27,12 +27,12 @@ Data flow: `CSV embeddings → PutVectors (batches of 50) → S3 Vector Index �
 
 > eu-central-1, assuming 1,000 vectors × 1,536 float32 dimensions, ~1K queries/month.
 
-| Resource | Idle | ~1K queries/month | Cost driver |
-|---|---|---|---|
-| Vector storage | ~$0.01/mo | ~$0.01/mo | $0.06/GB/mo; 1K × 1536 × 4 bytes ≈ 6MB |
-| PutVectors (write) | $0.00 | $0.00 (one-time load) | $0.20/GB written; 6MB ≈ $0.001 |
-| QueryVectors | $0.00 | ~$0.0025 | $0.0025/1K queries |
-| GetVectors (metadata retrieval) | $0.00 | ~$0.0003 | $0.0003/1K requests |
+| Resource                        | Idle      | ~1K queries/month     | Cost driver                            |
+| ------------------------------- | --------- | --------------------- | -------------------------------------- |
+| Vector storage                  | ~$0.01/mo | ~$0.01/mo             | $0.06/GB/mo; 1K × 1536 × 4 bytes ≈ 6MB |
+| PutVectors (write)              | $0.00     | $0.00 (one-time load) | $0.20/GB written; 6MB ≈ $0.001         |
+| QueryVectors                    | $0.00     | ~$0.0025              | $0.0025/1K queries                     |
+| GetVectors (metadata retrieval) | $0.00     | ~$0.0003              | $0.0003/1K requests                    |
 
 **Dominant cost driver**: storage ($0.06/GB/month). At 1K vectors this is negligible — costs scale with vector count and dimension.
 
@@ -46,12 +46,12 @@ Data flow: `CSV embeddings → PutVectors (batches of 50) → S3 Vector Index �
 - **Index immutability**: dimension count, distance metric, and `nonFilterableMetadataKeys` are fixed at creation time and **cannot be changed**. Modifying any of them requires recreating the index and re-ingesting all vectors. Plan these carefully before a production deployment.
 - **Filter DSL operators**: the demo only exercises `$gte`. Full operator set:
 
-  | Category | Operators |
-  |---|---|
+  | Category   | Operators                                                                   |
+  | ---------- | --------------------------------------------------------------------------- |
   | Comparison | `$eq` (default when no operator given), `$ne`, `$gt`, `$gte`, `$lt`, `$lte` |
-  | Array | `$in`, `$nin` |
-  | Field | `$exists` |
-  | Logical | `$and`, `$or` |
+  | Array      | `$in`, `$nin`                                                               |
+  | Field      | `$exists`                                                                   |
+  | Logical    | `$and`, `$or`                                                               |
 
   Only filterable metadata keys can appear in filter expressions. Syntax is MongoDB-style, e.g. `{Score: {'$gte': 4}, ProductId: {'$in': ['B001', 'B002']}}`.
 

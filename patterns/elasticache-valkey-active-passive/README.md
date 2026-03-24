@@ -21,11 +21,11 @@ ElastiCache Valkey 8.2 (isolated subnet)
 - Non-cluster (replication group) mode: one primary node + optional read replicas, all sharing the same keyspace
 - Topology controlled via `-c minNodes=N -c maxNodes=M` at deploy time:
 
-| `-c minNodes=` / `-c maxNodes=` | Topology | Failover | RW endpoint | RO endpoint | Autoscaling |
-|---|---|---|---|---|---|
-| `minNodes=1 maxNodes=1` | 1 node, no HA | disabled | Primary | Primary (same) | none |
-| `minNodes=2 maxNodes=2` | 1 primary + 1 replica, fixed | enabled, Multi-AZ | Primary | Reader | none |
-| `minNodes=2 maxNodes=4` | starts at 2, scales to 4 | enabled, Multi-AZ | Primary | Reader | CPU-based (target 60%) |
+| `-c minNodes=` / `-c maxNodes=` | Topology                     | Failover          | RW endpoint | RO endpoint    | Autoscaling            |
+| ------------------------------- | ---------------------------- | ----------------- | ----------- | -------------- | ---------------------- |
+| `minNodes=1 maxNodes=1`         | 1 node, no HA                | disabled          | Primary     | Primary (same) | none                   |
+| `minNodes=2 maxNodes=2`         | 1 primary + 1 replica, fixed | enabled, Multi-AZ | Primary     | Reader         | none                   |
+| `minNodes=2 maxNodes=4`         | starts at 2, scales to 4     | enabled, Multi-AZ | Primary     | Reader         | CPU-based (target 60%) |
 
 - When `minNodes < maxNodes`, [Application Auto Scaling](https://docs.aws.amazon.com/autoscaling/application/userguide/what-is-application-auto-scaling.html) manages the replica count using a target-tracking policy on `ElastiCacheReplicaEngineCPUUtilization` (replica CPU only, excluding primary write traffic). Scaling uses `IncreaseReplicaCount` / `DecreaseReplicaCount` APIs — not `ModifyReplicationGroup`.
 
@@ -41,12 +41,12 @@ ElastiCache Valkey 8.2 (isolated subnet)
 
 Region: `eu-central-1`. Assumes 24/7 idle, minimal throughput.
 
-| Resource | Idle | ~1 unit/mo | Cost driver |
-|---|---|---|---|
-| cache.t4g.micro | ~$12/node/mo | — | Per-node-hour billing |
-| EC2 t4g.nano bastion | ~$3/mo | — | Instance uptime |
-| Secrets Manager | ~$0.40/mo | — | Per-secret fee |
-| NAT gateway | $0 | — | None (SSM via public subnet) |
+| Resource             | Idle         | ~1 unit/mo | Cost driver                  |
+| -------------------- | ------------ | ---------- | ---------------------------- |
+| cache.t4g.micro      | ~$12/node/mo | —          | Per-node-hour billing        |
+| EC2 t4g.nano bastion | ~$3/mo       | —          | Instance uptime              |
+| Secrets Manager      | ~$0.40/mo    | —          | Per-secret fee               |
+| NAT gateway          | $0           | —          | None (SSM via public subnet) |
 
 Dominant cost: cache nodes (~$12 each). A 3-node cluster costs ~$39/mo in cache alone.
 
@@ -91,7 +91,7 @@ PRIMARY=$(aws cloudformation describe-stacks --stack-name ElastiCacheValkeyActiv
 READER=$(aws cloudformation describe-stacks --stack-name ElastiCacheValkeyActivePassive \
   --query "Stacks[0].Outputs[?OutputKey=='ValkeyReaderEndpoint'].OutputValue" --output text)
 
-# SSM Session Manager plugin needs to be installed before starting SSM session. 
+# SSM Session Manager plugin needs to be installed before starting SSM session.
 # Installation instruction https://docs.aws.amazon.com/systems-manager/latest/userguide/install-plugin-macos-overview.html
 
 # Terminal 1: Primary (RW) — local port 6379

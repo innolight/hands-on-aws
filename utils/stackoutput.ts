@@ -1,4 +1,4 @@
-import { CloudFormationClient, DescribeStacksCommand } from "@aws-sdk/client-cloudformation";
+import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
 
 const cloudFormationClient = new CloudFormationClient({ region: process.env.AWS_REGION });
 
@@ -20,7 +20,7 @@ export async function getStackOutputs(stackName: string) {
     }
     return {};
   } catch (error) {
-    console.error("Error fetching stack outputs:", error);
+    console.error('Error fetching stack outputs:', error);
     return {};
   }
 }

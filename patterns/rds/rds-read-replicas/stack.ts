@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as rds from 'aws-cdk-lib/aws-rds';
 
@@ -39,7 +39,7 @@ export class RdsReadReplicasStack extends cdk.Stack {
       // Primary can be scaled up independently from replicas when writes are the bottleneck.
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
       vpc: props.vpc,
-      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_ISOLATED},
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroups: [this.dbSG],
       // Read replicas do not add HA — they are for read scaling and DR promotion.
       // Set multiAz=true on the primary only if you also need HA for writes.
@@ -72,7 +72,7 @@ export class RdsReadReplicasStack extends cdk.Stack {
         // For a cross-region replica, pass a VPC from the target region — CDK handles the rest.
         // Same region is simpler and has lower replication lag.
         vpc: props.vpc,
-        vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_ISOLATED},
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
         securityGroups: [this.dbSG],
         // Can differ from the primary — upgrade to IO2 independently if this replica serves heavy reads.
         storageType: rds.StorageType.GP3,
@@ -85,8 +85,8 @@ export class RdsReadReplicasStack extends cdk.Stack {
       });
     }
 
-    new cdk.CfnOutput(this, 'SecretArn', {value: this.primary.secret!.secretArn});
-    new cdk.CfnOutput(this, 'DbPort', {value: this.primary.dbInstanceEndpointPort});
-    new cdk.CfnOutput(this, 'DatabaseName', {value: 'demo'});
+    new cdk.CfnOutput(this, 'SecretArn', { value: this.primary.secret!.secretArn });
+    new cdk.CfnOutput(this, 'DbPort', { value: this.primary.dbInstanceEndpointPort });
+    new cdk.CfnOutput(this, 'DatabaseName', { value: 'demo' });
   }
 }

@@ -25,25 +25,27 @@ Data flow: `Athena INSERT INTO → S3 Table Bucket (Iceberg) → Athena SELECT`
 
 Region: `eu-central-1` | Workload: ~1 GB stored, ~100 queries/month
 
-| Resource | Idle | ~100 queries/month | Cost driver |
-|----------|------|--------------------|-------------|
-| S3 Tables storage | $0.023/GB/month | ~$0.02 | Data volume |
-| S3 Tables object monitoring | $0 | ~$0.025/1K objects | Object count |
-| S3 Tables compaction | $0 | ~$0.005/GB | Data churn |
-| Athena queries | $0 | ~$0.05 | $5/TB scanned |
-| S3 (results bucket) | $0 | <$0.01 | Negligible |
-| **Total** | ~$0 | ~$0.10 | **Athena scans** |
+| Resource                    | Idle            | ~100 queries/month | Cost driver      |
+| --------------------------- | --------------- | ------------------ | ---------------- |
+| S3 Tables storage           | $0.023/GB/month | ~$0.02             | Data volume      |
+| S3 Tables object monitoring | $0              | ~$0.025/1K objects | Object count     |
+| S3 Tables compaction        | $0              | ~$0.005/GB         | Data churn       |
+| Athena queries              | $0              | ~$0.05             | $5/TB scanned    |
+| S3 (results bucket)         | $0              | <$0.01             | Negligible       |
+| **Total**                   | ~$0             | ~$0.10             | **Athena scans** |
 
 Dominant cost driver: Athena ($5/TB scanned). Iceberg column and partition pruning reduces scanned bytes. Storage is ~15% more expensive than standard S3 ($0.023 vs $0.023/GB in Frankfurt) but includes automatic maintenance.
 
 ## Notes
 
 **S3 Tables vs regular S3 for Iceberg**
+
 - S3 Tables manages compaction, snapshot expiry, and orphan file removal automatically — no Glue jobs or custom maintenance scripts needed
 - Regular S3 + Iceberg (via Glue Data Catalog + Glue ETL) offers more flexibility (custom file formats, Hudi/Delta) but requires manual maintenance configuration
 - S3 Tables storage costs slightly more than standard S3 but removes operational burden for Iceberg maintenance
 
 **Catalog registration is a one-time account/region setup**
+
 - Athena queries S3 Tables via a `s3tablescatalog` federated catalog in Glue. The `S3TablesLakeFormationSetup` stack automates this: IAM role with specific `s3tables:` data access permissions, Lake Formation registration, and Glue federated catalog.
 - This is account/region-level, not per-bucket. Deploy once — but each deployed table bucket also needs per-database/table Lake Formation grants. The `S3Tables` stack handles this automatically via its `LakeFormationGrants` resource on deploy.
 - Skipping the setup stack causes Athena to return `Table not found` errors; skipping the per-bucket grants causes `Principal does not have any privilege on specified resource`.
@@ -75,20 +77,24 @@ AWS Account
 ```
 
 **Lake Formation (LF) permission hierarchy**
+
 - Catalog-level LF grants (e.g. `IAM_ALLOWED_PRINCIPALS` ALL on `s3tablescatalog`) do **not** cascade to database/table data access in S3 Tables.
 - Grants must target the bucket-specific sub-catalog: `s3tablescatalog/<bucket-name>` — not the parent `s3tablescatalog`.
 - The `S3Tables` stack's `LakeFormationGrants` resource does this automatically at deploy time.
 
 **Iceberg time travel**
+
 - Every Athena write (`INSERT INTO`, `UPDATE`, `DELETE`) creates an Iceberg snapshot. S3 Tables retains snapshots per the table's maintenance config (default: 5 days).
 - `FOR SYSTEM_TIME AS OF TIMESTAMP '<ts>'` reads the Iceberg manifest at that snapshot — no separate backup or export needed.
 - Time travel queries are read-only and scan only the files referenced by that snapshot.
 
 **Alternative: Athena CREATE TABLE instead of CfnTable schema**
+
 - `CfnTable` with `icebergMetadata`: table exists at deploy time, schema is immutable via CDK (use `ALTER TABLE` for changes)
 - Athena DDL: flexible types (e.g. `DATE` instead of `STRING`), schema changes via SQL, but requires a manual `CREATE TABLE` step after deploy before the demo server starts
 
 **Production considerations**
+
 - Remove `removalPolicy: DESTROY` and `autoDeleteObjects: true` from the results bucket — query history is lost on stack delete
 - Enable KMS encryption on the table bucket (`encryptionConfiguration` on `CfnTableBucket`)
 - Use Lake Formation fine-grained access control to scope Athena query permissions to specific namespaces/tables
@@ -112,17 +118,20 @@ aws s3tables list-table-buckets # confirm table bucket created
 ```
 
 **Start demo server**
+
 ```bash
 AWS_REGION=eu-central-1 npx ts-node patterns/s3-tables-bucket/demo_server.ts
 ```
 
 **Load sample sales data (note the `loadedAt` timestamp)**
+
 ```bash
 curl -s -X POST http://localhost:3000/load | jq .
 # { "inserted": 20, "loadedAt": "2024-01-15T10:30:00.000Z" }
 ```
 
 **Run analytics queries**
+
 ```bash
 # Revenue by product category
 curl -s -X POST http://localhost:3000/query \
@@ -150,6 +159,7 @@ curl -s -X POST http://localhost:3000/query \
 ```
 
 **Time travel demo**
+
 ```bash
 # Note the loadedAt from the first load (e.g., "2024-01-15T10:30:00.000Z")
 SNAPSHOT_TIME="<loadedAt from first load>"
@@ -169,6 +179,7 @@ curl -s -X POST http://localhost:3000/query \
 ```
 
 **Custom SQL**
+
 ```bash
 curl -s -X POST http://localhost:3000/query \
   -H "Content-Type: application/json" \
@@ -176,6 +187,7 @@ curl -s -X POST http://localhost:3000/query \
 ```
 
 **Destroy**
+
 ```bash
 npx cdk destroy S3Tables
 LF_ADMIN=$(aws sts get-caller-identity --query Arn --output text)
@@ -183,6 +195,7 @@ npx cdk destroy S3TablesLakeFormationSetup  -c lfAdmin=$LF_ADMIN  # if no longer
 ```
 
 **Synthesize CloudFormation**
+
 ```bash
 npx cdk synth S3Tables 2>/dev/null > patterns/s3-tables-bucket/cloud_formation.yaml
 LF_ADMIN=$(aws sts get-caller-identity --query Arn --output text)

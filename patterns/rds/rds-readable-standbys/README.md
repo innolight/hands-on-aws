@@ -39,15 +39,15 @@ EC2 Bastion                   EC2 Bastion
 
 ### Multi-AZ DB Cluster vs Aurora
 
-| Feature | RDS Multi-AZ DB Cluster | Aurora PostgreSQL |
-|---------|------------------------|-------------------|
-| Readable replicas | 2 (sync) | Up to 15 (zero-lag) |
-| Failover time | <35s | <30s |
-| Storage | EBS per instance | Shared distributed (6 copies × 3 AZs) |
-| Storage billing | GiB-month (gp3: IOPS included) | GiB-month + I/O requests |
-| Min instance class | `db.m5d.large` | `db.t4g.medium` |
-| Idle cost | ~$117/mo | ~$58/mo (writer + 1 reader) |
-| CDK construct | L1 `CfnDBCluster` | L2 `DatabaseCluster` |
+| Feature            | RDS Multi-AZ DB Cluster        | Aurora PostgreSQL                     |
+| ------------------ | ------------------------------ | ------------------------------------- |
+| Readable replicas  | 2 (sync)                       | Up to 15 (zero-lag)                   |
+| Failover time      | <35s                           | <30s                                  |
+| Storage            | EBS per instance               | Shared distributed (6 copies × 3 AZs) |
+| Storage billing    | GiB-month (gp3: IOPS included) | GiB-month + I/O requests              |
+| Min instance class | `db.m5d.large`                 | `db.t4g.medium`                       |
+| Idle cost          | ~$117/mo                       | ~$58/mo (writer + 1 reader)           |
+| CDK construct      | L1 `CfnDBCluster`              | L2 `DatabaseCluster`                  |
 
 Use Aurora Provisioned if you need more than 2 readers or lower idle cost at the minimum tier.
 
@@ -55,12 +55,12 @@ Use Aurora Provisioned if you need more than 2 readers or lower idle cost at the
 
 Region: `eu-central-1`. Assumes 24/7 idle, minimal throughput.
 
-| Resource | Idle | ~N unit/month | Cost driver |
-|----------|------|--------------|-------------|
-| 3× `db.m5d.large` | ~$115/mo | — | Per-instance-hour × 3 (1 writer + 2 standbys) |
-| gp3 storage 5 GiB × 3 | ~$2/mo | — | $0.122/GiB-month; 3,000 IOPS + 125 MB/s included |
-| Secrets Manager | ~$0.40/mo | — | Per-secret fee |
-| EC2 t4g.nano bastion | ~$3/mo | — | Instance uptime |
+| Resource              | Idle      | ~N unit/month | Cost driver                                      |
+| --------------------- | --------- | ------------- | ------------------------------------------------ |
+| 3× `db.m5d.large`     | ~$115/mo  | —             | Per-instance-hour × 3 (1 writer + 2 standbys)    |
+| gp3 storage 5 GiB × 3 | ~$2/mo    | —             | $0.122/GiB-month; 3,000 IOPS + 125 MB/s included |
+| Secrets Manager       | ~$0.40/mo | —             | Per-secret fee                                   |
+| EC2 t4g.nano bastion  | ~$3/mo    | —             | Instance uptime                                  |
 
 Dominant cost: the 3 `db.m5d.large` instances (~$38/mo each). No burstable instance option exists for this topology.
 

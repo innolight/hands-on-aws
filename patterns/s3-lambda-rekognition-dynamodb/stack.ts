@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -37,7 +37,7 @@ export class S3LambdaRekognitionDynamodbStack extends cdk.Stack {
     // with auto-scaling is more cost-effective.
     const table = new dynamodb.Table(this, 'LabelsTable', {
       tableName: 'image-rekognition-labels',
-      partitionKey: {name: 'imageKey', type: dynamodb.AttributeType.STRING},
+      partitionKey: { name: 'imageKey', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
@@ -61,8 +61,8 @@ export class S3LambdaRekognitionDynamodbStack extends cdk.Stack {
       // Rekognition p99 latency is typically under 3s, but allow headroom for
       // large images or cold starts.
       timeout: cdk.Duration.seconds(30),
-      environment: {TABLE_NAME: table.tableName},
-      bundling: {externalModules: ['@aws-sdk/*']},
+      environment: { TABLE_NAME: table.tableName },
+      bundling: { externalModules: ['@aws-sdk/*'] },
     });
 
     // IAM permissions — least privilege:
@@ -72,10 +72,12 @@ export class S3LambdaRekognitionDynamodbStack extends cdk.Stack {
     // - Rekognition: does not support resource-level permissions, so '*' is required.
     bucket.grantRead(imageProcessor);
     table.grantWriteData(imageProcessor);
-    imageProcessor.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['rekognition:DetectLabels'],
-      resources: ['*'],
-    }));
+    imageProcessor.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['rekognition:DetectLabels'],
+        resources: ['*'],
+      }),
+    );
 
     // Async invocation failure destination. S3 event notifications always invoke
     // Lambda asynchronously — Lambda retries twice on failure, then drops the event
@@ -100,16 +102,14 @@ export class S3LambdaRekognitionDynamodbStack extends cdk.Stack {
     // consumers, but adds latency (~seconds vs ~milliseconds) and cost for a
     // single-consumer use case like this one.
     for (const suffix of ['.jpg', '.jpeg', '.png']) {
-      bucket.addEventNotification(
-        s3.EventType.OBJECT_CREATED,
-        new s3Notifications.LambdaDestination(imageProcessor),
-        {suffix},
-      );
+      bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3Notifications.LambdaDestination(imageProcessor), {
+        suffix,
+      });
     }
 
-    new cdk.CfnOutput(this, 'BucketName', {value: bucket.bucketName});
-    new cdk.CfnOutput(this, 'TableName', {value: table.tableName});
-    new cdk.CfnOutput(this, 'FunctionName', {value: imageProcessor.functionName});
-    new cdk.CfnOutput(this, 'DLQUrl', {value: dlq.queueUrl});
+    new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });
+    new cdk.CfnOutput(this, 'TableName', { value: table.tableName });
+    new cdk.CfnOutput(this, 'FunctionName', { value: imageProcessor.functionName });
+    new cdk.CfnOutput(this, 'DLQUrl', { value: dlq.queueUrl });
   }
 }

@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
@@ -48,12 +48,7 @@ export class S3StaticWebsiteCloudfrontStack extends cdk.Stack {
     // CDK zips the directory, uploads it to the bootstrap assets bucket, then a
     // Lambda extracts and copies all files into the website bucket during deploy.
     new s3deploy.BucketDeployment(this, 'DeploySite', {
-      sources: [
-        s3deploy.Source.data(
-          'index.html',
-          '<html><body><h1>Hello from S3 + CloudFront</h1></body></html>',
-        ),
-      ],
+      sources: [s3deploy.Source.data('index.html', '<html><body><h1>Hello from S3 + CloudFront</h1></body></html>')],
       destinationBucket: websiteBucket,
       // Invalidate CloudFront cache on deploy so updates are visible immediately.
       distribution,
@@ -61,8 +56,8 @@ export class S3StaticWebsiteCloudfrontStack extends cdk.Stack {
     });
 
     // Outputs
-    new cdk.CfnOutput(this, 'DistributionDomainName', {value: distribution.distributionDomainName});
-    new cdk.CfnOutput(this, 'DistributionId', {value: distribution.distributionId});
-    new cdk.CfnOutput(this, 'BucketName', {value: websiteBucket.bucketName});
+    new cdk.CfnOutput(this, 'DistributionDomainName', { value: distribution.distributionDomainName });
+    new cdk.CfnOutput(this, 'DistributionId', { value: distribution.distributionId });
+    new cdk.CfnOutput(this, 'BucketName', { value: websiteBucket.bucketName });
   }
 }

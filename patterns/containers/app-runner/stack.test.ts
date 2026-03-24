@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {AppRunnerStack, appRunnerStackName} from './stack';
+import { Template } from 'aws-cdk-lib/assertions';
+import { AppRunnerStack, appRunnerStackName } from './stack';
 
 describe('AppRunnerStack', () => {
   const app = new cdk.App();

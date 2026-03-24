@@ -1,12 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
-import {apiKeyParameterName} from '../elastic-container-registry/stack';
+import { apiKeyParameterName } from '../elastic-container-registry/stack';
 
 export const ecsEc2AlbComputeStackName = 'EcsEc2AlbComputeStack';
 
@@ -50,24 +50,23 @@ export class EcsEc2AlbComputeStack extends cdk.Stack {
     const repository = ecr.Repository.fromRepositoryName(this, 'Repo', 'hands-on-containers');
 
     taskDef.addContainer('app', {
-      image: ecs.ContainerImage.fromEcrRepository(
-        repository,
-        this.node.tryGetContext('imageDigest') ?? 'latest',
-      ),
+      image: ecs.ContainerImage.fromEcrRepository(repository, this.node.tryGetContext('imageDigest') ?? 'latest'),
       // EC2 task defs set CPU/memory per container (not at task level like Fargate).
       // 256 CPU units = 0.25 vCPU, 512 MiB — matches the Fargate patterns' sizing.
       cpu: 256,
       memoryLimitMiB: 512,
-      portMappings: [{
-        containerPort: 3000,
-        // hostPort 0 = dynamic port mapping: Docker picks a random ephemeral port (32768-65535).
-        // The ECS agent registers this port with the ALB target group, so the ALB knows where to route.
-        // This allows multiple tasks on the same EC2 instance — each gets a different host port.
-        // Alternative: fixed hostPort 3000 — limits to 1 task per instance.
-        hostPort: 0,
-        protocol: ecs.Protocol.TCP,
-      }],
-      logging: ecs.LogDrivers.awsLogs({logGroup: taskLogGroup, streamPrefix: 'ecs'}),
+      portMappings: [
+        {
+          containerPort: 3000,
+          // hostPort 0 = dynamic port mapping: Docker picks a random ephemeral port (32768-65535).
+          // The ECS agent registers this port with the ALB target group, so the ALB knows where to route.
+          // This allows multiple tasks on the same EC2 instance — each gets a different host port.
+          // Alternative: fixed hostPort 3000 — limits to 1 task per instance.
+          hostPort: 0,
+          protocol: ecs.Protocol.TCP,
+        },
+      ],
+      logging: ecs.LogDrivers.awsLogs({ logGroup: taskLogGroup, streamPrefix: 'ecs' }),
       // ECS injects secrets at task start via the execution role (ssm:GetParameters).
       // Alternative: read SSM in EC2 user data (like ec2s-behind-alb) — bakes the key at boot time,
       // stale if rotated, and visible via `docker inspect`. ECS secrets refresh on each task launch.
@@ -97,15 +96,17 @@ export class EcsEc2AlbComputeStack extends cdk.Stack {
       desiredCount: 1,
       // Route tasks to the ASG capacity provider — ECS scales the ASG to match task demand.
       // Without this, ECS would try the default capacity provider strategy (if any) or fail.
-      capacityProviderStrategies: [{
-        capacityProvider: props.capacityProviderName,
-        weight: 1,
-      }],
+      capacityProviderStrategies: [
+        {
+          capacityProvider: props.capacityProviderName,
+          weight: 1,
+        },
+      ],
       // When true, enables `aws ecs execute-command` to open a shell in a running container via SSM.
       // Useful for debugging: aws ecs execute-command --cluster X --task Y --interactive --command /bin/sh
       // Requires ssmmessages:* on the task role. Keep false in production — reduces attack surface.
       enableExecuteCommand: false,
-      
+
       // Rolling update strategy — tuned via these two knobs:
       //   minHealthyPercent=100: old task stays alive until new one passes ALB health checks → no downtime gap.
       //   maxHealthyPercent=200: allows a 2nd task to run temporarily during the cutover.
@@ -115,7 +116,7 @@ export class EcsEc2AlbComputeStack extends cdk.Stack {
       maxHealthyPercent: 200,
       // Circuit breaker: stops retrying and rolls back to the last working task definition after
       // ~10 consecutive failures, instead of looping forever (default ECS behavior without this).
-      circuitBreaker: {enable: true, rollback: true},
+      circuitBreaker: { enable: true, rollback: true },
     });
 
     // --- Target Group ---
@@ -171,7 +172,7 @@ export class EcsEc2AlbComputeStack extends cdk.Stack {
     //   2. Capacity provider managed scaling (cluster stack): adjusts ASG desired count
     //      to ensure enough EC2 instances for the tasks ECS wants to place
     // minCapacity: 1 — target tracking cannot scale to 0; needs at least one task to measure CPU.
-    const scalableTarget = service.autoScaleTaskCount({minCapacity: 1, maxCapacity: 3});
+    const scalableTarget = service.autoScaleTaskCount({ minCapacity: 1, maxCapacity: 3 });
     scalableTarget.scaleOnCpuUtilization('ScaleOnCpu', {
       targetUtilizationPercent: 50,
       scaleInCooldown: cdk.Duration.minutes(5),

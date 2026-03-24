@@ -1,8 +1,8 @@
 import express from 'express';
-import {Cluster} from 'iovalkey';
-import {SecretsManagerClient, GetSecretValueCommand} from '@aws-sdk/client-secrets-manager';
-import {getStackOutputs} from '../../utils';
-import {elasticacheValkeyServerlessStackName} from './stack';
+import { Cluster } from 'iovalkey';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { getStackOutputs } from '../../utils';
+import { elasticacheValkeyServerlessStackName } from './stack';
 
 // Demo server for ElastiCache Valkey Serverless pattern.
 // Runs on a dedicated EC2 inside the VPC — connects to a single endpoint hostname (port 6379 writes, 6380 reads).
@@ -25,10 +25,10 @@ let cluster: Cluster;
   const secretArn = outputs['ValkeySecretArn'];
   const region = process.env.AWS_REGION || 'eu-central-1';
 
-  const smClient = new SecretsManagerClient({region});
-  const secretResult = await smClient.send(new GetSecretValueCommand({SecretId: secretArn}));
+  const smClient = new SecretsManagerClient({ region });
+  const secretResult = await smClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
   const password = secretResult.SecretString!;
-  
+
   // Serverless exposes a single hostname on two ports:
   //   6379 — primary port, handles both reads and writes
   //   6380 — read port, lower-latency eventually-consistent reads via READONLY command
@@ -39,12 +39,13 @@ let cluster: Cluster;
   // the full topology; AWS returns port 6380 reader addresses as replica slots.
   // With scaleReads: 'slave', read commands are routed to those discovered addresses —
   // port 6380 is used automatically without being configured here explicitly.
-  cluster = new Cluster([{host: endpoint, port: 6379}], {
+  cluster = new Cluster([{ host: endpoint, port: 6379 }], {
     // dnsLookup passes hostnames through unchanged so TLS SNI matches the server cert.
     // Without it, dns.lookup() resolves to an IP → TLS has no hostname → cert validation fails.
     dnsLookup: (address, callback) => callback(null, address),
     redisOptions: {
-      username: 'appuser', password,
+      username: 'appuser',
+      password,
       // tls: {} uses Node's default CA store, which trusts AWS's cert.
       tls: {},
       maxRetriesPerRequest: 3,
@@ -67,7 +68,7 @@ let cluster: Cluster;
     retryDelayOnFailover: 300,
     // ms to wait before retrying when the cluster reports CLUSTERDOWN.
     retryDelayOnClusterDown: 300,
-    
+
     // Route reads to both primary and reader endpoints
     scaleReads: 'all',
   });
@@ -79,49 +80,49 @@ let cluster: Cluster;
 
 // GET /set?key=x&value=y
 app.get('/set', async (req, res) => {
-  const {key, value} = req.query as {key: string; value: string};
+  const { key, value } = req.query as { key: string; value: string };
   if (!key || value === undefined) {
-    res.status(400).json({error: 'key and value are required'});
+    res.status(400).json({ error: 'key and value are required' });
     return;
   }
   try {
     await cluster.set(key, value);
-    res.json({ok: true, key, value});
+    res.json({ ok: true, key, value });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
 // GET /get?key=x
 app.get('/get', async (req, res) => {
-  const {key} = req.query as {key: string};
+  const { key } = req.query as { key: string };
   if (!key) {
-    res.status(400).json({error: 'key is required'});
+    res.status(400).json({ error: 'key is required' });
     return;
   }
   try {
     const value = await cluster.get(key);
-    res.json({key, value});
+    res.json({ key, value });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
 // GET /del?key=x
 app.get('/del', async (req, res) => {
-  const {key} = req.query as {key: string};
+  const { key } = req.query as { key: string };
   if (!key) {
-    res.status(400).json({error: 'key is required'});
+    res.status(400).json({ error: 'key is required' });
     return;
   }
   try {
     const deleted = await cluster.del(key);
-    res.json({key, deleted});
+    res.json({ key, deleted });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -159,7 +160,7 @@ app.get('/pipeline', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });
 
@@ -170,17 +171,17 @@ app.get('/info', async (_req, res) => {
   try {
     const nodes = cluster.nodes('all');
     const [serverInfos, replInfos, slots] = await Promise.all([
-      Promise.all(nodes.map(node => node.info('server'))),
-      Promise.all(nodes.map(node => node.info('replication'))),
+      Promise.all(nodes.map((node) => node.info('server'))),
+      Promise.all(nodes.map((node) => node.info('replication'))),
       nodes[0].call('CLUSTER', 'SLOTS'),
     ]);
     res.json({
       connectedNodes: nodes.length,
-      nodes: serverInfos.map((info, i) => ({node: i, server: info, replication: replInfos[i]})),
+      nodes: serverInfos.map((info, i) => ({ node: i, server: info, replication: replInfos[i] })),
       clusterSlots: slots,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({error: String(err)});
+    res.status(500).json({ error: String(err) });
   }
 });

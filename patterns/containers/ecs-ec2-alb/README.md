@@ -38,12 +38,12 @@ ECS EC2 Service  (bridge network mode)
 
 Region: eu-central-1 — 1 Spot instance running 24/7, ~10k requests/month
 
-| Resource | Idle | ~10k req/month | Cost driver |
-|---|---|---|---|
-| ALB | ~$16/mo | ~$16/mo | $0.008/LCU·hr + $0.028/hr fixed |
-| EC2 Spot t4g.micro | ~$1.50/mo | ~$1.50/mo | ~$0.0021/hr Spot (vs $0.0104/hr On-Demand) |
-| CloudWatch Logs | ~$0.50/mo | ~$0.50/mo | Ingestion cost |
-| **Total** | **~$18/mo** | **~$18/mo** | ALB fixed cost dominates |
+| Resource           | Idle        | ~10k req/month | Cost driver                                |
+| ------------------ | ----------- | -------------- | ------------------------------------------ |
+| ALB                | ~$16/mo     | ~$16/mo        | $0.008/LCU·hr + $0.028/hr fixed            |
+| EC2 Spot t4g.micro | ~$1.50/mo   | ~$1.50/mo      | ~$0.0021/hr Spot (vs $0.0104/hr On-Demand) |
+| CloudWatch Logs    | ~$0.50/mo   | ~$0.50/mo      | Ingestion cost                             |
+| **Total**          | **~$18/mo** | **~$18/mo**    | ALB fixed cost dominates                   |
 
 ~40% cheaper than `ecs-fargate-alb` (~$30/mo) primarily because EC2 Spot replaces Fargate compute. The ALB fixed cost (~$16/mo) still dominates at low traffic.
 
@@ -60,6 +60,7 @@ This pattern deploys its own ECS cluster instead of reusing the shared `EcsClust
 **Capacity providers and 2-layer auto-scaling**
 
 Two scaling mechanisms work together:
+
 1. **Service auto-scaling** (compute stack): adjusts the ECS service's desired task count based on CPU utilization (target: 50%).
 2. **Capacity provider managed scaling** (cluster stack): adjusts the ASG's EC2 instance count to match the total task capacity needed. `targetCapacityPercent: 100` means ECS targets full utilization — no spare instances sit idle.
 
@@ -68,6 +69,7 @@ Two scaling mechanisms work together:
 **3-role IAM model**
 
 ECS on EC2 uses 3 IAM roles, vs 2 for Fargate and 1 for raw Docker on EC2:
+
 1. **Instance role** — attached to the EC2 instance; used by the ECS agent for `RegisterContainerInstance`, `DiscoverPollEndpoint`, CloudWatch metrics, and ECR pulls. Managed policy: `AmazonEC2ContainerServiceforEC2Role`.
 2. **Execution role** — CDK auto-creates this; used by ECS to pull images from ECR and inject SSM secrets at task start. Not visible on the instance.
 3. **Task role** — used by the running container to call AWS APIs (none needed here since the app only reads an injected env var).

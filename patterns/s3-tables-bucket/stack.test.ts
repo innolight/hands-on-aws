@@ -1,11 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {S3TablesStack} from './stack';
+import { Template } from 'aws-cdk-lib/assertions';
+import { S3TablesStack } from './stack';
 
 describe('S3TablesStack', () => {
   const app = new cdk.App();
   const stack = new S3TablesStack(app, 'TestStack', {
-    env: {account: '123456789012', region: 'eu-central-1'},
+    env: { account: '123456789012', region: 'eu-central-1' },
   });
   const template = Template.fromStack(stack);
 
@@ -27,7 +27,7 @@ describe('S3TablesStack', () => {
     template.hasResourceProperties('AWS::Athena::WorkGroup', {
       Name: 's3-tables-demo',
       WorkGroupConfiguration: {
-        EngineVersion: {SelectedEngineVersion: 'Athena engine version 3'},
+        EngineVersion: { SelectedEngineVersion: 'Athena engine version 3' },
       },
     });
   });

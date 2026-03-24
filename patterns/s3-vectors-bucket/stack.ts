@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as s3vectors from 'aws-cdk-lib/aws-s3vectors';
 
 export const s3VectorsStackName = 'S3Vectors';
@@ -49,7 +49,7 @@ export class S3VectorsStack extends cdk.Stack {
     // VectorIndex must be created after VectorBucket
     index.addDependency(vectorBucket);
 
-    new cdk.CfnOutput(this, 'VectorBucketName', {value: bucketName});
-    new cdk.CfnOutput(this, 'IndexName', {value: indexName});
+    new cdk.CfnOutput(this, 'VectorBucketName', { value: bucketName });
+    new cdk.CfnOutput(this, 'IndexName', { value: indexName });
   }
 }

@@ -4,15 +4,15 @@ This directory contains CDK patterns for Amazon RDS and Aurora PostgreSQL. Each 
 
 ## Topologies at a Glance
 
-| Topology | Engine | HA | Readable Replicas | Failover | CDK Construct | Cost (idle, eu-central-1) |
-|---|---|---|---|---|---|---|
-| [Single-AZ](#single-az) | RDS | None | 0 | Restore from snapshot (minutes–hours) | `DatabaseInstance` | ~$13/mo (t4g.micro) |
-| [Multi-AZ](#multi-az-standard) | RDS | Auto | 0 — standby is invisible | 60–120s | `DatabaseInstance` | ~$26/mo |
-| [Read Replicas](#read-replicas) | RDS | Manual promote | Up to 15 (async) | Manual — promote replica to standalone | `DatabaseInstanceReadReplica` | +$13/mo per replica |
-| [Multi-AZ Readable Standbys](#multi-az-readable-standbys) | RDS | Auto | 2 (sync) | <35s | `DatabaseCluster` | ~$39/mo |
-| [Aurora Provisioned](#aurora-provisioned) | Aurora | Auto | Up to 15 (zero-lag) | <30s | `DatabaseCluster` | ~$58/mo (writer + 1 reader) |
-| [Aurora Serverless v2](#aurora-serverless-v2) | Aurora | Auto | Up to 15 | <30s | `DatabaseCluster` (serverlessV2) | ~$43/mo (0.5 ACU min) |
-| [Aurora Global Database](#aurora-global-database) | Aurora | Cross-region | 16/region × 5 regions | ~60s cross-region | `DatabaseCluster` + `GlobalCluster` | ~$100+/mo |
+| Topology                                                  | Engine | HA             | Readable Replicas        | Failover                               | CDK Construct                       | Cost (idle, eu-central-1)   |
+| --------------------------------------------------------- | ------ | -------------- | ------------------------ | -------------------------------------- | ----------------------------------- | --------------------------- |
+| [Single-AZ](#single-az)                                   | RDS    | None           | 0                        | Restore from snapshot (minutes–hours)  | `DatabaseInstance`                  | ~$13/mo (t4g.micro)         |
+| [Multi-AZ](#multi-az-standard)                            | RDS    | Auto           | 0 — standby is invisible | 60–120s                                | `DatabaseInstance`                  | ~$26/mo                     |
+| [Read Replicas](#read-replicas)                           | RDS    | Manual promote | Up to 15 (async)         | Manual — promote replica to standalone | `DatabaseInstanceReadReplica`       | +$13/mo per replica         |
+| [Multi-AZ Readable Standbys](#multi-az-readable-standbys) | RDS    | Auto           | 2 (sync)                 | <35s                                   | `DatabaseCluster`                   | ~$39/mo                     |
+| [Aurora Provisioned](#aurora-provisioned)                 | Aurora | Auto           | Up to 15 (zero-lag)      | <30s                                   | `DatabaseCluster`                   | ~$58/mo (writer + 1 reader) |
+| [Aurora Serverless v2](#aurora-serverless-v2)             | Aurora | Auto           | Up to 15                 | <30s                                   | `DatabaseCluster` (serverlessV2)    | ~$43/mo (0.5 ACU min)       |
+| [Aurora Global Database](#aurora-global-database)         | Aurora | Cross-region   | 16/region × 5 regions    | ~60s cross-region                      | `DatabaseCluster` + `GlobalCluster` | ~$100+/mo                   |
 
 ---
 
@@ -284,11 +284,11 @@ Secondary regions accept writes and forward them to the primary over the replica
 
 ## Sub-Patterns
 
-| Pattern | Topology | Status |
-|---|---|---|
-| [`rds-postgres`](./rds-postgres) | Single-AZ + Multi-AZ + RDS Proxy | Done |
-| [`rds-read-replicas`](./rds-read-replicas) | Async read replicas, cross-region DR | Done |
-| [`rds-readable-standbys`](./rds-readable-standbys) | Multi-AZ with 2 readable standbys | Done |
-| [`rds-aurora-provisioned`](./rds-aurora-provisioned) | Aurora writer + readers, custom endpoints | planned |
-| [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling | planned |
-| [`rds-aurora-global`](./rds-aurora-global) | Aurora Global Database + Write Forwarding | planned |
+| Pattern                                                  | Topology                                  | Status  |
+| -------------------------------------------------------- | ----------------------------------------- | ------- |
+| [`rds-postgres`](./rds-postgres)                         | Single-AZ + Multi-AZ + RDS Proxy          | Done    |
+| [`rds-read-replicas`](./rds-read-replicas)               | Async read replicas, cross-region DR      | Done    |
+| [`rds-readable-standbys`](./rds-readable-standbys)       | Multi-AZ with 2 readable standbys         | Done    |
+| [`rds-aurora-provisioned`](./rds-aurora-provisioned)     | Aurora writer + readers, custom endpoints | Done    |
+| [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling      | planned |
+| [`rds-aurora-global`](./rds-aurora-global)               | Aurora Global Database + Write Forwarding | planned |

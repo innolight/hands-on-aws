@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
@@ -64,10 +64,12 @@ export class S3BehindSftpStack extends cdk.Stack {
       assumedBy: new iam.ServicePrincipal('transfer.amazonaws.com'),
     });
     bucket.grantReadWrite(userRole);
-    userRole.addToPolicy(new iam.PolicyStatement({
-      actions: ['s3:ListBucket'],
-      resources: [bucket.bucketArn],
-    }));
+    userRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:ListBucket'],
+        resources: [bucket.bucketArn],
+      }),
+    );
 
     const sshPublicKeyAlice = new cdk.CfnParameter(this, 'SshPublicKeyAlice', {
       type: 'String',
@@ -89,7 +91,7 @@ export class S3BehindSftpStack extends cdk.Stack {
       userName: 'alice',
       role: userRole.roleArn,
       homeDirectoryType: 'LOGICAL',
-      homeDirectoryMappings: [{entry: '/', target: `/${bucket.bucketName}/alice`}],
+      homeDirectoryMappings: [{ entry: '/', target: `/${bucket.bucketName}/alice` }],
       sshPublicKeys: [sshPublicKeyAlice.valueAsString],
     });
 
@@ -98,11 +100,11 @@ export class S3BehindSftpStack extends cdk.Stack {
       userName: 'bob',
       role: userRole.roleArn,
       homeDirectoryType: 'LOGICAL',
-      homeDirectoryMappings: [{entry: '/', target: `/${bucket.bucketName}/bob`}],
+      homeDirectoryMappings: [{ entry: '/', target: `/${bucket.bucketName}/bob` }],
       sshPublicKeys: [sshPublicKeyBob.valueAsString],
     });
 
-    new cdk.CfnOutput(this, 'BucketName', {value: bucket.bucketName});
+    new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });
     new cdk.CfnOutput(this, 'SftpEndpoint', {
       value: `${server.attrServerId}.server.transfer.${cdk.Aws.REGION}.amazonaws.com`,
     });

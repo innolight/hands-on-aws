@@ -1,9 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as apprunner from 'aws-cdk-lib/aws-apprunner';
-import {apiKeyParameterName} from '../elastic-container-registry/stack';
+import { apiKeyParameterName } from '../elastic-container-registry/stack';
 
 export const appRunnerStackName = 'AppRunnerStack';
 
@@ -18,9 +18,7 @@ export class AppRunnerStack extends cdk.Stack {
     // App Runner pulls the image from ECR using this role at deploy time (not runtime)
     const accessRole = new iam.Role(this, 'AccessRole', {
       assumedBy: new iam.ServicePrincipal('build.apprunner.amazonaws.com'),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2ContainerRegistryReadOnly'),
-      ],
+      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2ContainerRegistryReadOnly')],
     });
 
     // ssm:GetParameters on the specific parameter only — principle of least privilege
@@ -41,7 +39,6 @@ export class AppRunnerStack extends cdk.Stack {
       },
     });
 
-    
     // https://docs.aws.amazon.com/apprunner/latest/api/API_CreateAutoScalingConfiguration.html
     const autoScalingConfig = new apprunner.CfnAutoScalingConfiguration(this, 'AutoScaling', {
       autoScalingConfigurationName: 'app-runner-autoscaling',
@@ -61,7 +58,7 @@ export class AppRunnerStack extends cdk.Stack {
             port: '3000',
             // runtimeEnvironmentSecrets fetches the SSM value at container startup — the
             // plaintext value is never written to CloudFormation or visible in the console
-            runtimeEnvironmentSecrets: [{name: 'API_KEY', value: ssmParameterArn}],
+            runtimeEnvironmentSecrets: [{ name: 'API_KEY', value: ssmParameterArn }],
           },
         },
         authenticationConfiguration: {
@@ -90,6 +87,6 @@ export class AppRunnerStack extends cdk.Stack {
       autoScalingConfigurationArn: autoScalingConfig.attrAutoScalingConfigurationArn,
     });
 
-    new cdk.CfnOutput(this, 'ServiceUrl', {value: `https://${service.attrServiceUrl}`});
+    new cdk.CfnOutput(this, 'ServiceUrl', { value: `https://${service.attrServiceUrl}` });
   }
 }

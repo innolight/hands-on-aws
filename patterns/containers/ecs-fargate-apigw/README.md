@@ -29,14 +29,14 @@ ECS Fargate Task  (private subnet, port 3000)
 
 Region: eu-central-1 — 1 task running 24/7, ~10k requests/month
 
-| Resource | Idle | ~10k req/month | Cost driver |
-|---|---|---|---|
-| Fargate (256 CPU / 512 MB) | ~$9/mo | ~$9/mo | $0.04048/vCPU·hr + $0.004445/GB·hr |
-| API Gateway HTTP API | $0 | ~$0.01 | $1/million requests |
-| VPC Link | $0 | $0 | No per-link charge |
-| Cloud Map (private DNS) | $0 | $0 | Private namespaces are free |
-| CloudWatch Logs | ~$0.50/mo | ~$0.50/mo | Ingestion cost |
-| **Total** | **~$10/mo\*** | **~$10/mo** | |
+| Resource                   | Idle          | ~10k req/month | Cost driver                        |
+| -------------------------- | ------------- | -------------- | ---------------------------------- |
+| Fargate (256 CPU / 512 MB) | ~$9/mo        | ~$9/mo         | $0.04048/vCPU·hr + $0.004445/GB·hr |
+| API Gateway HTTP API       | $0            | ~$0.01         | $1/million requests                |
+| VPC Link                   | $0            | $0             | No per-link charge                 |
+| Cloud Map (private DNS)    | $0            | $0             | Private namespaces are free        |
+| CloudWatch Logs            | ~$0.50/mo     | ~$0.50/mo      | Ingestion cost                     |
+| **Total**                  | **~$10/mo\*** | **~$10/mo**    |                                    |
 
 \* The ~$10/mo is the Fargate task. API GW + VPC Link + Cloud Map have no idle cost, so scale-to-zero is architecturally possible — see Notes.
 
@@ -45,8 +45,6 @@ Region: eu-central-1 — 1 task running 24/7, ~10k requests/month
 **Stack split: cluster → compute → networking**
 
 This pattern uses three stacks. `EcsClusterStack` owns the ECS cluster and Cloud Map namespace — deployed once, shared across services. `EcsFargateComputeStack` owns the task definition, Fargate service, task SG, and auto-scaling — changes on every service deploy. `EcsFargateNetworkingStack` owns the VPC Link, HTTP API, routes, and the SG ingress rule — wired up last because it depends on both the Cloud Map service (from compute) and the task SG. The networking stack adds the ingress rule via L1 `CfnSecurityGroupIngress` rather than mutating the task SG directly, keeping cross-stack coupling explicit and unidirectional.
-
-
 
 **Why Cloud Map instead of an ALB?**
 

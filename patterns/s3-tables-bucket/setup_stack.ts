@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cr from 'aws-cdk-lib/custom-resources';
 
@@ -18,7 +18,7 @@ export class S3TablesLakeFormationSetupStack extends cdk.Stack {
       roleName: 'S3TablesRoleForLakeFormation',
       assumedBy: new iam.ServicePrincipal('lakeformation.amazonaws.com', {
         conditions: {
-          StringEquals: {'aws:SourceAccount': this.account},
+          StringEquals: { 'aws:SourceAccount': this.account },
         },
       }),
       inlinePolicies: {
@@ -31,10 +31,18 @@ export class S3TablesLakeFormationSetupStack extends cdk.Stack {
             new iam.PolicyStatement({
               actions: [
                 's3tables:GetTableBucket',
-                's3tables:CreateNamespace', 's3tables:GetNamespace', 's3tables:ListNamespaces', 's3tables:DeleteNamespace',
-                's3tables:CreateTable', 's3tables:DeleteTable', 's3tables:GetTable', 's3tables:ListTables',
-                's3tables:GetTableMetadataLocation', 's3tables:UpdateTableMetadataLocation',
-                's3tables:GetTableData', 's3tables:PutTableData',
+                's3tables:CreateNamespace',
+                's3tables:GetNamespace',
+                's3tables:ListNamespaces',
+                's3tables:DeleteNamespace',
+                's3tables:CreateTable',
+                's3tables:DeleteTable',
+                's3tables:GetTable',
+                's3tables:ListTables',
+                's3tables:GetTableMetadataLocation',
+                's3tables:UpdateTableMetadataLocation',
+                's3tables:GetTableData',
+                's3tables:PutTableData',
               ],
               resources: [s3TablesResourceArn],
             }),
@@ -49,7 +57,7 @@ export class S3TablesLakeFormationSetupStack extends cdk.Stack {
         principals: [new iam.ServicePrincipal('lakeformation.amazonaws.com')],
         actions: ['sts:SetContext', 'sts:SetSourceIdentity'],
         conditions: {
-          StringEquals: {'aws:SourceAccount': this.account},
+          StringEquals: { 'aws:SourceAccount': this.account },
         },
       }),
     );
@@ -61,7 +69,9 @@ export class S3TablesLakeFormationSetupStack extends cdk.Stack {
     if (lfAdminArn === 'PLACEHOLDER') {
       // Annotation instead of throw — lets other stacks synthesize unaffected.
       // Deploy will fail; synth of this stack produces a warning-marked template.
-      cdk.Annotations.of(this).addError('Required context variable "lfAdmin" not set. Pass -c lfAdmin=<your IAM user/role ARN>');
+      cdk.Annotations.of(this).addError(
+        'Required context variable "lfAdmin" not set. Pass -c lfAdmin=<your IAM user/role ARN>',
+      );
     }
 
     // All AwsCustomResources in this stack share one singleton Lambda (AWS679f53...).
@@ -74,7 +84,7 @@ export class S3TablesLakeFormationSetupStack extends cdk.Stack {
         action: 'getCallerIdentity',
         physicalResourceId: cr.PhysicalResourceId.of('lambda-bootstrap'),
       },
-      policy: cr.AwsCustomResourcePolicy.fromSdkCalls({resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE}),
+      policy: cr.AwsCustomResourcePolicy.fromSdkCalls({ resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE }),
     });
     const lambdaRoleArn = (lambdaBootstrap.grantPrincipal as iam.IRole).roleArn;
 
@@ -89,17 +99,21 @@ export class S3TablesLakeFormationSetupStack extends cdk.Stack {
         parameters: {
           DataLakeSettings: {
             DataLakeAdmins: [
-              {DataLakePrincipalIdentifier: lfAdminArn},
-              {DataLakePrincipalIdentifier: lambdaRoleArn},
+              { DataLakePrincipalIdentifier: lfAdminArn },
+              { DataLakePrincipalIdentifier: lambdaRoleArn },
             ],
-            CreateDatabaseDefaultPermissions: [{
-              Principal: {DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS'},
-              Permissions: ['ALL'],
-            }],
-            CreateTableDefaultPermissions: [{
-              Principal: {DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS'},
-              Permissions: ['ALL'],
-            }],
+            CreateDatabaseDefaultPermissions: [
+              {
+                Principal: { DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS' },
+                Permissions: ['ALL'],
+              },
+            ],
+            CreateTableDefaultPermissions: [
+              {
+                Principal: { DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS' },
+                Permissions: ['ALL'],
+              },
+            ],
           },
         },
         physicalResourceId: cr.PhysicalResourceId.of('lf-admin-settings'),
@@ -204,8 +218,8 @@ export class S3TablesLakeFormationSetupStack extends cdk.Stack {
         service: 'LakeFormation',
         action: 'grantPermissions',
         parameters: {
-          Principal: {DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS'},
-          Resource: {Catalog: {Id: `${this.account}:s3tablescatalog`}},
+          Principal: { DataLakePrincipalIdentifier: 'IAM_ALLOWED_PRINCIPALS' },
+          Resource: { Catalog: { Id: `${this.account}:s3tablescatalog` } },
           Permissions: ['ALL'],
         },
         physicalResourceId: cr.PhysicalResourceId.of('principal-grants'),
@@ -227,7 +241,7 @@ export class S3TablesLakeFormationSetupStack extends cdk.Stack {
     });
     principalGrants.node.addDependency(glueCatalog);
 
-    new cdk.CfnOutput(this, 'OutputRoleArn', {key: 'LakeFormationRoleArn', value: lakeFormationRole.roleArn});
-    new cdk.CfnOutput(this, 'OutputCatalogName', {key: 'GlueCatalogName', value: 's3tablescatalog'});
+    new cdk.CfnOutput(this, 'OutputRoleArn', { key: 'LakeFormationRoleArn', value: lakeFormationRole.roleArn });
+    new cdk.CfnOutput(this, 'OutputCatalogName', { key: 'GlueCatalogName', value: 's3tablescatalog' });
   }
 }

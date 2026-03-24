@@ -24,10 +24,10 @@ Private resource (ElastiCache, RDS, …)
 
 Region: `eu-central-1`. Assumes 24/7 idle.
 
-| Resource | Idle | ~1 unit/mo | Cost driver |
-|---|---|---|---|
-| EC2 t4g.nano | ~$3/mo | — | Instance uptime |
-| SSM Session Manager | $0 | — | Free for EC2 instances |
+| Resource            | Idle   | ~1 unit/mo | Cost driver            |
+| ------------------- | ------ | ---------- | ---------------------- |
+| EC2 t4g.nano        | ~$3/mo | —          | Instance uptime        |
+| SSM Session Manager | $0     | —          | Free for EC2 instances |
 
 Dominant cost: instance uptime (~$3/mo). Stop the instance when not in use.
 

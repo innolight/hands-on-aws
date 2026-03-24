@@ -27,6 +27,7 @@ Local demo server
 ```
 
 Components:
+
 - **[OpenSearch Serverless](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless.html)** — fully managed OpenSearch with OCU-based billing, no node management. `SEARCH` type is optimised for low-latency, high-concurrency query workloads.
 - **[Encryption policy](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless-encryption.html)** — AWS-owned KMS key applied to the collection at rest.
 - **[Network policy](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless-network.html)** — restricts access to the VPC endpoint only; no public endpoint is created.
@@ -36,6 +37,7 @@ Components:
 - **[SigV4 signing](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html)** — all requests signed with `service: 'aoss'`; no username/password auth for Serverless.
 
 Data flow:
+
 1. Demo server signs each HTTP request with SigV4 (service `aoss`) using local AWS credentials
 2. Request is sent to `https://localhost:8443` — the local end of the SSM tunnel
 3. SSM forwards it to the AOSS VPC interface endpoint inside the VPC
@@ -45,12 +47,12 @@ Data flow:
 
 > Region: eu-central-1. Minimum OCU allocation with `standbyReplicas: DISABLED`.
 
-| Resource | Idle | ~10K docs/month | Cost driver |
-|---|---|---|---|
-| OpenSearch Serverless (2 OCU min) | **$0.48/hr ≈ $346/mo** | Same | OCU minimum — billed even with zero traffic |
-| VPC interface endpoint | ~$7/mo | ~$7/mo | 1 ENI per AZ × hourly rate |
-| EC2 bastion (t4g.nano) | ~$3/mo | ~$3/mo | Instance uptime |
-| **Total** | **~$356/mo** | **~$356/mo** | OCU minimum dominates |
+| Resource                          | Idle                   | ~10K docs/month | Cost driver                                 |
+| --------------------------------- | ---------------------- | --------------- | ------------------------------------------- |
+| OpenSearch Serverless (2 OCU min) | **$0.48/hr ≈ $346/mo** | Same            | OCU minimum — billed even with zero traffic |
+| VPC interface endpoint            | ~$7/mo                 | ~$7/mo          | 1 ENI per AZ × hourly rate                  |
+| EC2 bastion (t4g.nano)            | ~$3/mo                 | ~$3/mo          | Instance uptime                             |
+| **Total**                         | **~$356/mo**           | **~$356/mo**    | OCU minimum dominates                       |
 
 **Warning**: OCUs are billed continuously regardless of traffic. **Destroy this stack when done.**
 
@@ -121,11 +123,13 @@ AWS_REGION=eu-central-1 npx ts-node patterns/opensearch-serverless/demo_server.t
 ### Interact
 
 **Create index** (run once before indexing):
+
 ```bash
 curl -s -X PUT http://localhost:3000/index | jq
 ```
 
 **Index a product:**
+
 ```bash
 curl -s -X POST http://localhost:3000/products \
   -H 'Content-Type: application/json' \
@@ -133,6 +137,7 @@ curl -s -X POST http://localhost:3000/products \
 ```
 
 **Bulk index products:**
+
 ```bash
 curl -s -X POST http://localhost:3000/products/_bulk \
   -H 'Content-Type: application/json' \
@@ -146,6 +151,7 @@ curl -s -X POST http://localhost:3000/products/_bulk \
 Wait ~10s for the refresh before searching.
 
 **Full-text search:**
+
 ```bash
 curl -s "http://localhost:3000/search?q=coffee" | jq
 curl -s "http://localhost:3000/search?q=headphones&limit=5" | jq
@@ -155,6 +161,7 @@ curl -s "http://localhost:3000/search?q=&limit=2&search_after=%5B1.0%2C%22p1%22%
 ```
 
 **Advanced search with filters and aggregations:**
+
 ```bash
 # Electronics under $130, in stock
 curl -s "http://localhost:3000/search/advanced?category=electronics&maxPrice=130&inStock=true" | jq
@@ -164,16 +171,19 @@ curl -s "http://localhost:3000/search/advanced?q=grinder&minPrice=40&maxPrice=10
 ```
 
 **Get by ID:**
+
 ```bash
 curl -s http://localhost:3000/products/p1 | jq
 ```
 
 **Delete a document:**
+
 ```bash
 curl -s -X DELETE http://localhost:3000/products/p1 | jq
 ```
 
 **Delete index:**
+
 ```bash
 curl -s -X DELETE http://localhost:3000/index | jq
 ```

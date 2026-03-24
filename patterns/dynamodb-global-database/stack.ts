@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 
 export const dynamodbGlobalDatabaseStackName = 'DynamodbGlobalDatabase';
@@ -19,8 +19,8 @@ export class DynamodbGlobalDatabaseStack extends cdk.Stack {
     // Schema: pk=USER#<userId> | sk=POST#<postId> | entityType | title | body | origin | updatedAt
     const table = new dynamodb.TableV2(this, 'GlobalTable', {
       tableName: 'global-content',
-      partitionKey: {name: 'pk', type: dynamodb.AttributeType.STRING},
-      sortKey: {name: 'sk', type: dynamodb.AttributeType.STRING},
+      partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       // onDemand avoids capacity planning for a demo with unpredictable traffic.
       billing: dynamodb.Billing.onDemand(),
       // !! Change the following in production.
@@ -30,7 +30,7 @@ export class DynamodbGlobalDatabaseStack extends cdk.Stack {
       replicas: [
         // Two regions is the minimum for a valid global table. A second replica
         // suffices to demonstrate cross-region replication and LWW conflict resolution.
-        {region: 'us-east-1'},
+        { region: 'us-east-1' },
       ],
       // TableV2 (Global Tables v2019.11.21) uses last-writer-wins conflict
       // resolution based on DynamoDB's internal timestamp (_aws_ddb_lsn).
@@ -42,14 +42,14 @@ export class DynamodbGlobalDatabaseStack extends cdk.Stack {
           // GSIs defined on TableV2 are automatically replicated to all replicas —
           // no per-replica GSI configuration is needed.
           indexName: 'byOrigin',
-          partitionKey: {name: 'origin', type: dynamodb.AttributeType.STRING},
+          partitionKey: { name: 'origin', type: dynamodb.AttributeType.STRING },
         },
       ],
     });
 
-    new cdk.CfnOutput(this, 'TableName', {value: table.tableName});
+    new cdk.CfnOutput(this, 'TableName', { value: table.tableName });
     // Expose both region names so demo_server.ts can discover them via getStackOutputs.
-    new cdk.CfnOutput(this, 'RegionEU', {value: cdk.Aws.REGION});
-    new cdk.CfnOutput(this, 'RegionUS', {value: 'us-east-1'});
+    new cdk.CfnOutput(this, 'RegionEU', { value: cdk.Aws.REGION });
+    new cdk.CfnOutput(this, 'RegionUS', { value: 'us-east-1' });
   }
 }

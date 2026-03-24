@@ -17,6 +17,7 @@ npx cdk destroy       # tear down a deployed stack
 ```
 
 Run a single test file:
+
 ```bash
 npx jest patterns/<pattern-name>/stack.test.ts
 ```
@@ -24,6 +25,7 @@ npx jest patterns/<pattern-name>/stack.test.ts
 Note: `pnpm run test -- --testPathPattern=<pattern>` does not work — pnpm escapes the `=` in `--testPathPattern\=`, causing Jest to find zero matches even when the file exists. Use `npx jest <path>` to target a specific file.
 
 Run the demo server for a pattern (e.g., s3-events-notification):
+
 ```bash
 AWS_REGION=eu-central-1 npx ts-node patterns/s3-events-notification/demo_server.ts
 ```
@@ -35,6 +37,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 **Entry point:** `bin/cdk.ts` — instantiates all CDK stacks and registers them with the CDK app. Each new pattern stack must be imported and instantiated here.
 
 **Pattern structure:** Each pattern lives in `patterns/<pattern-name>/` and typically contains:
+
 - `stack.ts` — the CDK Stack class (simple single-stack patterns)
 - `stack_<role>.ts` — for multi-stack patterns, one file per stack named after its role (e.g., `stack_ecs_cluster.ts`, `stack_compute.ts`, `stack_networking.ts`)
 - `stack_step*.ts` — for multi-step patterns requiring ordered deployment across regions
@@ -50,6 +53,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 **Multi-step patterns:** Some patterns require deploying stacks in a specific order across regions (e.g., `s3-cross-region-replication` deploys a destination bucket to `eu-west-1` first, then a source bucket to the default region).
 
 **README.md structure** — each pattern README should follow this order:
+
 1. **Pattern Description** — ASCII architecture diagram followed by a bullet list of components and data flow; link each AWS service/concept to its official docs
 2. **Cost** — table with columns: Resource | Idle | ~N unit/month | Cost driver; include region and workload assumption in the header; state the dominant cost driver
 3. **Notes** — non-obvious decisions, production caveats, alternatives considered
@@ -60,7 +64,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 **stack.ts commenting conventions** — comments are educational, not decorative. Each comment should teach something a reader couldn't immediately infer from the code:
 
 - **Class-level comment**: one line describing the data flow, e.g. `// upload image to S3 → Lambda → Rekognition detectLabels → DynamoDB`
-- **Construct comments**: explain *why* a config option was chosen, not what it does. Examples:
+- **Construct comments**: explain _why_ a config option was chosen, not what it does. Examples:
   - `// PAY_PER_REQUEST avoids provisioned capacity costs for sporadic workloads`
   - `// externalModules: ['@aws-sdk/*'] — Lambda Node 20 runtime ships SDK v3; bundling it adds size with no benefit`
 - **Alternative comments**: when a real alternative exists and the tradeoff matters, state it. Example:
@@ -72,6 +76,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 - **Don't comment** self-evident code (e.g. `// create bucket`, `// outputs`).
 
 **Stack conventions:**
+
 - Stacks use `removalPolicy: DESTROY` and `autoDeleteObjects: true` for easy cleanup — note these as non-production settings when adding new patterns
 - Stack outputs (`CfnOutput`) are the mechanism for passing resource info to demo servers via `getStackOutputs`
 - Default region is `eu-central-1` (set via `CDK_DEFAULT_REGION`; CDK resolves account/region automatically from the AWS CLI profile)
@@ -82,6 +87,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
   - **Networking** (API Gateway, VPC Link, routes, SG ingress rules) — wired up last; owns the ingress rule via `CfnSecurityGroupIngress` so the compute stack stays self-contained
 
   A stack should not mix slow-changing shared infrastructure with fast-changing per-service resources. When in doubt, ask: "If I redeploy this stack, what's the blast radius?" If the answer includes resources unrelated to the change, split.
+
 - Datastore stacks (e.g., OpenSearch, ElastiCache) must not assume how they will be consumed. They expose security groups and resource identifiers as `public readonly` properties. Consumer/app stacks wire up access (SG ingress, IAM, etc.) separately using L1 `CfnSecurityGroupIngress` to avoid cross-stack mutation. Deploy order: shared infra → datastore → consumer app stacks.
 
 # Behavioural Guideline
@@ -91,6 +97,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
 
 Before implementing:
+
 - State your assumptions explicitly. If uncertain, ask.
 - If multiple interpretations exist, present them - don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
@@ -113,12 +120,14 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 **Touch only what you must. Clean up only your own mess.**
 
 When editing existing code:
+
 - Don't "improve" adjacent code, comments, or formatting.
 - Don't refactor things that aren't broken.
 - Match existing style, even if you'd do it differently.
 - If you notice unrelated dead code, mention it - don't delete it.
 
 When your changes create orphans:
+
 - Remove imports/variables/functions that YOUR changes made unused.
 - Don't remove pre-existing dead code unless asked.
 
@@ -129,11 +138,13 @@ The test: Every changed line should trace directly to the user's request.
 **Define success criteria. Loop until verified.**
 
 Transform tasks into verifiable goals:
+
 - "Add validation" → "Write tests for invalid inputs, then make them pass"
 - "Fix the bug" → "Write a test that reproduces it, then make it pass"
 - "Refactor X" → "Ensure tests pass before and after"
 
 For multi-step tasks, state a brief plan:
+
 ```
 1. [Step] → verify: [check]
 2. [Step] → verify: [check]

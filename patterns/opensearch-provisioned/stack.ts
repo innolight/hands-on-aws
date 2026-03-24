@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as opensearch from 'aws-cdk-lib/aws-opensearchservice';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -32,12 +32,12 @@ export class OpenSearchProvisionedStack extends cdk.Stack {
         // t3 instances are burstable — suitable for dev/learning workloads.
         // Graduate to m6g (Graviton) for sustained production throughput.
         dataNodeInstanceType: 't3.small.search',
-        
+
         // No dedicated master nodes: acceptable for ≤10 data nodes.
         // Dedicated masters manage cluster state (shard allocation, index metadata)
         // without competing with query/indexing workloads.
         masterNodes: 0,
-        
+
         // Multi-AZ with Standby adds a dedicated standby node for faster failover.
         // t3 instances don't support it; requires r5/m5/c5 or newer.
         multiAzWithStandbyEnabled: false,
@@ -55,13 +55,13 @@ export class OpenSearchProvisionedStack extends cdk.Stack {
         availabilityZoneCount: 2,
       },
       // Two zone, two data notes, two subnets.
-      vpcSubnets: [{subnets: props.vpc.isolatedSubnets.slice(0, 2)}], 
+      vpcSubnets: [{ subnets: props.vpc.isolatedSubnets.slice(0, 2) }],
       vpc: props.vpc,
       securityGroups: [domainSG],
       // All three encryption settings are immutable after domain creation.
       enforceHttps: true,
       nodeToNodeEncryption: true,
-      encryptionAtRest: {enabled: true},
+      encryptionAtRest: { enabled: true },
       logging: {
         slowSearchLogEnabled: true,
         appLogEnabled: true,
@@ -81,7 +81,7 @@ export class OpenSearchProvisionedStack extends cdk.Stack {
       }),
     );
 
-    new cdk.CfnOutput(this, 'DomainEndpoint', {value: `https://${domain.domainEndpoint}`});
-    new cdk.CfnOutput(this, 'DomainName', {value: domain.domainName});
+    new cdk.CfnOutput(this, 'DomainEndpoint', { value: `https://${domain.domainEndpoint}` });
+    new cdk.CfnOutput(this, 'DomainName', { value: domain.domainName });
   }
 }

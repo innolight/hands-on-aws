@@ -1,9 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
-import {Match, Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../../vpc-subnets/stack';
-import {EcsEc2AlbNetworkingStack} from './stack_networking';
-import {EcsEc2ClusterStack} from './stack_cluster';
-import {EcsEc2AlbComputeStack} from './stack_compute';
+import { Match, Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../../vpc-subnets/stack';
+import { EcsEc2AlbNetworkingStack } from './stack_networking';
+import { EcsEc2ClusterStack } from './stack_cluster';
+import { EcsEc2AlbComputeStack } from './stack_compute';
 
 describe('EcsEc2AlbNetworkingStack', () => {
   const app = new cdk.App();
@@ -109,7 +109,7 @@ describe('EcsEc2AlbComputeStack', () => {
       Conditions: Match.arrayWith([
         Match.objectLike({
           Field: 'path-pattern',
-          PathPatternConfig: {Values: ['/ecs-ec2-alb', '/ecs-ec2-alb/*']},
+          PathPatternConfig: { Values: ['/ecs-ec2-alb', '/ecs-ec2-alb/*'] },
         }),
       ]),
     });

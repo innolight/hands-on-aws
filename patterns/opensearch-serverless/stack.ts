@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as oss from 'aws-cdk-lib/aws-opensearchserverless';
 
@@ -35,7 +35,7 @@ export class OpenSearchServerlessStack extends cdk.Stack {
       name: `${collectionName}-encryption`,
       type: 'encryption',
       policy: JSON.stringify({
-        Rules: [{ResourceType: 'collection', Resource: [`collection/${collectionName}`]}],
+        Rules: [{ ResourceType: 'collection', Resource: [`collection/${collectionName}`] }],
         AWSOwnedKey: true,
       }),
     });
@@ -46,7 +46,7 @@ export class OpenSearchServerlessStack extends cdk.Stack {
     const vpcEndpoint = new oss.CfnVpcEndpoint(this, 'VpcEndpoint', {
       name: `${collectionName}-vpce`,
       vpcId: props.vpc.vpcId,
-      subnetIds: props.vpc.isolatedSubnets.map(s => s.subnetId),
+      subnetIds: props.vpc.isolatedSubnets.map((s) => s.subnetId),
       securityGroupIds: [vpcEndpointSG.securityGroupId],
     });
 
@@ -60,8 +60,8 @@ export class OpenSearchServerlessStack extends cdk.Stack {
       policy: JSON.stringify([
         {
           Rules: [
-            {ResourceType: 'collection', Resource: [`collection/${collectionName}`]},
-            {ResourceType: 'dashboard', Resource: [`collection/${collectionName}`]},
+            { ResourceType: 'collection', Resource: [`collection/${collectionName}`] },
+            { ResourceType: 'dashboard', Resource: [`collection/${collectionName}`] },
           ],
           AllowFromPublic: false,
           SourceVPCEs: [vpcEndpoint.ref],
@@ -82,12 +82,24 @@ export class OpenSearchServerlessStack extends cdk.Stack {
             {
               ResourceType: 'collection',
               Resource: [`collection/${collectionName}`],
-              Permission: ['aoss:CreateCollectionItems', 'aoss:DeleteCollectionItems', 'aoss:UpdateCollectionItems', 'aoss:DescribeCollectionItems'],
+              Permission: [
+                'aoss:CreateCollectionItems',
+                'aoss:DeleteCollectionItems',
+                'aoss:UpdateCollectionItems',
+                'aoss:DescribeCollectionItems',
+              ],
             },
             {
               ResourceType: 'index',
               Resource: [`index/${collectionName}/*`],
-              Permission: ['aoss:CreateIndex', 'aoss:DeleteIndex', 'aoss:UpdateIndex', 'aoss:DescribeIndex', 'aoss:ReadDocument', 'aoss:WriteDocument'],
+              Permission: [
+                'aoss:CreateIndex',
+                'aoss:DeleteIndex',
+                'aoss:UpdateIndex',
+                'aoss:DescribeIndex',
+                'aoss:ReadDocument',
+                'aoss:WriteDocument',
+              ],
             },
           ],
           Principal: [`arn:aws:iam::${this.account}:root`],
@@ -109,9 +121,9 @@ export class OpenSearchServerlessStack extends cdk.Stack {
     collection.addDependency(networkPolicy);
     collection.addDependency(dataAccessPolicy);
 
-    new cdk.CfnOutput(this, 'CollectionEndpoint', {value: collection.attrCollectionEndpoint});
-    new cdk.CfnOutput(this, 'CollectionName', {value: collectionName});
-    new cdk.CfnOutput(this, 'DashboardEndpoint', {value: collection.attrDashboardEndpoint});
-    new cdk.CfnOutput(this, 'VpcEndpointId', {value: vpcEndpoint.ref});
+    new cdk.CfnOutput(this, 'CollectionEndpoint', { value: collection.attrCollectionEndpoint });
+    new cdk.CfnOutput(this, 'CollectionName', { value: collectionName });
+    new cdk.CfnOutput(this, 'DashboardEndpoint', { value: collection.attrDashboardEndpoint });
+    new cdk.CfnOutput(this, 'VpcEndpointId', { value: vpcEndpoint.ref });
   }
 }

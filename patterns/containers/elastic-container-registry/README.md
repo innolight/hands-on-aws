@@ -25,11 +25,11 @@ SSM Parameter Store
 
 Region: eu-central-1 — a single small image, low request volume
 
-| Resource | Idle | ~1 image push/day | Cost driver |
-|---|---|---|---|
-| ECR storage | ~$0.01/mo | ~$0.01/mo | $0.10/GB/mo; tiny image |
-| ECR data transfer | $0 | ~$0 | Free within same region |
-| SSM SecureString | $0.05/mo | $0.05/mo | Standard param, KMS API calls negligible |
+| Resource          | Idle      | ~1 image push/day | Cost driver                              |
+| ----------------- | --------- | ----------------- | ---------------------------------------- |
+| ECR storage       | ~$0.01/mo | ~$0.01/mo         | $0.10/GB/mo; tiny image                  |
+| ECR data transfer | $0        | ~$0               | Free within same region                  |
+| SSM SecureString  | $0.05/mo  | $0.05/mo          | Standard param, KMS API calls negligible |
 
 Dominant cost: negligible — ECR and SSM are near-free at this scale.
 
@@ -58,13 +58,13 @@ Three approaches, in order of preference:
 
 **SSM Parameter Store vs Secrets Manager**
 
-| | SSM SecureString | Secrets Manager |
-|---|---|---|
-| Value type | Single string | String or JSON object |
-| Cost | ~$0.05/mo | $0.40/secret/mo + $0.05/10k API calls |
-| Automatic rotation | No | Yes (via Lambda) |
-| Cross-account access | No | Yes |
-| Native container injection | ECS, App Runner, Lambda | ECS, App Runner, Lambda |
+|                            | SSM SecureString        | Secrets Manager                       |
+| -------------------------- | ----------------------- | ------------------------------------- |
+| Value type                 | Single string           | String or JSON object                 |
+| Cost                       | ~$0.05/mo               | $0.40/secret/mo + $0.05/10k API calls |
+| Automatic rotation         | No                      | Yes (via Lambda)                      |
+| Cross-account access       | No                      | Yes                                   |
+| Native container injection | ECS, App Runner, Lambda | ECS, App Runner, Lambda               |
 
 Use SSM for simple string secrets (API keys, tokens). Use Secrets Manager when you need a structured object, automatic rotation, or cross-account access. For this pattern SSM is sufficient — `API_KEY` is a single string you manage yourself, so rotation adds no value.
 
@@ -100,7 +100,7 @@ npx cdk deploy ElasticContainerRegistryStack
 **2. Build and push the container image (multi-arch)**
 
 [build_and_push.sh](./build_and_push.sh) build push Multi-arch images. App Runner requires x86_64; ECS/Lambda patterns use ARM64.
- 
+
 ```bash
 ./patterns/containers/elastic-container-registry/build_and_push.sh
 ```

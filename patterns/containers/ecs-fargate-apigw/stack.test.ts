@@ -1,9 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
-import {Template} from 'aws-cdk-lib/assertions';
-import {VpcSubnetsStack} from '../../vpc-subnets/stack';
-import {EcsClusterStack} from './stack_ecs_cluster';
-import {EcsFargateComputeStack} from './stack_compute';
-import {EcsFargateNetworkingStack} from './stack_networking';
+import { Template } from 'aws-cdk-lib/assertions';
+import { VpcSubnetsStack } from '../../vpc-subnets/stack';
+import { EcsClusterStack } from './stack_ecs_cluster';
+import { EcsFargateComputeStack } from './stack_compute';
+import { EcsFargateNetworkingStack } from './stack_networking';
 
 describe('EcsClusterStack', () => {
   const app = new cdk.App();

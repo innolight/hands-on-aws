@@ -1,6 +1,6 @@
-import {DynamoDBStreamEvent} from 'aws-lambda';
-import {unmarshall} from '@aws-sdk/util-dynamodb';
-import {AttributeValue} from '@aws-sdk/client-dynamodb';
+import { DynamoDBStreamEvent } from 'aws-lambda';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { AttributeValue } from '@aws-sdk/client-dynamodb';
 
 // The handler receives a batch of records from the DynamoDB stream.
 // If any record in the batch causes an unhandled error, the entire batch
@@ -13,13 +13,13 @@ export const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
     console.log(`EventID: ${record.eventID}`);
     console.log(`EventName: ${record.eventName}`);
 
-    // unmarshall converts DynamoDB JSON format (e.g. { "S": "val" }) 
+    // unmarshall converts DynamoDB JSON format (e.g. { "S": "val" })
     // to standard JavaScript objects (e.g. { key: "val" }).
-    const oldImage = record.dynamodb?.OldImage 
-      ? unmarshall(record.dynamodb.OldImage as Record<string, AttributeValue>) 
+    const oldImage = record.dynamodb?.OldImage
+      ? unmarshall(record.dynamodb.OldImage as Record<string, AttributeValue>)
       : null;
-    const newImage = record.dynamodb?.NewImage 
-      ? unmarshall(record.dynamodb.NewImage as Record<string, AttributeValue>) 
+    const newImage = record.dynamodb?.NewImage
+      ? unmarshall(record.dynamodb.NewImage as Record<string, AttributeValue>)
       : null;
 
     console.log('Old Image:', JSON.stringify(oldImage, null, 2));
