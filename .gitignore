@@ -9,3 +9,6 @@ dist
 .cdk.staging
 cdk.out
 cdk.out.tmp
+
+# Local Code Editor settings
+.vscode
