@@ -53,7 +53,7 @@ describe('RdsAuroraProvisionedStack', () => {
     });
   });
 
-  test('creates 2 custom cluster endpoints', () => {
-    template.resourceCountIs('AWS::RDS::DBClusterEndpoint', 2);
+  test('creates 2 custom cluster endpoints via AwsCustomResource', () => {
+    template.resourceCountIs('Custom::AWS', 2);
   });
 });

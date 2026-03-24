@@ -46,14 +46,14 @@ EC2 Bastion (public subnet)
 
 Region: `eu-central-1`. Assumes 24/7 idle, minimal throughput.
 
-| Resource                     | Idle      | ~N unit/month | Cost driver                                         |
-| ---------------------------- | --------- | ------------- | --------------------------------------------------- |
-| RDS `db.t4g.micro` Single-AZ | ~$13/mo   | —             | Per-instance-hour billing                           |
-| RDS `db.t4g.micro` Multi-AZ  | ~$26/mo   | —             | 2× instance hours (standby is invisible but billed) |
-| GP3 storage 20 GiB           | ~$2.30/mo | —             | $0.115/GiB-month                                    |
+| Resource                     | Idle      | ~N unit/month | Cost driver                                          |
+| ---------------------------- | --------- | ------------- | ---------------------------------------------------- |
+| RDS `db.t4g.micro` Single-AZ | ~$13/mo   | —             | Per-instance-hour billing                            |
+| RDS `db.t4g.micro` Multi-AZ  | ~$26/mo   | —             | 2× instance hours (standby is invisible but billed)  |
+| GP3 storage 20 GiB           | ~$2.30/mo | —             | $0.115/GiB-month                                     |
 | RDS Proxy (opt-in)           | ~$18/mo   | —             | $0.015/vCPU-hour × 2 vCPUs (minimum); off by default |
-| Secrets Manager              | ~$0.40/mo | —             | Per-secret fee                                      |
-| EC2 t4g.nano bastion         | ~$3/mo    | —             | Instance uptime                                     |
+| Secrets Manager              | ~$0.40/mo | —             | Per-secret fee                                       |
+| EC2 t4g.nano bastion         | ~$3/mo    | —             | Instance uptime                                      |
 
 Dominant cost without proxy: RDS instance (~$13/mo). With proxy enabled (`rdsProxyEnabled: true`), the proxy (~$18/mo) becomes the dominant cost at the minimum vCPU floor.
 
@@ -83,7 +83,7 @@ To enable RDS Proxy, pass `rdsProxyEnabled: true` when instantiating the stack i
 new RdsPostgresStack(app, rdsPostgresStackName, {
   vpc: vpcStack.vpc,
   bastionSG: bastionStack.bastionSG,
-  rdsProxyEnabled: true,  // add this line
+  rdsProxyEnabled: true, // add this line
 });
 ```
 
@@ -139,7 +139,7 @@ curl -s http://localhost:3000/write-read-test | jq .
 ### Destroy
 
 ```bash
-npx cdk destroy RdsPostgres
+npx cdk destroy SsmBastion RdsPostgres
 ```
 
 ### Capture CloudFormation YAML

@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import { AuroraCustomEndpoint } from './aurora_custom_endpoint';
 
 export const rdsAuroraProvisionedStackName = 'RdsAuroraProvisioned';
 
@@ -100,29 +101,22 @@ export class RdsAuroraProvisionedStack extends cdk.Stack {
     // Custom endpoints allow routing queries to a specific subset of instances.
     // Both point to the same reader here. In production, add dedicated reader
     // instances per workload class (e.g. r6g.large for OLTP, r6g.2xlarge for analytics).
-    // CfnDBClusterEndpoint is not exported in aws-cdk-lib v2.240 — use CfnResource.
-    new cdk.CfnResource(this, 'OltpEndpoint', {
-      type: 'AWS::RDS::DBClusterEndpoint',
-      properties: {
-        DBClusterIdentifier: cluster.clusterIdentifier,
-        EndpointType: 'READER',
-        StaticMembers: ['aurora-prov-reader1'],
-      },
+    const oltpEndpoint = new AuroraCustomEndpoint(this, 'OltpEndpoint', {
+      cluster,
+      endpointIdentifier: 'aurora-provisioned-oltp',
+      staticMembers: ['aurora-provisioned-reader1'],
     });
 
-    const analyticsEndpoint = new cdk.CfnResource(this, 'AnalyticsEndpoint', {
-      type: 'AWS::RDS::DBClusterEndpoint',
-      properties: {
-        DBClusterIdentifier: cluster.clusterIdentifier,
-        EndpointType: 'READER',
-        StaticMembers: ['aurora-prov-reader1'],
-      },
+    const analyticsEndpoint = new AuroraCustomEndpoint(this, 'AnalyticsEndpoint', {
+      cluster,
+      endpointIdentifier: 'aurora-provisioned-analytics',
+      staticMembers: ['aurora-provisioned-reader1'],
     });
 
     new cdk.CfnOutput(this, 'WriterEndpoint', { value: cluster.clusterEndpoint.hostname });
     new cdk.CfnOutput(this, 'ReaderEndpoint', { value: cluster.clusterReadEndpoint.hostname });
-    new cdk.CfnOutput(this, 'OltpReaderEndpoint', { value: analyticsEndpoint.getAtt('Endpoint').toString() });
-    new cdk.CfnOutput(this, 'AnalyticsReaderEndpoint', { value: analyticsEndpoint.getAtt('Endpoint').toString() });
+    new cdk.CfnOutput(this, 'OltpReaderEndpoint', { value: oltpEndpoint.hostname });
+    new cdk.CfnOutput(this, 'AnalyticsReaderEndpoint', { value: analyticsEndpoint.hostname });
     new cdk.CfnOutput(this, 'DbPort', { value: cluster.clusterEndpoint.port.toString() });
     new cdk.CfnOutput(this, 'SecretArn', { value: cluster.secret!.secretArn });
     new cdk.CfnOutput(this, 'DatabaseName', { value: 'demo' });

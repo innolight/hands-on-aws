@@ -10,7 +10,7 @@ This directory contains CDK patterns for Amazon RDS and Aurora PostgreSQL. Each 
 | [Multi-AZ](#multi-az-standard)                            | RDS    | Auto           | 0 — standby is invisible | 60–120s                                | `DatabaseInstance`                  | ~$26/mo                     |
 | [Read Replicas](#read-replicas)                           | RDS    | Manual promote | Up to 15 (async)         | Manual — promote replica to standalone | `DatabaseInstanceReadReplica`       | +$13/mo per replica         |
 | [Multi-AZ Readable Standbys](#multi-az-readable-standbys) | RDS    | Auto           | 2 (sync)                 | <35s                                   | `DatabaseCluster`                   | ~$39/mo                     |
-| [Aurora Provisioned](#aurora-provisioned)                 | Aurora | Auto           | Up to 15 (zero-lag)      | <30s                                   | `DatabaseCluster`                   | ~$58/mo (writer + 1 reader) |
+| [Aurora Provisioned](#aurora-provisioned)                 | Aurora | Auto           | Up to 15 (<100ms lag)    | <30s                                   | `DatabaseCluster`                   | ~$58/mo (writer + 1 reader) |
 | [Aurora Serverless v2](#aurora-serverless-v2)             | Aurora | Auto           | Up to 15                 | <30s                                   | `DatabaseCluster` (serverlessV2)    | ~$43/mo (0.5 ACU min)       |
 | [Aurora Global Database](#aurora-global-database)         | Aurora | Cross-region   | 16/region × 5 regions    | ~60s cross-region                      | `DatabaseCluster` + `GlobalCluster` | ~$100+/mo                   |
 
@@ -155,7 +155,7 @@ One primary + **two readable standbys** across three AZs. Standbys use synchrono
 
 ### Aurora Provisioned
 
-Aurora separates storage from compute. All instances share a single **distributed storage layer** (6 copies across 3 AZs, auto-grows to 128 TB). The writer and all readers see the same data with zero replication lag on reads.
+Aurora separates storage from compute. All instances share a single **distributed storage layer** (6 copies across 3 AZs, auto-grows to 128 TB). The writer streams WALs to readers asynchronously; typical replica lag is <100ms under normal load.
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -265,14 +265,14 @@ Read replicas add ~$13/mo each (t4g.micro) on top of any topology above.
 Standard Multi-AZ gives you a hot standby you can never query. You pay 2× for zero read scaling. The 2023 Readable Standbys topology fixes this — standbys are synchronous AND queryable.
 
 **2. Aurora storage is fundamentally different from RDS.**
-RDS uses EBS volumes attached to an instance. Aurora uses a shared distributed storage layer across all instances. This is why Aurora failover is faster (no EBS reattach), why readers have zero replication lag (they read from the same storage), and why storage auto-grows without pre-allocation.
+RDS uses EBS volumes attached to an instance. Aurora uses a shared distributed storage layer across all instances. This is why Aurora failover is faster (no EBS reattach), why reader lag is typically <100ms (WALs applied to readers' buffer cache asynchronously, not a full replica stream), and why storage auto-grows without pre-allocation.
 
 **3. `DatabaseInstance` vs `DatabaseCluster` in CDK.**
 `DatabaseInstance` = standard RDS (Single-AZ, Multi-AZ Standard, source for read replicas).
 `DatabaseCluster` = Aurora AND Multi-AZ Readable Standbys. These are different CloudFormation resource types with different endpoint models.
 
 **4. Read replica replication is asynchronous.**
-Under heavy write load, replicas can fall behind. A read after a write may return stale data if it hits a replica. Aurora readers do not have this problem — they read from shared storage, so they see committed writes immediately.
+Under heavy write load, replicas can fall behind by seconds. A read after a write may return stale data if it hits a replica. Aurora readers also use asynchronous replication (WAL streams), but lag is typically <100ms — much lower than standard read replicas, though not zero. Do not assume read-your-writes consistency on the reader endpoint for either topology.
 
 **5. RDS Proxy decouples connection count from instance count.**
 Lambda functions open a new DB connection per invocation. 500 concurrent Lambdas = 500 connections. `max_connections` on a `db.t4g.small` is ~90. RDS Proxy pools connections at the proxy layer, so the DB sees far fewer actual connections regardless of Lambda concurrency.
