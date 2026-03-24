@@ -31,8 +31,8 @@ interface PatternConfig {
 }
 
 const PATTERNS: Record<PatternName, PatternConfig> = {
-  // rds-postgres: both clients connect through the proxy (single endpoint).
-  // The proxy already pools connections and reduces failover time.
+  // rds-postgres: both clients connect to localhost:5432 via SSM tunnel.
+  // Tunnel target is the RDS Proxy (rdsProxyEnabled=true) or the DB instance directly (default).
   'rds-postgres': {
     stackName: rdsPostgresStackName,
     rwTunnelPort: 5432,

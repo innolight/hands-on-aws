@@ -8,10 +8,11 @@ export const rdsPostgresStackName = 'RdsPostgres';
 interface RdsPostgresStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
   bastionSG: ec2.SecurityGroup;
+  rdsProxyEnabled?: boolean;
 }
 
 // client -> SSM port forward -> EC2 bastion -> RDS PostgreSQL (isolated subnet)
-//        -> RDS Proxy -> RDS PostgreSQL (optional; reduces failover time and connection churn)
+//        -> RDS Proxy (optional, rdsProxyEnabled=true) -> RDS PostgreSQL
 export class RdsPostgresStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: RdsPostgresStackProps) {
     super(scope, id, props);
@@ -20,6 +21,7 @@ export class RdsPostgresStack extends cdk.Stack {
     // Failover is automatic (DNS CNAME flip) in 60–120s. The standby is invisible —
     // it accepts no connections and provides zero read scaling. You pay 2× for HA only.
     const multiAz = this.node.tryGetContext('multiAz') === 'true';
+    const rdsProxyEnabled = props.rdsProxyEnabled ?? false;
 
     // DB accepts connections from the bastion only (via SSM port forward).
     const dbSG = new ec2.SecurityGroup(this, 'DbSG', {
@@ -112,48 +114,51 @@ export class RdsPostgresStack extends cdk.Stack {
       deletionProtection: false,
     });
 
-    // RDS Proxy pools and multiplexes application connections to the DB.
-    // Key benefits:
-    //   1. Failover: proxy reconnects to the new primary automatically — app sees ~30s of
-    //      retries vs 60–120s of hard failures when connecting directly.
-    //   2. Connection limit: proxy holds up to maxConnectionsPercent% of max_connections.
-    //      Lambda with 500 concurrent invocations opens 500 connections; the proxy
-    //      multiplexes those to a fraction of max_connections on the DB instance.
-    const proxy = instance.addProxy('Proxy', {
-      vpc: props.vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
-      secrets: [instance.secret!],
-      securityGroups: [dbSG],
-      // Enforce encryption for data in transit to proxy
-      requireTLS: true,
-      // SCRAM-SHA-256 is the default auth for PostgreSQL 14+. Use POSTGRES_MD5 only for
-      // compatibility with very old client libraries.
-      clientPasswordAuthType: rds.ClientPasswordAuthType.POSTGRES_SCRAM_SHA_256,
+    if (rdsProxyEnabled) {
+      // RDS Proxy pools and multiplexes application connections to the DB.
+      // Key benefits:
+      //   1. Failover: proxy reconnects to the new primary automatically — app sees ~30s of
+      //      retries vs 60–120s of hard failures when connecting directly.
+      //   2. Connection limit: proxy holds up to maxConnectionsPercent% of max_connections.
+      //      Lambda with 500 concurrent invocations opens 500 connections; the proxy
+      //      multiplexes those to a fraction of max_connections on the DB instance.
+      const proxy = instance.addProxy('Proxy', {
+        vpc: props.vpc,
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+        secrets: [instance.secret!],
+        securityGroups: [dbSG],
+        // Enforce encryption for data in transit to proxy
+        requireTLS: true,
+        // SCRAM-SHA-256 is the default auth for PostgreSQL 14+. Use POSTGRES_MD5 only for
+        // compatibility with very old client libraries.
+        clientPasswordAuthType: rds.ClientPasswordAuthType.POSTGRES_SCRAM_SHA_256,
 
-      // borrowTimeout: how long a client waits for a pooled connection before getting an error.
-      // The default 120s is often too long. A lower value helps your application "fail fast" and
-      // trigger retries rather than hanging during a traffic spike.
-      // 30s is a safe default; reduce for latency-sensitive workloads.
-      borrowTimeout: cdk.Duration.seconds(30),
+        // borrowTimeout: how long a client waits for a pooled connection before getting an error.
+        // The default 120s is often too long. A lower value helps your application "fail fast" and
+        // trigger retries rather than hanging during a traffic spike.
+        // 30s is a safe default; reduce for latency-sensitive workloads.
+        borrowTimeout: cdk.Duration.seconds(30),
 
-      // Reserves 10-20% for direct admin access, maintenance tasks, and emergency psql sessions that bypass the proxy.
-      // Max Connections managed by Proxy = maxConnectionsPercent * max_connections (a PostgreSQL config parameter that varies by instance size).
-      // max_connections is ~112 / 1GiB RAM for PostgreSQL, so a t4g.micro with 1 GiB RAM has max_connections ≈ 100, and the proxy allows up to 90 connections with this setting.
-      maxConnectionsPercent: 90,
+        // Reserves 10-20% for direct admin access, maintenance tasks, and emergency psql sessions that bypass the proxy.
+        // Max Connections managed by Proxy = maxConnectionsPercent * max_connections (a PostgreSQL config parameter that varies by instance size).
+        // max_connections is ~112 / 1GiB RAM for PostgreSQL, so a t4g.micro with 1 GiB RAM has max_connections ≈ 100, and the proxy allows up to 90 connections with this setting.
+        maxConnectionsPercent: 90,
 
-      // Postgres processes are memory-heavy. Lowering this from the default (50%) aggressively
-      // closes inactive backend connections, saving RAM on the DB instance.
-      // Keep ≥ 10 — too low causes connection latency spikes on traffic bursts
-      maxIdleConnectionsPercent: 10,
+        // Postgres processes are memory-heavy. Lowering this from the default (50%) aggressively
+        // closes inactive backend connections, saving RAM on the DB instance.
+        // Keep ≥ 10 — too low causes connection latency spikes on traffic bursts
+        maxIdleConnectionsPercent: 10,
 
-      // Connections idle for x minutes are returned to the pool and eventually closed.
-      // Must be higher than your application's typical idle timeout to avoid unexpected connection drops
-      idleClientTimeout: cdk.Duration.minutes(15),
-    });
+        // Connections idle for x minutes are returned to the pool and eventually closed.
+        // Must be higher than your application's typical idle timeout to avoid unexpected connection drops
+        idleClientTimeout: cdk.Duration.minutes(15),
+      });
+
+      new cdk.CfnOutput(this, 'ProxyEndpoint', { value: proxy.endpoint });
+    }
 
     new cdk.CfnOutput(this, 'DbEndpoint', { value: instance.dbInstanceEndpointAddress });
     new cdk.CfnOutput(this, 'DbPort', { value: instance.dbInstanceEndpointPort });
-    new cdk.CfnOutput(this, 'ProxyEndpoint', { value: proxy.endpoint });
     new cdk.CfnOutput(this, 'SecretArn', { value: instance.secret!.secretArn });
     new cdk.CfnOutput(this, 'DatabaseName', { value: 'demo' });
     new cdk.CfnOutput(this, 'MultiAz', { value: String(multiAz) });

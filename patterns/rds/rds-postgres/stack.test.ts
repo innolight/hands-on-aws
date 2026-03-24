@@ -32,14 +32,8 @@ describe('RdsPostgresStack', () => {
     template.resourceCountIs('AWS::RDS::DBSubnetGroup', 1);
   });
 
-  test('creates an RDS Proxy', () => {
-    template.resourceCountIs('AWS::RDS::DBProxy', 1);
-  });
-
-  test('proxy requires TLS', () => {
-    template.hasResourceProperties('AWS::RDS::DBProxy', {
-      RequireTLS: true,
-    });
+  test('does not create an RDS Proxy by default', () => {
+    template.resourceCountIs('AWS::RDS::DBProxy', 0);
   });
 
   test('creates a Secrets Manager secret for credentials', () => {
@@ -74,6 +68,28 @@ describe('RdsPostgresStack with multiAz=true', () => {
   test('enables Multi-AZ when context multiAz=true', () => {
     template2.hasResourceProperties('AWS::RDS::DBInstance', {
       MultiAZ: true,
+    });
+  });
+});
+
+describe('RdsPostgresStack with rdsProxyEnabled=true', () => {
+  const app3 = new cdk.App();
+  const vpcStack3 = new VpcSubnetsStack(app3, 'VpcStack3');
+  const bastionStack3 = new SsmBastionStack(app3, 'BastionStack3', { vpc: vpcStack3.vpc });
+  const stack3 = new RdsPostgresStack(app3, 'RdsPostgresStack3', {
+    vpc: vpcStack3.vpc,
+    bastionSG: bastionStack3.bastionSG,
+    rdsProxyEnabled: true,
+  });
+  const template3 = Template.fromStack(stack3);
+
+  test('creates an RDS Proxy', () => {
+    template3.resourceCountIs('AWS::RDS::DBProxy', 1);
+  });
+
+  test('proxy requires TLS', () => {
+    template3.hasResourceProperties('AWS::RDS::DBProxy', {
+      RequireTLS: true,
     });
   });
 });

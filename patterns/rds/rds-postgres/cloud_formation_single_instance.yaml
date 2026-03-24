@@ -3,56 +3,16 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: RDS PostgreSQL security group
+      SecurityGroupEgress:
+        - CidrIp: 255.255.255.255/32
+          Description: Disallow all traffic
+          FromPort: 252
+          IpProtocol: icmp
+          ToPort: 86
       VpcId:
         Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
     Metadata:
       aws:cdk:path: RdsPostgres/DbSG/Resource
-  DbSGfromRdsPostgresDbSGA73F2DDAIndirectPortFB88DABB:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: Allow connections to the database Instance from the Proxy
-      FromPort:
-        Fn::GetAtt:
-          - InstanceC1063A87
-          - Endpoint.Port
-      GroupId:
-        Fn::GetAtt:
-          - DbSG0BE6ACB3
-          - GroupId
-      IpProtocol: tcp
-      SourceSecurityGroupId:
-        Fn::GetAtt:
-          - DbSG0BE6ACB3
-          - GroupId
-      ToPort:
-        Fn::GetAtt:
-          - InstanceC1063A87
-          - Endpoint.Port
-    Metadata:
-      aws:cdk:path: RdsPostgres/DbSG/from RdsPostgresDbSGA73F2DDA:{IndirectPort}
-  DbSGtoRdsPostgresDbSGA73F2DDAIndirectPort2856866F:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: Allow connections to the database Instance from the Proxy
-      DestinationSecurityGroupId:
-        Fn::GetAtt:
-          - DbSG0BE6ACB3
-          - GroupId
-      FromPort:
-        Fn::GetAtt:
-          - InstanceC1063A87
-          - Endpoint.Port
-      GroupId:
-        Fn::GetAtt:
-          - DbSG0BE6ACB3
-          - GroupId
-      IpProtocol: tcp
-      ToPort:
-        Fn::GetAtt:
-          - InstanceC1063A87
-          - Endpoint.Port
-    Metadata:
-      aws:cdk:path: RdsPostgres/DbSG/to RdsPostgresDbSGA73F2DDA:{IndirectPort}
   BastionToDb:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -185,80 +145,10 @@ Resources:
     DeletionPolicy: Delete
     Metadata:
       aws:cdk:path: RdsPostgres/Instance/Resource
-  InstanceProxyIAMRoleA5CFBEF1:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: rds.amazonaws.com
-        Version: "2012-10-17"
-    Metadata:
-      aws:cdk:path: RdsPostgres/Instance/Proxy/IAMRole/Resource
-  InstanceProxyIAMRoleDefaultPolicy4E598572:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyDocument:
-        Statement:
-          - Action:
-              - secretsmanager:DescribeSecret
-              - secretsmanager:GetSecretValue
-            Effect: Allow
-            Resource:
-              Ref: InstanceSecretAttachment83BEE581
-        Version: "2012-10-17"
-      PolicyName: InstanceProxyIAMRoleDefaultPolicy4E598572
-      Roles:
-        - Ref: InstanceProxyIAMRoleA5CFBEF1
-    Metadata:
-      aws:cdk:path: RdsPostgres/Instance/Proxy/IAMRole/DefaultPolicy/Resource
-  InstanceProxyA39A17AC:
-    Type: AWS::RDS::DBProxy
-    Properties:
-      Auth:
-        - AuthScheme: SECRETS
-          ClientPasswordAuthType: POSTGRES_SCRAM_SHA_256
-          IAMAuth: DISABLED
-          SecretArn:
-            Ref: InstanceSecretAttachment83BEE581
-      DBProxyName: RdsPostgresInstanceProxy78F689E2
-      EngineFamily: POSTGRESQL
-      IdleClientTimeout: 900
-      RequireTLS: true
-      RoleArn:
-        Fn::GetAtt:
-          - InstanceProxyIAMRoleA5CFBEF1
-          - Arn
-      VpcSecurityGroupIds:
-        - Fn::GetAtt:
-            - DbSG0BE6ACB3
-            - GroupId
-      VpcSubnetIds:
-        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
-        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
-        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
-    Metadata:
-      aws:cdk:path: RdsPostgres/Instance/Proxy/Resource
-  InstanceProxyProxyTargetGroupE5DB070D:
-    Type: AWS::RDS::DBProxyTargetGroup
-    Properties:
-      ConnectionPoolConfigurationInfo:
-        ConnectionBorrowTimeout: 30
-        MaxConnectionsPercent: 90
-        MaxIdleConnectionsPercent: 10
-      DBInstanceIdentifiers:
-        - Ref: InstanceC1063A87
-      DBProxyName:
-        Ref: InstanceProxyA39A17AC
-      TargetGroupName: default
-    Metadata:
-      aws:cdk:path: RdsPostgres/Instance/Proxy/ProxyTargetGroup
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/71W227jNhD9ltXjQlEDd7sF8qZ4063RpjEsb1+MIBiTY5kJRapD0olX8L8XvEiR184CbYE+iZrLmZkzM5QmxeTDZXH5Dp7NBeNPF1Ksi66ywJ5yeDYPHbJJ0VXIHAm7/0zatasu27Usu8reZ3nG0TASrRVaJQlIqZ9LKe+cXWuneHa1AWnwkHcZcD5TNaExCycxu1p5h+6Q+0cwuk9WN28YWXJ4f7jPpxt1lNKJIIU5kUfgQ07cFN0cCBq0SH1ZqGqhMLvqT8t9i6mqKPgTyYRKu2zjpBxeg0kDj5rGokOetUchfoFGyP0R4pGI4wactF8MkoIGe5BTjgdYk2y6bC0UX+qZMhYUS7Qlqj5dH1eafwILazDYW6+6TKTjjKOyYiOQ+pyS7R99Qvn/S5MRqpboKVloC56Dsm2lYDCi4wyVxrWtJmsWCHyBweEa2JNrzfe57nkY1fQ67LuWVW6t0BpfmgnHZDgzWoJF7jHMeOJMakWeNU5aUX5N+5BnjDCQDdKMVod5lMpqgrpPwMS3FKlufwwsvpTnrdehzAVajz1QlDBuFKN96/O88ruUZ+CsvhVq6MiXtibg2KsbrYTVJFQ9UxZpB/LbCQxFDn2AtcQ50kZTE6ZJGVFvPV0Rjr8OXpDfah8q85RzIO5xT5xHlfycZ4SN3oGcaymY7zVHY0nvQ0MlerM5aYssOsSb5z6PXevX/HSf/nGLv03jfdav2ijUsGcVMkIbLphAv9DqNxwmNShH60VxXBdYC61eF9yNJ/WM2zlsfGHScZxugYAN10UMAQzv1ByMedbEpyQskoDpFlSNQ7/OpZLq7O+Oocg56Zf9qsta/1wC1Wj/wwJRsEmb88ZCEf7lBOHy96rPl0mByvZFlc5uE/r8rlp+XtxUD9V0Ud4+VL+WD5OfPvpt0UT6eSka1M4ON9TLVCsVh8jMkRiqkW7GJb6pF14ZshhjDvew52Z0jDSFsg65gKboFlr66xiMcQ3y673nqSWhmGhBloxpN4SKNt6hZHZ0mTagoEYeZlP4Xq66I9m+pGQbP7f/OlT6WC/1vPfq92HVJWxrgW1nSgqFgy58mL6rDGz5aHmUx1+A5LDUXnOCcyrmvLJgsUEVRsmnFIAj5iFPUxapoaKL/wqENo+P2JwyoHuQVZcGM5FiX2d8+CU543Y4eN2ds62zh1xpjsWj+WE3+VB8LC7fPRohLsgpKxosFvH5N8YjqfqTCQAA
+      Analytics: v2:deflate64:H4sIAAAAAAAA/71U308bMQz+W8gjOm6IoU3qW4FtqiZG1cJe0DS5iXsEcknkOIXu1P99Su4H11FN2sueLufYn+3PX3xWnp2flqdH8BxOpHo6MXpVNksG+VTAc/jZoDwrmyXKSJq3X8hFf9+IjZdiIo5FIRQGSdqzdrazgDHueWrMTeSVi1aJyRpMwN2P4nJt94DeGGa2IgxhV5AKZTMHghoZqc+KttIWxaQ/3W49dklbw3ekkAtpxDoaM/xmlxoeHY1Nu0L4vRSfodZmu4e4Z1K4hmj4LiBZqLEHeUvBABs6n0astFW3bmYDg5UoJvfiWPxoObm62O+0uAKGFQTsve8bobvjTKFlvdZIfU2d77e+oOL/0hS0rQwmShaOIXEw9d5oCSM6DlAZoveOOCwQ1AJzwAXIp+jD37nueRj19KrFjZfLuLLIIbUW8rFznAVngFEljDCWXOhGUYg6GtbTX51cCyEJM9lgwkjZMqEs2RFUfQGh/esyVf59ZvFleth7ldtcICfsgaIO45OVtPWpzglTxEJAZHet7TCRO18RKOyva2c1O9K2mllG2oD5U4G5yWEOsDI4R1o7qrOabNDVQ6KrhVOvwsv2a5dSiUS5AlIJ903wqJOPhSCs3QbM3Bkt06wVBia3zQM1mNzm5BhlG9AvhnZq/TN/+57+ecR/lnEs+qc2SjW8syVKQs4LJtOvnf2Kg1Lz5eh5USvXBVba2dcHHsdKPRB2CBtfpIkKLx+AQA7rok0BEm/sHEJ4dqQuSTOShssHsBUO8zpUStdnvzt2hYa6bBbOpDUCIcQa1cU2sedJW6k9mKmULlruVZ59UsBU8mgJ1GChQpU51amG+2bPtp1S59vttQSxK1oiQutJZdPufEIu2s8tUIU8ZQb5UKNNY2hDunI43496Oxy226W7m8g+8q6wTmH5GN5tzs7LD+Xp0WPQ+oSiZV1juWi/vwG99/jD+QYAAA==
     Metadata:
       aws:cdk:path: RdsPostgres/CDKMetadata/Default
 Outputs:
@@ -272,11 +162,6 @@ Outputs:
       Fn::GetAtt:
         - InstanceC1063A87
         - Endpoint.Port
-  ProxyEndpoint:
-    Value:
-      Fn::GetAtt:
-        - InstanceProxyA39A17AC
-        - Endpoint
   SecretArn:
     Value:
       Ref: InstanceSecretAttachment83BEE581
