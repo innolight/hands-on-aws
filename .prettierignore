@@ -1,0 +1,8 @@
+node_modules/
+dist/
+cdk.out/
+cdk.out.tmp/
+.cdk.staging/
+secrets/
+pnpm-lock.yaml
+cloud_formation*.yaml
