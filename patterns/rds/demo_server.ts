@@ -6,6 +6,8 @@ import { rdsPostgresStackName } from './rds-postgres/stack';
 import { rdsReadableStandbysStackName } from './rds-readable-standbys/stack';
 import { rdsReadReplicasStackName } from './rds-read-replicas/stack';
 import { rdsAuroraProvisionedStackName } from './rds-aurora-provisioned/stack';
+import { rdsAuroraServerlessV2StackName } from './rds-aurora-serverless-v2/stack';
+import { rdsAuroraGlobalPrimaryStackName } from './rds-aurora-global/stack_primary';
 
 // Shared demo server for all RDS PostgreSQL patterns.
 // Demonstrates two clients (RW + RO) and client-side best practices.
@@ -15,12 +17,20 @@ import { rdsAuroraProvisionedStackName } from './rds-aurora-provisioned/stack';
 //   AWS_REGION=eu-central-1 npx ts-node patterns/rds/demo_server.ts rds-read-replicas
 //   AWS_REGION=eu-central-1 npx ts-node patterns/rds/demo_server.ts rds-readable-standbys
 //   AWS_REGION=eu-central-1 npx ts-node patterns/rds/demo_server.ts rds-aurora-provisioned
+//   AWS_REGION=eu-central-1 npx ts-node patterns/rds/demo_server.ts rds-aurora-serverless-v2
+//   AWS_REGION=eu-central-1 npx ts-node patterns/rds/demo_server.ts rds-aurora-global
 //
 // Requires SSM port-forward tunnels before starting:
 //   localhost:5432 -> RW endpoint (writer / primary / proxy)
 //   localhost:5433 -> RO endpoint (reader / replica) — same port as RW for rds-postgres
 
-type PatternName = 'rds-postgres' | 'rds-read-replicas' | 'rds-readable-standbys' | 'rds-aurora-provisioned';
+type PatternName =
+  | 'rds-postgres'
+  | 'rds-read-replicas'
+  | 'rds-readable-standbys'
+  | 'rds-aurora-provisioned'
+  | 'rds-aurora-serverless-v2'
+  | 'rds-aurora-global';
 
 interface PatternConfig {
   // StackName is used to fetc outputs "SecretArn", and "DatabaseName"
@@ -53,6 +63,21 @@ const PATTERNS: Record<PatternName, PatternConfig> = {
   // rds-aurora-provisioned: writer endpoint for writes, reader endpoint for reads (zero-lag, shared storage).
   'rds-aurora-provisioned': {
     stackName: rdsAuroraProvisionedStackName,
+    rwTunnelPort: 5432,
+    roTunnelPort: 5433,
+  },
+  // rds-aurora-serverless-v2: same topology as aurora-provisioned but compute auto-scales (0–16 ACU).
+  'rds-aurora-serverless-v2': {
+    stackName: rdsAuroraServerlessV2StackName,
+    rwTunnelPort: 5432,
+    roTunnelPort: 5433,
+  },
+  // rds-aurora-global: primary writer in eu-central-1 for writes; secondary reader in us-east-1 for reads.
+  // RW tunnel → primary writer endpoint (eu-central-1 bastion)
+  // RO tunnel → secondary reader endpoint (us-east-1 bastion)
+  // Credentials are fetched from the primary stack's SecretArn.
+  'rds-aurora-global': {
+    stackName: rdsAuroraGlobalPrimaryStackName,
     rwTunnelPort: 5432,
     roTunnelPort: 5433,
   },

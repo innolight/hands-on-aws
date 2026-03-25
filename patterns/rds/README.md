@@ -284,11 +284,11 @@ Secondary regions accept writes and forward them to the primary over the replica
 
 ## Sub-Patterns
 
-| Pattern                                                  | Topology                                  | Status  |
-| -------------------------------------------------------- | ----------------------------------------- | ------- |
-| [`rds-postgres`](./rds-postgres)                         | Single-AZ + Multi-AZ + RDS Proxy          | Done    |
-| [`rds-read-replicas`](./rds-read-replicas)               | Async read replicas, cross-region DR      | Done    |
-| [`rds-readable-standbys`](./rds-readable-standbys)       | Multi-AZ with 2 readable standbys         | Done    |
-| [`rds-aurora-provisioned`](./rds-aurora-provisioned)     | Aurora writer + readers, custom endpoints | Done    |
-| [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling      | planned |
-| [`rds-aurora-global`](./rds-aurora-global)               | Aurora Global Database + Write Forwarding | planned |
+| Pattern                                                  | Topology                                  | Status |
+| -------------------------------------------------------- | ----------------------------------------- | ------ |
+| [`rds-postgres`](./rds-postgres)                         | Single-AZ + Multi-AZ + RDS Proxy          | Done   |
+| [`rds-read-replicas`](./rds-read-replicas)               | Async read replicas, cross-region DR      | Done   |
+| [`rds-readable-standbys`](./rds-readable-standbys)       | Multi-AZ with 2 readable standbys         | Done   |
+| [`rds-aurora-provisioned`](./rds-aurora-provisioned)     | Aurora writer + readers, custom endpoints | Done   |
+| [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling      | Done   |
+| [`rds-aurora-global`](./rds-aurora-global)               | Aurora Global Database + Write Forwarding | Done   |

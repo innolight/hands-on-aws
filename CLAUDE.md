@@ -59,7 +59,7 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 3. **Notes** — non-obvious decisions, production caveats, alternatives considered
 4. **Commands to play with stack** — deploy, interact (start demo server, curl commands to play with demo_server.ts), observe (logs), destroy, and `cdk synth` to capture CloudFormation yaml
 
-**Capturing CloudFormation yaml:** use `npx cdk synth <StackName> > cloud_formation.yaml` — NEVER append `2>&1`. CDK prints logs and warnings to stderr; redirecting stderr into stdout with `2>&1` mixes them into the file and produces invalid YAML. stdout-only redirection (`>`) is always correct here.
+**Capturing CloudFormation yaml:** use `cdk synth <StackName> > cloud_formation.yaml` — NEVER append `2>&1` and AVOID npx cdk, use cdk directly. CDK prints logs and warnings to stderr; redirecting stderr into stdout with `2>&1` mixes them into the file and produces invalid YAML. stdout-only redirection (`>`) is always correct here.
 
 **stack.ts commenting conventions** — comments are educational, not decorative. Each comment should teach something a reader couldn't immediately infer from the code:
 

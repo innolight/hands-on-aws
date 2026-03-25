@@ -99,8 +99,23 @@ import {
 } from '../patterns/rds/rds-read-replicas/stack_proxy';
 import { RdsReadableStandbysStack, rdsReadableStandbysStackName } from '../patterns/rds/rds-readable-standbys/stack';
 import { RdsAuroraProvisionedStack, rdsAuroraProvisionedStackName } from '../patterns/rds/rds-aurora-provisioned/stack';
+import {
+  RdsAuroraServerlessV2Stack,
+  rdsAuroraServerlessV2StackName,
+} from '../patterns/rds/rds-aurora-serverless-v2/stack';
+import {
+  RdsAuroraGlobalPrimaryStack,
+  rdsAuroraGlobalPrimaryStackName,
+} from '../patterns/rds/rds-aurora-global/stack_primary';
+import {
+  RdsAuroraGlobalSecondaryStack,
+  rdsAuroraGlobalSecondaryStackName,
+} from '../patterns/rds/rds-aurora-global/stack_secondary';
 
 const app = new cdk.App();
+
+// Bootstrap secondary region with: npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/eu-west-1
+const SECONDARY_REGION = 'eu-west-1';
 
 new S3EventsNotification(app, s3EventsNotificationStackName, {
   /* If you don't specify 'env', this stack will be environment-agnostic.
@@ -120,7 +135,7 @@ new S3EventsNotification(app, s3EventsNotificationStackName, {
 
 new S3CrossRegionReplicationStackStep1(app, 'S3CrossRegionReplicationStackStep1', {
   // destination bucket is set to Ireland
-  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: 'eu-west-1' },
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: SECONDARY_REGION },
 });
 new S3CrossRegionReplicationStackStep2(app, 'S3CrossRegionReplicationStackStep2', {
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
@@ -331,4 +346,35 @@ new RdsAuroraProvisionedStack(app, rdsAuroraProvisionedStackName, {
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
   vpc: vpcStack.vpc,
   bastionSG: bastionStack.bastionSG,
+});
+
+new RdsAuroraServerlessV2Stack(app, rdsAuroraServerlessV2StackName, {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+  vpc: vpcStack.vpc,
+  bastionSG: bastionStack.bastionSG,
+});
+
+// --- rds-aurora-global (cross-region: eu-central-1 primary + us-east-1 secondary) ---
+// Shared infra in us-east-1: reuse VpcSubnetsStack and SsmBastionStack with different names.
+// Deploy order: VpcSubnetsUsEast1 → SsmBastionUsEast1 → RdsAuroraGlobalPrimary → RdsAuroraGlobalSecondary
+// Teardown order (reverse, secondary first): RdsAuroraGlobalSecondary → RdsAuroraGlobalPrimary → SsmBastionUsEast1 → VpcSubnetsUsEast1
+const vpcUsEast1Stack = new VpcSubnetsStack(app, 'VpcSubnetsSecondaryRegion', {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: SECONDARY_REGION },
+  natProviderType: 'self-managed',
+});
+const bastionUsEast1Stack = new SsmBastionStack(app, 'SsmBastionSecondaryRegion', {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: SECONDARY_REGION },
+  vpc: vpcUsEast1Stack.vpc,
+});
+
+new RdsAuroraGlobalPrimaryStack(app, rdsAuroraGlobalPrimaryStackName, {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+  vpc: vpcStack.vpc,
+  bastionSG: bastionStack.bastionSG,
+});
+
+new RdsAuroraGlobalSecondaryStack(app, rdsAuroraGlobalSecondaryStackName, {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: SECONDARY_REGION },
+  vpc: vpcUsEast1Stack.vpc,
+  bastionSG: bastionUsEast1Stack.bastionSG,
 });

@@ -89,19 +89,19 @@ npx cdk deploy SsmBastion RdsAuroraProvisioned
 
 ```bash
 # Terminal 1 — writer endpoint (port 5432)
-INSTANCE_ID=$(aws ec2 describe-instances \
-  --filters "Name=tag:Name,Values=SsmBastionStack/Bastion" "Name=instance-state-name,Values=running" \
-  --query "Reservations[0].Instances[0].InstanceId" --output text)
+BASTION=$(aws cloudformation describe-stacks --stack-name SsmBastion \
+  --query "Stacks[0].Outputs[?OutputKey=='BastionInstanceId'].OutputValue" --output text)
+
 WRITER=$(aws cloudformation describe-stacks --stack-name RdsAuroraProvisioned \
   --query "Stacks[0].Outputs[?OutputKey=='WriterEndpoint'].OutputValue" --output text)
-aws ssm start-session --target $INSTANCE_ID \
+aws ssm start-session --target $BASTION \
   --document-name AWS-StartPortForwardingSessionToRemoteHost \
   --parameters "{\"host\":[\"$WRITER\"],\"portNumber\":[\"5432\"],\"localPortNumber\":[\"5432\"]}"
 
 # Terminal 2 — reader endpoint (port 5433)
 READER=$(aws cloudformation describe-stacks --stack-name RdsAuroraProvisioned \
   --query "Stacks[0].Outputs[?OutputKey=='ReaderEndpoint'].OutputValue" --output text)
-aws ssm start-session --target $INSTANCE_ID \
+aws ssm start-session --target $BASTION \
   --document-name AWS-StartPortForwardingSessionToRemoteHost \
   --parameters "{\"host\":[\"$READER\"],\"portNumber\":[\"5432\"],\"localPortNumber\":[\"5433\"]}"
 ```

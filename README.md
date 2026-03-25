@@ -37,8 +37,8 @@ Datastore / RDS & Aurora:
 - [x] [`rds-read-replicas`](./patterns/rds/rds-read-replicas): Async read replicas (same-region + cross-region), manual promote to standalone for DR
 - [x] [`rds-readable-standbys`](./patterns/rds/rds-readable-standbys): Multi-AZ with 2 readable standbys — synchronous replication, <35s failover, reader endpoint
 - [x] [`rds-aurora-provisioned`](./patterns/rds/rds-aurora-provisioned): Aurora PostgreSQL — shared distributed storage, writer + up to 15 readers, custom endpoints
-- [ ] [`rds-aurora-serverless-v2`](./patterns/rds/rds-aurora-serverless-v2): Aurora Serverless v2 — ACU-based autoscaling, mix serverless + provisioned instances
-- [ ] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database — sub-second cross-region replication, Write Forwarding, managed failover
+- [x] [`rds-aurora-serverless-v2`](./patterns/rds/rds-aurora-serverless-v2): Aurora Serverless v2 — ACU-based autoscaling, mix serverless + provisioned instances
+- [x] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database — sub-second cross-region replication, Write Forwarding, managed failover
 
 Datastore / OpenSearch:
 
