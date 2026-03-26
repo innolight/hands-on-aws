@@ -7,7 +7,7 @@ popular architectural patterns in AWS.
 
 Discover AWS patterns in folder [patterns](./patterns):
 
-Datastore / S3:
+**Datastore** / S3:
 
 - [x] [`s3-polished-configuration`](./patterns/s3-polished-configuration): S3 with encryption, versioning enabled, lifecycle rule, data archiver with Glacier
 - [x] [`s3-events-notification`](./patterns/s3-events-notification): S3 → SNS → SQS → SQS (DLQ)
@@ -18,20 +18,20 @@ Datastore / S3:
 - [x] [`s3-vectors-bucket`](./patterns/s3-vectors-bucket/): S3 Vector Bucket + Index for similarity search on food reviews
 - [ ] `s3-serverless-data-lake`: S3 (Storage) → AWS Glue (Data Catalog/Crawler) → Amazon Athena (Query Engine)
 
-Datastore / Dynamodb:
+**Datastore** / Dynamodb:
 
 - [x] [`dynamodb-global-database`](./patterns/dynamodb-global-database/): Dynamodb Global Database (multi-write architecture)
 - [x] [`dynamodb-stream-lambda`](./patterns/dynamodb-stream-lambda): Dynamodb → Dynamodb Stream → Lambda
 - [ ] `dynamodb-to-s3-zero-etl`: Dynamodb → S3 with Zero-ETL
 - [ ] `dynamodb-kinesis-opensearch`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → S3 | AWS OpenSearch
 
-Datastore / Elasticache:
+**Datastore** / Elasticache:
 
 - [x] [`elasticache-valkey-active-passive`](./patterns/elasticache-valkey-active-passive): ElastiCache Valkey replication group (1 primary + N replicas), RBAC, TLS, SSM port forwarding via ssm-bastion
 - [x] [`elasticache-valkey-cluster`](./patterns/elasticache-valkey-cluster): ElastiCache Valkey cluster mode (N shards × M replicas), hash-slot distribution with consistent hashing
 - [x] [`elasticache-valkey-serverless`](./patterns/elasticache-valkey-serverless): ElastiCache Valkey Serverless (auto-scaling, ECPU billing, no capacity planning), retry backoff + jitter, command pipelining
 
-Datastore / RDS & Aurora:
+**Datastore** / RDS & Aurora Postgres:
 
 - [x] [`rds-postgres`](./patterns/rds/rds-postgres): Single-AZ → Multi-AZ failover, automated backups, PITR, Secrets Manager credential rotation, optional RDS Proxy connection pooling
 - [x] [`rds-read-replicas`](./patterns/rds/rds-read-replicas): Async read replicas (same-region + cross-region), manual promote to standalone for DR
@@ -39,8 +39,12 @@ Datastore / RDS & Aurora:
 - [x] [`rds-aurora-provisioned`](./patterns/rds/rds-aurora-provisioned): Aurora PostgreSQL — shared distributed storage, writer + up to 15 readers, custom endpoints
 - [x] [`rds-aurora-serverless-v2`](./patterns/rds/rds-aurora-serverless-v2): Aurora Serverless v2 — ACU-based autoscaling, mix serverless + provisioned instances
 - [x] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database — sub-second cross-region replication, Write Forwarding, managed failover
+- [ ] `rds-cdc-streaming`: RDS → DMS CDC → Kinesis → Lambda — row-level change capture to trigger downstream actions
+- [ ] `rds-opensearch`: RDS → OpenSearch Ingestion → OpenSearch — full-text and vector search over relational data
+- [ ] `rds-redshift-zero-etl`: Aurora → Redshift Zero-ETL — continuous replication to Redshift for analytics without impacting Aurora
+- [ ] `rds-data-lake`: RDS → DMS CDC → S3 (Parquet) — cheap long-term storage and batch analytics via Athena
 
-Datastore / OpenSearch:
+**Datastore** / OpenSearch:
 
 - [x] [`opensearch-provisioned`](./patterns/opensearch-provisioned/): Managed OpenSearch domain — parameterized from single-node dev to Multi-AZ production (node count, AZ, dedicated masters)
 - [x] [`opensearch-serverless`](./patterns/opensearch-serverless): OpenSearch Serverless collection with OCU-based billing, zero capacity management
@@ -56,7 +60,7 @@ API & Auth:
 - [ ] `apigw-lambda-cognito`: API Gateway REST API + Lambda + Cognito User Pool authorizer
 - [ ] `apigw-websocket`: API Gateway WebSocket API + Lambda + DynamoDB connection tracking
 
-Infrastructures / Containers on AWS:
+Infra / Running Containers on AWS:
 
 - [x] [`elastic-container-registry`](./patterns/containers/elastic-container-registry): ECR repository provisioning, Docker image build & push
 - [x] [`app-runner`](./patterns/containers/app-runner): App Runner — fully managed, source-to-URL container hosting
@@ -68,7 +72,7 @@ Infrastructures / Containers on AWS:
 - [ ] [`eks-fargate`](./patterns/containers/eks-fargate): EKS Fargate — Kubernetes control plane + serverless pods, no node management
 - [ ] [`one-ec2`](./patterns/containers/one-ec2): Single EC2 instance running Docker, public-facing
 
-Infrastructures:
+Infra / Others:
 
 - [x] [`vpc-subnets`](./patterns/vpc-subnets): VPC with 3-tier subnet layout (public / private / isolated) across 3 AZs, configurable NAT Gateways
 - [x] [`ssm-bastion`](./patterns/ssm-bastion): EC2 bastion accessible via SSM Session Manager (no SSH, no inbound rules) — used for port forwarding to isolated resources
