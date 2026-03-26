@@ -51,6 +51,9 @@
     "pg": "^8.20.0"
   },
   "lint-staged": {
-    "*.{ts,js}": ["prettier --write", "npx jest --findRelatedTests --passWithNoTests"]
+    "*.{ts,js}": [
+      "prettier --write",
+      "npx jest --findRelatedTests --passWithNoTests"
+    ]
   }
 }
