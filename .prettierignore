@@ -3,6 +3,7 @@ dist/
 cdk.out/
 cdk.out.tmp/
 .cdk.staging/
+.temp/
 secrets/
 pnpm-lock.yaml
 cloud_formation*.yaml
