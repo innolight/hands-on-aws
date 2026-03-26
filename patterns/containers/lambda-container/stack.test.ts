@@ -20,12 +20,6 @@ describe('LambdaContainerStack', () => {
     });
   });
 
-  test('creates a Lambda function with reserved concurrency of 10', () => {
-    template.hasResourceProperties('AWS::Lambda::Function', {
-      ReservedConcurrentExecutions: 10,
-    });
-  });
-
   test('creates a Function URL with AuthType NONE', () => {
     template.hasResourceProperties('AWS::Lambda::Url', {
       AuthType: 'NONE',

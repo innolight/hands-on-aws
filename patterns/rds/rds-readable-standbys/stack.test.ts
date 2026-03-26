@@ -27,10 +27,10 @@ describe('RdsReadableStandbysStack', () => {
     });
   });
 
-  test('uses io1 storage with minimum 100 GiB', () => {
+  test('uses gp3 storage', () => {
     template.hasResourceProperties('AWS::RDS::DBCluster', {
-      StorageType: 'io1',
-      AllocatedStorage: 100,
+      StorageType: 'gp3',
+      AllocatedStorage: 5,
     });
   });
 

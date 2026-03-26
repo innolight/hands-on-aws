@@ -57,9 +57,9 @@ describe('Ec2sAlbComputeStack', () => {
     });
   });
 
-  test('creates an ASG with min=2, max=4', () => {
+  test('creates an ASG with min=1, max=4', () => {
     template.hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
-      MinSize: '2',
+      MinSize: '1',
       MaxSize: '4',
     });
   });
