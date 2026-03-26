@@ -184,7 +184,7 @@ curl -s http://localhost:3000/health | jq
 ### Destroy (secondary first)
 
 ```bash
-npx cdk destroy RdsAuroraGlobalSecondary RdsAuroraGlobalPrimary SsmBastionSecondaryRegion VpcSubnetsSecondaryRegion
+npx cdk destroy RdsAuroraGlobalSecondary RdsAuroraGlobalPrimary SsmBastion SsmBastionSecondaryRegion VpcSubnetsSecondaryRegion
 ```
 
 ### Capture CloudFormation YAML
