@@ -290,7 +290,7 @@ Beyond deploying a topology, RDS and Aurora serve as the **source of truth** tha
 |---|---|---|---|
 | Actions / Emails | RDS → DMS → Kinesis → Lambda → SES | DMS CDC | Activity Streams (audit-only) |
 | Search | RDS → OpenSearch Ingestion → OpenSearch | OSI JDBC poll | pg_vector (in-DB) |
-| Analytics / BI | **Aurora** → Redshift Zero-ETL | `CfnIntegration` | Federated Query (no movement) |
+| Analytics / BI | **RDS / Aurora** → Redshift Zero-ETL | `CfnIntegration` | Federated Query (no movement) |
 | Data Lake | RDS → DMS → S3 (Parquet) | DMS CDC | Snapshot Export (batch) |
 
 ---
@@ -353,7 +353,7 @@ Replicate Aurora data continuously into Redshift for analytics without impacting
 
 - **Use case**: Run heavy aggregations, BI dashboards, and long-running analytical queries without any load on the production Aurora cluster.
 - **Why Zero-ETL**: No ETL pipeline to maintain — Aurora continuously replicates to Redshift's columnar storage. Near-real-time data (seconds to minutes lag).
-- **Aurora-only**: Zero-ETL requires **Aurora PostgreSQL 16.1+**. It does **not** work with standard RDS PostgreSQL instances.
+- **Versions**: Zero-ETL requires Aurora PostgreSQL 16.1+ **or** standard RDS for PostgreSQL 15.11+ / 16.7+ / 17.3+ (GA since July 2025).
 - **CDK**: `aws-rds` — `CfnIntegration` (source side); `aws-redshiftserverless` — `CfnNamespace` + `CfnWorkgroup` (target). All L1.
 - **Alternative**: **Redshift Federated Query** — Redshift queries Aurora directly at runtime; no data movement, simpler setup. But every analytic query puts read load on Aurora. Best for occasional ad-hoc joins; Zero-ETL wins for repeated heavy analytics.
 - **Explored in**: [`rds-redshift-zero-etl`](./rds-redshift-zero-etl) _(Planned)_
@@ -392,7 +392,7 @@ Stream row-level changes from RDS into S3 for cheap long-term storage and batch 
 | [`rds-aurora-provisioned`](./rds-aurora-provisioned)     | Aurora writer + readers, custom endpoints | Done    |
 | [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling      | Done    |
 | [`rds-aurora-global`](./rds-aurora-global)               | Aurora Global Database + Write Forwarding | Done    |
-| [`rds-cdc-streaming`](./rds-cdc-streaming)               | DMS CDC → Kinesis → Lambda → SES          | Planned |
+| [`rds-cdc-streaming`](./rds-cdc-streaming)               | DMS CDC → Kinesis → Lambda (+ dedup)      | Done    |
 | [`rds-opensearch`](./rds-opensearch)                     | OpenSearch Ingestion from RDS             | Planned |
-| [`rds-redshift-zero-etl`](./rds-redshift-zero-etl)       | Aurora → Redshift Zero-ETL                | Planned |
+| [`rds-redshift-zero-etl`](./rds-redshift-zero-etl)       | RDS PostgreSQL → Redshift Zero-ETL        | Done    |
 | [`rds-data-lake`](./rds-data-lake)                       | DMS CDC → S3 (Parquet)                    | Planned |
