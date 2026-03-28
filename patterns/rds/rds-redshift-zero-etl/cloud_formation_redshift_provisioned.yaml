@@ -1,0 +1,75 @@
+Resources:
+  ParameterGroup:
+    Type: AWS::Redshift::ClusterParameterGroup
+    Properties:
+      Description: "Zero-ETL provisioned: enable case-sensitive identifiers"
+      ParameterGroupFamily: redshift-1.0
+      Parameters:
+        - ParameterName: enable_case_sensitive_identifier
+          ParameterValue: "true"
+    Metadata:
+      aws:cdk:path: RdsRedshiftZeroEtl-RedshiftProvisioned/ParameterGroup
+  SubnetGroup:
+    Type: AWS::Redshift::ClusterSubnetGroup
+    Properties:
+      Description: Zero-ETL provisioned cluster subnet group
+      SubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+    Metadata:
+      aws:cdk:path: RdsRedshiftZeroEtl-RedshiftProvisioned/SubnetGroup
+  Cluster:
+    Type: AWS::Redshift::Cluster
+    Properties:
+      AutomatedSnapshotRetentionPeriod: 1
+      ClusterIdentifier: redshift-provisioned-zero-etl
+      ClusterParameterGroupName:
+        Ref: ParameterGroup
+      ClusterSubnetGroupName:
+        Ref: SubnetGroup
+      ClusterType: single-node
+      DBName: dev
+      ManageMasterPassword: true
+      MasterUsername: admin
+      NodeType: ra3.large
+      PubliclyAccessible: false
+    DependsOn:
+      - ParameterGroup
+      - SubnetGroup
+    Metadata:
+      aws:cdk:path: RdsRedshiftZeroEtl-RedshiftProvisioned/Cluster
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/12JSwqDMBQAz+I+eQ1BegEXXbbUA5RonjR+orxPXYh3L+Ki0NUMMx586cAVYWXbxsGOqYGtltAOJqz8Ioz8Tp3AVnW5GpUF6REoTChIN5p1Mb9Ra5NR/ut++F1lUdlNniNCz5ePL+EKrug5JUuaJU0Iz5NfDTVb/JMAAAA=
+    Metadata:
+      aws:cdk:path: RdsRedshiftZeroEtl-RedshiftProvisioned/CDKMetadata/Default
+Outputs:
+  RedshiftClusterIdentifier:
+    Value: redshift-provisioned-zero-etl
+  RedshiftNamespaceArn:
+    Value:
+      Fn::GetAtt:
+        - Cluster
+        - ClusterNamespaceArn
+  RedshiftDbName:
+    Value: dev
+  MasterUserSecretArn:
+    Value:
+      Fn::GetAtt:
+        - Cluster
+        - MasterPasswordSecretArn
+  ExportsOutputFnGetAttClusterClusterNamespaceArn8C8F082A:
+    Value:
+      Fn::GetAtt:
+        - Cluster
+        - ClusterNamespaceArn
+    Export:
+      Name: RdsRedshiftZeroEtl-RedshiftProvisioned:ExportsOutputFnGetAttClusterClusterNamespaceArn8C8F082A
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

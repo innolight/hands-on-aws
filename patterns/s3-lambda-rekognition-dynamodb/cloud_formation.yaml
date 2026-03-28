@@ -161,7 +161,7 @@ Resources:
         Fn::GetAtt:
           - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
           - Arn
-      Runtime: nodejs20.x
+      Runtime: nodejs22.x
       Description:
         Fn::Join:
           - ""
@@ -175,7 +175,7 @@ Resources:
       aws:asset:path: asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6
       aws:asset:property: Code
   LabelsTableDD3C024F:
-    Type: AWS::DynamoDB::Table
+    Type: AWS::DynamoDB::GlobalTable
     Properties:
       AttributeDefinitions:
         - AttributeName: imageKey
@@ -184,6 +184,8 @@ Resources:
       KeySchema:
         - AttributeName: imageKey
           KeyType: HASH
+      Replicas:
+        - Region: eu-central-1
       TableName: image-rekognition-labels
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
@@ -235,10 +237,18 @@ Resources:
               - dynamodb:UpdateItem
             Effect: Allow
             Resource:
-              - Fn::GetAtt:
-                  - LabelsTableDD3C024F
-                  - Arn
-              - Ref: AWS::NoValue
+              Fn::GetAtt:
+                - LabelsTableDD3C024F
+                - Arn
+          - Action:
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+              - sqs:SendMessage
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - FailedProcessingQueueD72CDC9C
+                - Arn
         Version: "2012-10-17"
       PolicyName: ImageProcessorServiceRoleDefaultPolicy951A81DE
       Roles:
@@ -250,7 +260,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
-        S3Key: 1632ed3d510f62198299221cd7cd1d329febe9ebf01deae460eaadd5b826ea1d.zip
+        S3Key: 2b84184d7c9a2b05db6994fe0c63abcb71ef326f97eca079dc85649bcd019576.zip
       Environment:
         Variables:
           TABLE_NAME:
@@ -268,7 +278,7 @@ Resources:
       - ImageProcessorServiceRole607FFD33
     Metadata:
       aws:cdk:path: S3LambdaRekognitionDynamodb/ImageProcessor/Resource
-      aws:asset:path: asset.1632ed3d510f62198299221cd7cd1d329febe9ebf01deae460eaadd5b826ea1d
+      aws:asset:path: asset.2b84184d7c9a2b05db6994fe0c63abcb71ef326f97eca079dc85649bcd019576
       aws:asset:is-bundled: true
       aws:asset:property: Code
   ImageProcessorinlinePolicyAddedToExecutionRole0BA65ADE6:
@@ -285,6 +295,30 @@ Resources:
         - Ref: ImageProcessorServiceRole607FFD33
     Metadata:
       aws:cdk:path: S3LambdaRekognitionDynamodb/ImageProcessor/inlinePolicyAddedToExecutionRole-0/Resource
+  ImageProcessorEventInvokeConfigA728891D:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      DestinationConfig:
+        OnFailure:
+          Destination:
+            Fn::GetAtt:
+              - FailedProcessingQueueD72CDC9C
+              - Arn
+      FunctionName:
+        Ref: ImageProcessor5D0B0257
+      MaximumRetryAttempts: 2
+      Qualifier: $LATEST
+    Metadata:
+      aws:cdk:path: S3LambdaRekognitionDynamodb/ImageProcessor/EventInvokeConfig/Resource
+  FailedProcessingQueueD72CDC9C:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: image-rekognition-dlq
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: S3LambdaRekognitionDynamodb/FailedProcessingQueue/Resource
   BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC:
     Type: AWS::IAM::Role
     Properties:
@@ -310,7 +344,10 @@ Resources:
         Statement:
           - Action: s3:PutBucketNotification
             Effect: Allow
-            Resource: "*"
+            Resource:
+              Fn::GetAtt:
+                - ImageBucket97210811
+                - Arn
         Version: "2012-10-17"
       PolicyName: BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36
       Roles:
@@ -438,7 +475,7 @@ Resources:
         Fn::GetAtt:
           - BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC
           - Arn
-      Runtime: python3.11
+      Runtime: python3.13
       Timeout: 300
     DependsOn:
       - BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36
@@ -448,7 +485,7 @@ Resources:
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/8VU32/TMBD+W+bHyTV0Qwj1LS1DQqhbaMsDiqrKsa+dW8eu/KMjsvK/IztJFxggQKA9RHf67u7zd3eOr8j4zZiML+iDHTF+GElRkrB0lB0wfbCbYK9JmHp2AFcEVCbnllaAJugSYVRKzQ65L6VgGWNgbYcbqPSJylxLwWo0QRysM7pGGFHv9FuQ4OCu3ANzFk2c8dCs8Wyr2oNwa9ri86mJeZjWxrvkKbVQrBssaVVySsJsq3IwlbBWaBVr3nnFnNCqwbxWtNK8JGFFSwlFQC7aQVdHapyIyR+gRpOA1GPI1cfoLlGDUSmkFGo31zxCefZ5k98sNoubj59ulqtfDKFtIh3eC94ozWFvyW0yvdYioG3nDtSBcqbu/HuquATTT90rJx6ligq0d+eqkzBaVaB6pPSKR/2xQ/jiwCgq55p7Ce0WG4xY21r0Q4OfV02zxoJWJCx02hm11lfAp2lBRyMUE0cqM8a0P3O2ObEgS7L7tiqq6A54WoyI/EX4Bqsz0+WuY9eU85XO+yP6dRahizpH2f17JYWCcwxdot8I/i/evx5Np2o+nMWzTCf9IVEd7l6BKLovWOkYecLzFOZ86aiDeMvsQNKPYTvA2hv/U4I/UPGvdKeBtLNosL3eUGvBWZJF0+CZt05XC7DaGwaJKA2wA76L50afBAcT30ycGJaO7oTa4SED7r7EdOfd0bsGx2eK7O2L09Ur8pq8vNhbIUbdj04Wrf0K46ezflIGAAA=
+      Analytics: v2:deflate64:H4sIAAAAAAAA/8VVTU8bMRD9LfiIjIsC6iG3kJYKVUBKUC8RQrP2JDjx2sEeh66s/e+V9yNsi6pCVYnTjGY8b968WXtHYnR6LI4P4CkcSbU5MroQaU4gNxyewn0KJyKdRblBWiRWNM4VlMjG7JBxVhgnN7NYGC0nUmIIXdxj6XZgZs5oWbExUxjIu4pxBpHcJzRIeF2sUVJgY/IR6zs+Xdq2EW9NW7zv2iAPj7X57vAZBKy5gbJQINJ0aWfoSx2CdjZXnEcrKfufd2jpwu7cBqfOLvVqkdiyS+65k68mRFhuqZ/H2XPQJnocsHgBVXNVWSidKkS6hcLg99EiMcreQLIteNK53Ves2Dgx+5yiapvdOas5K7Qx2q7+omfL5ItxBZimZa/BvXUK10FcNaYffzDsgBFa8lXnP4BVBn3fNlrSz/R0iS7SvmqnvbMl2j5SRKtazonhD0JvwVw6FQ22MtacSac6CXmq+fuyqe+4hlKkG2dwkRiEEEtUZ81Stl5bqbdgJlK6uMdsz+SCyfMXU3NWgoUVqmY9OuMv0i+xauK7s3d5alDq1s36Fv1SF6nLEoF8uLBGW9zn2CF7RfJ9cP9ZuA77cqjUu2jX3KLMjnePTibdF9y6nHmB8zKs1JyAMH+DYUDpTeEwiLXX5I8AbyD3v8ZpdGolqnk4uYcQkIKYZMPDYxDpW8SYb9NjtoNb7ZHQ5s3P0GunXvWsNVh1zacxkCtvMLjoJTYEm311gd/yM+92WqHPfwTeMJsTrLRd5ZrrSNtINc+vo1iHD7vRqfgojg/WQeuj7n0RN639CR6NZecaBwAA
     Metadata:
       aws:cdk:path: S3LambdaRekognitionDynamodb/CDKMetadata/Default
 Outputs:
@@ -461,6 +498,9 @@ Outputs:
   FunctionName:
     Value:
       Ref: ImageProcessor5D0B0257
+  DLQUrl:
+    Value:
+      Ref: FailedProcessingQueueD72CDC9C
 Parameters:
   BootstrapVersion:
     Type: AWS::SSM::Parameter::Value<String>

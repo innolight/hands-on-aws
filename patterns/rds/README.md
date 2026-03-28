@@ -70,7 +70,7 @@ One DB instance in one Availability Zone. No standby, no replication.
 
 - **Use case**: Development, testing, PoC. Never production.
 - **Failure mode**: AZ outage = downtime until AWS restores the instance or you restore from a snapshot.
-- **Taught in**: [`rds-postgres`](./rds-postgres)
+- **Explored in**: [`rds-postgres`](./rds-postgres)
 
 ---
 
@@ -93,7 +93,7 @@ One primary + one **synchronous** standby in a different AZ. The standby is comp
 - **Use case**: Production workloads needing HA with no application changes on failover.
 - **Failover**: Automatic DNS CNAME flip in 60–120s. Application reconnects to the same hostname.
 - **Key misconception**: You pay 2× but get **zero read scaling**. The standby is purely for HA.
-- **Taught in**: [`rds-postgres`](./rds-postgres)
+- **Explored in**: [`rds-postgres`](./rds-postgres)
 
 ---
 
@@ -122,7 +122,7 @@ Asynchronous copies of the primary. Each replica has its own endpoint. Replicas 
 - **Replication**: Asynchronous — stale reads possible under heavy write load.
 - **DR promote**: Promoting a replica breaks replication and creates a new standalone instance. No automatic failover.
 - **Chaining**: Replicas can replicate from other replicas (up to 5 hops), useful for fan-out.
-- **Taught in**: [`rds-read-replicas`](./rds-read-replicas)
+- **Explored in**: [`rds-read-replicas`](./rds-read-replicas)
 
 ---
 
@@ -149,7 +149,7 @@ One primary + **two readable standbys** across three AZs. Standbys use synchrono
 - **Failover**: <35s — two standby candidates; no EBS reattach needed.
 - **vs Aurora**: Same 3-AZ layout, but RDS storage model (EBS-backed). Aurora wins on replica count (15 vs 2) and failover speed (<30s vs <35s), but at higher cost.
 - **CDK note**: Uses `DatabaseCluster`, not `DatabaseInstance` — different L2 construct.
-- **Taught in**: [`rds-readable-standbys`](./rds-readable-standbys)
+- **Explored in**: [`rds-readable-standbys`](./rds-readable-standbys)
 
 ---
 
@@ -181,7 +181,7 @@ Aurora separates storage from compute. All instances share a single **distribute
 - **Failover**: <30s — no EBS reattach; a reader is promoted to writer on the existing storage.
 - **Storage billing**: Per GB-month + per I/O request (no IOPS provisioning, no EBS management).
 - **Custom endpoints**: You can create endpoint groups (e.g., one for OLTP readers, one for analytics) pointing to specific reader subsets.
-- **Taught in**: [`rds-aurora-provisioned`](./rds-aurora-provisioned)
+- **Explored in**: [`rds-aurora-provisioned`](./rds-aurora-provisioned)
 
 ---
 
@@ -209,7 +209,7 @@ Aurora instances that auto-scale in 0.5 ACU increments. 1 ACU ≈ 2 GB RAM + pro
 - **Use case**: Variable/unpredictable workloads; dev environments that should scale to near-zero; mixing a serverless reader (cheap) with a provisioned writer (stable latency).
 - **Billing**: Per ACU-hour (~$0.12/ACU-hour in eu-central-1). Minimum ACU setting determines your floor cost.
 - **vs Aurora Provisioned**: Same storage model. Serverless v2 adds elastic compute at the cost of slightly less predictable latency at scale-up edges.
-- **Taught in**: [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2)
+- **Explored in**: [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2)
 
 ---
 
@@ -238,7 +238,7 @@ One **primary** Aurora cluster (read-write) + up to 5 **secondary** clusters in 
 - **Write Forwarding**: Secondary clusters can accept writes locally. Aurora forwards them to the primary automatically — the application does not need to know which region is the writer.
 - **Managed failover**: Promote a secondary to primary in ~1 minute (planned switchover) or with some RPO risk (unplanned).
 - **Cost**: Highest — two or more full Aurora clusters + cross-region data transfer fees.
-- **Taught in**: [`rds-aurora-global`](./rds-aurora-global)
+- **Explored in**: [`rds-aurora-global`](./rds-aurora-global)
 
 ---
 
@@ -282,13 +282,117 @@ Secondary regions accept writes and forward them to the primary over the replica
 
 ---
 
+## Integration Patterns
+
+Beyond deploying a topology, RDS and Aurora serve as the **source of truth** that feeds downstream systems. These patterns cover the four main data distribution paths. All are implementable via CDK (L1 constructs) — see CDK notes per pattern.
+
+| Use Case | Path | Zero-ETL Tech | Key Alternative |
+|---|---|---|---|
+| Actions / Emails | RDS → DMS → Kinesis → Lambda → SES | DMS CDC | Activity Streams (audit-only) |
+| Search | RDS → OpenSearch Ingestion → OpenSearch | OSI JDBC poll | pg_vector (in-DB) |
+| Analytics / BI | **RDS / Aurora** → Redshift Zero-ETL | `CfnIntegration` | Federated Query (no movement) |
+| Data Lake | RDS → DMS → S3 (Parquet) | DMS CDC | Snapshot Export (batch) |
+
+---
+
+### CDC Streaming
+
+Capture row-level changes from RDS and stream them to downstream consumers.
+
+```
+┌──────────────┐    ┌─────────────────┐    ┌───────────────────┐    ┌────────┐    ┌─────┐
+│  RDS / Aurora│───▶│  AWS DMS (CDC)  │───▶│  Kinesis Data     │───▶│ Lambda │───▶│ SES │
+│  PostgreSQL  │    │  replication    │    │  Stream           │    │        │    │     │
+└──────────────┘    └─────────────────┘    └───────────────────┘    └────────┘    └─────┘
+   logical              row-level               INSERT /                trigger
+   replication          changes                 UPDATE / DELETE         action
+```
+
+- **Use case**: Send emails, push notifications, or trigger business logic when a specific row changes (e.g., order placed, user verified). You need the actual column values from the changed row.
+- **Why DMS CDC**: DMS reads the PostgreSQL WAL via logical replication and forwards full row images to Kinesis. Lambda consumes the Kinesis stream and acts on the data.
+- **CDK**: `aws-dms` — `CfnReplicationInstance`, `CfnEndpoint` (`engineName: 'kinesis'`, `kinesisSettings`), `CfnReplicationTask` (`migrationType: 'cdc'`). Also available as DMS Serverless via `CfnReplicationConfig`. All L1.
+- **Prerequisite**: Enable logical replication on the RDS parameter group (`rds.logical_replication = 1`).
+- **Alternative**: **RDS Database Activity Streams** — streams raw SQL audit events. Does not capture full row results; use only for security auditing, not data-driven actions.
+- **Explored in**: [`rds-cdc-streaming`](./rds-cdc-streaming) _(Planned)_
+
+---
+
+### Search Indexing
+
+Keep an OpenSearch index in sync with your RDS data for full-text or vector search.
+
+```
+┌──────────────┐    ┌────────────────────────────┐    ┌────────────────────┐
+│  RDS / Aurora│◀───│  OpenSearch Ingestion (OSI) │───▶│  Amazon OpenSearch │
+│  PostgreSQL  │    │  JDBC source (polls)        │    │  Service           │
+└──────────────┘    └────────────────────────────┘    └────────────────────┘
+                         pull on schedule                 full-text / vector
+                         (not true CDC)                   search queries
+```
+
+- **Use case**: Fuzzy search, typo-tolerance, semantic/vector ranking over data stored in RDS. SQL `LIKE` and `tsvector` lack the ranking and aggregation features of OpenSearch.
+- **Why OSI**: OpenSearch Ingestion has a managed JDBC source plugin that polls RDS on a schedule and syncs changes to OpenSearch — no custom sync code needed.
+- **Caveat**: OSI JDBC is **poll-based**, not true CDC. It tracks changes via a timestamp or sequence column. It **cannot detect hard deletes** — rows deleted from RDS remain in the index unless your schema uses soft deletes (e.g., `deleted_at` column).
+- **CDK**: `aws-osis` — `CfnPipeline` (L1). The pipeline logic (JDBC source URL, credentials, OpenSearch sink) is passed as a Data Prepper YAML string in `pipelineConfigurationBody`.
+- **Alternative**: **pg_vector** — store and query vector embeddings directly inside PostgreSQL using the `pgvector` extension. No data movement, but lacks advanced full-text ranking and scales with your DB instance, not independently.
+- **Explored in**: [`rds-opensearch`](./rds-opensearch) _(Planned)_
+
+---
+
+### Analytics / Zero-ETL
+
+Replicate Aurora data continuously into Redshift for analytics without impacting the production cluster.
+
+```
+┌──────────────────┐    Zero-ETL    ┌──────────────────────────────────┐
+│  Aurora          │───────────────▶│  Amazon Redshift Serverless       │
+│  PostgreSQL 16.1+│   continuous   │  (columnar, analytics-optimized)  │
+│  (writer)        │   replication  │  queries don't hit Aurora         │
+└──────────────────┘                └──────────────────────────────────┘
+```
+
+- **Use case**: Run heavy aggregations, BI dashboards, and long-running analytical queries without any load on the production Aurora cluster.
+- **Why Zero-ETL**: No ETL pipeline to maintain — Aurora continuously replicates to Redshift's columnar storage. Near-real-time data (seconds to minutes lag).
+- **Versions**: Zero-ETL requires Aurora PostgreSQL 16.1+ **or** standard RDS for PostgreSQL 15.11+ / 16.7+ / 17.3+ (GA since July 2025).
+- **CDK**: `aws-rds` — `CfnIntegration` (source side); `aws-redshiftserverless` — `CfnNamespace` + `CfnWorkgroup` (target). All L1.
+- **Alternative**: **Redshift Federated Query** — Redshift queries Aurora directly at runtime; no data movement, simpler setup. But every analytic query puts read load on Aurora. Best for occasional ad-hoc joins; Zero-ETL wins for repeated heavy analytics.
+- **Explored in**: [`rds-redshift-zero-etl`](./rds-redshift-zero-etl) _(Planned)_
+
+---
+
+### Data Lake Hydration
+
+Stream row-level changes from RDS into S3 for cheap long-term storage and batch analytics.
+
+```
+┌──────────────┐    ┌───────────────────┐    ┌────────────────────────────────┐
+│  RDS / Aurora│───▶│  AWS DMS (CDC)    │───▶│  Amazon S3                     │
+│  PostgreSQL  │    │  full-load + CDC  │    │  s3://bucket/table/YYYY/MM/DD/ │
+└──────────────┘    └───────────────────┘    │  (Parquet, date-partitioned)   │
+                         continuous          └────────────────────────────────┘
+                         replication              Athena / Glue / Spark
+```
+
+- **Use case**: Retain historical data cheaply. S3 + Parquet is orders of magnitude cheaper than RDS storage. Query history with Athena or Spark without touching the production DB.
+- **Why DMS**: DMS supports both initial full-load and ongoing CDC to S3 in a single replication task. Date partitioning, Glue catalog auto-registration, and Parquet encoding are all configurable via `s3Settings` on `CfnEndpoint`.
+- **Output format**: DMS writes **Parquet or CSV** — Iceberg is not natively supported. For Iceberg table format, write Parquet via DMS then convert with a Glue ETL job.
+- **CDK**: `aws-dms` — `CfnEndpoint` (`engineName: 's3'`, `s3Settings`), `CfnReplicationTask`. Set `glueCatalogGeneration: true` in `s3Settings` to auto-register the schema in Glue for Athena queries. All L1.
+- **Alternative**: **RDS Export to S3** — exports the entire DB as Parquet snapshots. Much simpler to set up but batch-only (daily at best, no continuous CDC).
+- **Explored in**: [`rds-data-lake`](./rds-data-lake) _(Planned)_
+
+---
+
 ## Sub-Patterns
 
-| Pattern                                                  | Topology                                  | Status |
-| -------------------------------------------------------- | ----------------------------------------- | ------ |
-| [`rds-postgres`](./rds-postgres)                         | Single-AZ + Multi-AZ + RDS Proxy          | Done   |
-| [`rds-read-replicas`](./rds-read-replicas)               | Async read replicas, cross-region DR      | Done   |
-| [`rds-readable-standbys`](./rds-readable-standbys)       | Multi-AZ with 2 readable standbys         | Done   |
-| [`rds-aurora-provisioned`](./rds-aurora-provisioned)     | Aurora writer + readers, custom endpoints | Done   |
-| [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling      | Done   |
-| [`rds-aurora-global`](./rds-aurora-global)               | Aurora Global Database + Write Forwarding | Done   |
+| Pattern                                                  | Topology                                  | Status  |
+| -------------------------------------------------------- | ----------------------------------------- | ------- |
+| [`rds-postgres`](./rds-postgres)                         | Single-AZ + Multi-AZ + RDS Proxy          | Done    |
+| [`rds-read-replicas`](./rds-read-replicas)               | Async read replicas, cross-region DR      | Done    |
+| [`rds-readable-standbys`](./rds-readable-standbys)       | Multi-AZ with 2 readable standbys         | Done    |
+| [`rds-aurora-provisioned`](./rds-aurora-provisioned)     | Aurora writer + readers, custom endpoints | Done    |
+| [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling      | Done    |
+| [`rds-aurora-global`](./rds-aurora-global)               | Aurora Global Database + Write Forwarding | Done    |
+| [`rds-cdc-streaming`](./rds-cdc-streaming)               | DMS CDC → Kinesis → Lambda (+ dedup)      | Done    |
+| [`rds-opensearch`](./rds-opensearch)                     | OpenSearch Ingestion from RDS             | Planned |
+| [`rds-redshift-zero-etl`](./rds-redshift-zero-etl)       | RDS PostgreSQL → Redshift Zero-ETL        | Done    |
+| [`rds-data-lake`](./rds-data-lake)                       | DMS CDC → S3 (Parquet)                    | Planned |

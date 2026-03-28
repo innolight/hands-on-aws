@@ -1,0 +1,92 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`integration: containers/ecs-fargate-apigw (multi-stack) matches snapshot 1`] = `
+"# Imported: VpcSubnets
+[VpcSubnets (imported)] AWS::EC2::VPC -> contains -> [VpcSubnets (imported)] AWS::EC2::Subnet (3x private)
+
+# Stack: EcsFargateNetworkingStack
+[EcsFargateNetworkingStack] AWS::EC2::SecurityGroup (VpcLinkSG) -> in -> [VpcSubnets (imported)] AWS::EC2::VPC
+[EcsFargateNetworkingStack] AWS::EC2::SecurityGroupIngress (TaskSgIngress) -> added to -> [EcsFargateComputeStack (imported)] unknown (ExportsOutputFnGetAttTaskSG716)
+[EcsFargateNetworkingStack] AWS::EC2::SecurityGroupIngress (TaskSgIngress) -> allows traffic from -> [EcsFargateNetworkingStack] AWS::EC2::SecurityGroup (VpcLinkSG)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::VpcLink (VpcLink) -> secured by -> [EcsFargateNetworkingStack] AWS::EC2::SecurityGroup (VpcLinkSG)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::VpcLink (VpcLink) -> placed in -> [VpcSubnets (imported)] AWS::EC2::Subnet (3x private)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Stage (DefaultStage) -> references -> [EcsFargateNetworkingStack] AWS::Logs::LogGroup (ApiAccessLogGroup)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Stage (DefaultStage) -> references -> [EcsFargateNetworkingStack] AWS::ApiGatewayV2::Api (HttpApi)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Integration (CloudMapIntegration) -> references -> [EcsFargateNetworkingStack] AWS::ApiGatewayV2::Api (HttpApi)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Integration (CloudMapIntegration) -> references -> [EcsFargateNetworkingStack] AWS::ApiGatewayV2::VpcLink (VpcLink)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Integration (CloudMapIntegration) -> forwards to -> [EcsFargateComputeStack (imported)] unknown (ExportsOutputFnGetAttServiceCl)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Route (GET--health) -> references -> [EcsFargateNetworkingStack] AWS::ApiGatewayV2::Api (HttpApi)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Route (GET--health) -> references -> [EcsFargateNetworkingStack] AWS::ApiGatewayV2::Integration (CloudMapIntegration)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Route (ANY--quote) -> references -> [EcsFargateNetworkingStack] AWS::ApiGatewayV2::Api (HttpApi)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Route (ANY--quote) -> references -> [EcsFargateNetworkingStack] AWS::ApiGatewayV2::Integration (CloudMapIntegration)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Route (ANY--quote--{proxy+}) -> references -> [EcsFargateNetworkingStack] AWS::ApiGatewayV2::Api (HttpApi)
+[EcsFargateNetworkingStack] AWS::ApiGatewayV2::Route (ANY--quote--{proxy+}) -> references -> [EcsFargateNetworkingStack] AWS::ApiGatewayV2::Integration (CloudMapIntegration)
+
+# Stack: EcsFargateComputeStack
+[EcsFargateComputeStack] AWS::EC2::SecurityGroup (TaskSG) -> in -> [VpcSubnets (imported)] AWS::EC2::VPC
+[EcsFargateComputeStack] AWS::ECS::TaskDefinition (TaskDef) -> sends logs to -> [EcsFargateComputeStack] AWS::Logs::LogGroup (TaskLogGroup)
+[EcsFargateComputeStack] AWS::ECS::TaskDefinition (TaskDef) -> pulls image via -> [EcsFargateComputeStack] AWS::IAM::Role (ExecutionRole)
+[EcsFargateComputeStack] AWS::ECS::TaskDefinition (TaskDef) -> app runs as -> [EcsFargateComputeStack] AWS::IAM::Role (TaskRole)
+[EcsFargateComputeStack] AWS::IAM::Policy (DefaultPolicy) -> allows write to -> [EcsFargateComputeStack] AWS::Logs::LogGroup (TaskLogGroup)
+[EcsFargateComputeStack] AWS::IAM::Policy (DefaultPolicy) -> grants permissions to -> [EcsFargateComputeStack] AWS::IAM::Role (ExecutionRole)
+[EcsFargateComputeStack] AWS::ECS::Service (Service) -> runs in -> [EcsClusterStack (imported)] AWS::ECS::Cluster
+[EcsFargateComputeStack] AWS::ECS::Service (Service) -> secured by -> [EcsFargateComputeStack] AWS::EC2::SecurityGroup (TaskSG)
+[EcsFargateComputeStack] AWS::ECS::Service (Service) -> placed in -> [VpcSubnets (imported)] AWS::EC2::Subnet (3x private)
+[EcsFargateComputeStack] AWS::ECS::Service (Service) -> references -> [EcsFargateComputeStack] AWS::ServiceDiscovery::Service (CloudmapService)
+[EcsFargateComputeStack] AWS::ECS::Service (Service) -> deploys -> [EcsFargateComputeStack] AWS::ECS::TaskDefinition (TaskDef)
+[EcsFargateComputeStack] AWS::ServiceDiscovery::Service (CloudmapService) -> references -> [EcsClusterStack (imported)] AWS::ServiceDiscovery::PrivateDnsNamespace
+[EcsFargateComputeStack] AWS::ApplicationAutoScaling::ScalableTarget (Target) -> scales -> [EcsClusterStack (imported)] AWS::ECS::Cluster
+[EcsFargateComputeStack] AWS::ApplicationAutoScaling::ScalableTarget (Target) -> scales -> [EcsFargateComputeStack] AWS::ECS::Service (Service)
+[EcsFargateComputeStack] AWS::ApplicationAutoScaling::ScalingPolicy (ScaleOnCpu) -> drives -> [EcsFargateComputeStack] AWS::ApplicationAutoScaling::ScalableTarget (Target)
+
+# Stack: EcsClusterStack
+[EcsClusterStack] AWS::ServiceDiscovery::PrivateDnsNamespace (Namespace) -> references -> [VpcSubnets (imported)] AWS::EC2::VPC
+"
+`;
+
+exports[`integration: dynamodb-stream-lambda matches snapshot 1`] = `
+"# Stack: DynamoDBLambda
+[DynamoDBLambda] AWS::IAM::Policy (DefaultPolicy) -> allows send to -> [DynamoDBLambda] AWS::SQS::Queue (StreamDeadLetterQueue)
+[DynamoDBLambda] AWS::IAM::Policy (DefaultPolicy) -> allows stream read from -> [DynamoDBLambda] AWS::DynamoDB::GlobalTable (OrdersTable)
+[DynamoDBLambda] AWS::IAM::Policy (DefaultPolicy) -> grants permissions to -> [DynamoDBLambda] AWS::IAM::Role (ServiceRole)
+[DynamoDBLambda] AWS::Lambda::Function (StreamProcessor) -> references -> [DynamoDBLambda] AWS::DynamoDB::GlobalTable (OrdersTable)
+[DynamoDBLambda] AWS::Lambda::Function (StreamProcessor) -> runs as -> [DynamoDBLambda] AWS::IAM::Role (ServiceRole)
+[DynamoDBLambda] AWS::Lambda::EventSourceMapping (DynamoDBEventSource:DynamoDBLambdaOrdersTable348202BF) -> references -> [DynamoDBLambda] AWS::SQS::Queue (StreamDeadLetterQueue)
+[DynamoDBLambda] AWS::Lambda::EventSourceMapping (DynamoDBEventSource:DynamoDBLambdaOrdersTable348202BF) -> streams from -> [DynamoDBLambda] AWS::DynamoDB::GlobalTable (OrdersTable)
+[DynamoDBLambda] AWS::Lambda::EventSourceMapping (DynamoDBEventSource:DynamoDBLambdaOrdersTable348202BF) -> invokes -> [DynamoDBLambda] AWS::Lambda::Function (StreamProcessor)
+"
+`;
+
+exports[`integration: s3-events-notification matches snapshot 1`] = `
+"# Stack: S3EventsNotification
+[S3EventsNotification] AWS::SQS::Queue (Sqs) -> references -> [S3EventsNotification] AWS::SQS::Queue (SqsDlq)
+[S3EventsNotification] AWS::SQS::QueuePolicy (Policy) -> allows access to -> [S3EventsNotification] AWS::SNS::Topic (Sns)
+[S3EventsNotification] AWS::SQS::QueuePolicy (Policy) -> allows send to -> [S3EventsNotification] AWS::SQS::Queue (Sqs)
+[S3EventsNotification] AWS::SQS::QueuePolicy (Policy) -> references -> [S3EventsNotification] AWS::SQS::Queue (Sqs)
+[S3EventsNotification] AWS::SNS::Subscription (S3EventsNotificationSns71993A8A) -> references -> [S3EventsNotification] AWS::SQS::Queue (Sqs)
+[S3EventsNotification] AWS::SNS::Subscription (S3EventsNotificationSns71993A8A) -> references -> [S3EventsNotification] AWS::SNS::Topic (Sns)
+[S3EventsNotification] AWS::SNS::TopicPolicy (Policy) -> allows access to -> [S3EventsNotification] AWS::S3::Bucket (S3Bucket)
+[S3EventsNotification] AWS::SNS::TopicPolicy (Policy) -> allows access to -> [S3EventsNotification] AWS::SNS::Topic (Sns)
+[S3EventsNotification] AWS::SNS::TopicPolicy (Policy) -> references -> [S3EventsNotification] AWS::SNS::Topic (Sns)
+[S3EventsNotification] AWS::S3::BucketPolicy (Policy) -> policy for -> [S3EventsNotification] AWS::S3::Bucket (S3Bucket)
+[S3EventsNotification] AWS::S3::BucketPolicy (Policy) -> allows access to -> [S3EventsNotification] AWS::S3::Bucket (S3Bucket)
+"
+`;
+
+exports[`integration: s3-lambda-rekognition-dynamodb matches snapshot 1`] = `
+"# Stack: S3LambdaRekognitionDynamodb
+[S3LambdaRekognitionDynamodb] AWS::S3::BucketPolicy (Policy) -> policy for -> [S3LambdaRekognitionDynamodb] AWS::S3::Bucket (ImageBucket)
+[S3LambdaRekognitionDynamodb] AWS::S3::BucketPolicy (Policy) -> allows access to -> [S3LambdaRekognitionDynamodb] AWS::S3::Bucket (ImageBucket)
+[S3LambdaRekognitionDynamodb] AWS::Lambda::Permission (AllowBucketNotificationsToS3LambdaRekognitionDynamodbImageProcessor5BBD60B9) -> invokes -> [S3LambdaRekognitionDynamodb] AWS::Lambda::Function (ImageProcessor)
+[S3LambdaRekognitionDynamodb] AWS::Lambda::Permission (AllowBucketNotificationsToS3LambdaRekognitionDynamodbImageProcessor5BBD60B9) -> triggered by -> [S3LambdaRekognitionDynamodb] AWS::S3::Bucket (ImageBucket)
+[S3LambdaRekognitionDynamodb] AWS::IAM::Policy (DefaultPolicy) -> allows access to -> [S3LambdaRekognitionDynamodb] AWS::S3::Bucket (ImageBucket)
+[S3LambdaRekognitionDynamodb] AWS::IAM::Policy (DefaultPolicy) -> allows stream read from -> [S3LambdaRekognitionDynamodb] AWS::DynamoDB::GlobalTable (LabelsTable)
+[S3LambdaRekognitionDynamodb] AWS::IAM::Policy (DefaultPolicy) -> allows send to -> [S3LambdaRekognitionDynamodb] AWS::SQS::Queue (FailedProcessingQueue)
+[S3LambdaRekognitionDynamodb] AWS::IAM::Policy (DefaultPolicy) -> grants permissions to -> [S3LambdaRekognitionDynamodb] AWS::IAM::Role (ServiceRole)
+[S3LambdaRekognitionDynamodb] AWS::Lambda::Function (ImageProcessor) -> references -> [S3LambdaRekognitionDynamodb] AWS::DynamoDB::GlobalTable (LabelsTable)
+[S3LambdaRekognitionDynamodb] AWS::Lambda::Function (ImageProcessor) -> runs as -> [S3LambdaRekognitionDynamodb] AWS::IAM::Role (ServiceRole)
+[S3LambdaRekognitionDynamodb] AWS::IAM::Policy (inlinePolicyAddedToExecutionRole-0) -> grants permissions to -> [S3LambdaRekognitionDynamodb] AWS::IAM::Role (ServiceRole)
+[S3LambdaRekognitionDynamodb] AWS::Lambda::EventInvokeConfig (EventInvokeConfig) -> references -> [S3LambdaRekognitionDynamodb] AWS::SQS::Queue (FailedProcessingQueue)
+[S3LambdaRekognitionDynamodb] AWS::Lambda::EventInvokeConfig (EventInvokeConfig) -> invokes -> [S3LambdaRekognitionDynamodb] AWS::Lambda::Function (ImageProcessor)
+"
+`;
