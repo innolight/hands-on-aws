@@ -123,6 +123,12 @@ import {
   RdsRedshiftIntegrationStack,
   rdsRedshiftIntegrationStackName,
 } from '../patterns/rds/rds-redshift-zero-etl/stack_integration';
+import { RdsCdcStreamingRdsStack, rdsCdcStreamingRdsStackName } from '../patterns/rds/rds-cdc-streaming/stack_rds';
+import { RdsCdcStreamingDmsStack, rdsCdcStreamingDmsStackName } from '../patterns/rds/rds-cdc-streaming/stack_dms';
+import {
+  RdsCdcStreamingLambdaStack,
+  rdsCdcStreamingLambdaStackName,
+} from '../patterns/rds/rds-cdc-streaming/stack_lambda';
 
 const app = new cdk.App();
 
@@ -387,6 +393,31 @@ new RdsRedshiftIntegrationStack(app, rdsRedshiftIntegrationStackName, {
   rdsInstance: rdsZeroEtlRdsStack.instance,
   clusterArn: rdsZeroEtlProvisionedStack.clusterArn,
   namespaceArn: rdsZeroEtlProvisionedStack.namespaceArn,
+});
+
+// --- rds-cdc-streaming ---
+// Deploy order: RdsCdcStreamingRds → RdsCdcStreamingDms → RdsCdcStreamingLambda
+// Teardown order (reverse): RdsCdcStreamingLambda → RdsCdcStreamingDms → RdsCdcStreamingRds
+// Before destroying, stop the DMS task and drop the replication slot on RDS:
+//   SELECT pg_drop_replication_slot('dms_cdc_slot');
+// to prevent WAL accumulation after the DMS task is removed.
+const cdcRdsStack = new RdsCdcStreamingRdsStack(app, rdsCdcStreamingRdsStackName, {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+  vpc: vpcStack.vpc,
+  bastionSG: bastionStack.bastionSG,
+});
+
+const cdcDmsStack = new RdsCdcStreamingDmsStack(app, rdsCdcStreamingDmsStackName, {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+  vpc: vpcStack.vpc,
+  rdsInstance: cdcRdsStack.instance,
+  rdsSecret: cdcRdsStack.secret,
+  rdsSG: cdcRdsStack.dbSG,
+});
+
+new RdsCdcStreamingLambdaStack(app, rdsCdcStreamingLambdaStackName, {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+  stream: cdcDmsStack.stream,
 });
 
 // --- rds-aurora-global (cross-region: eu-central-1 primary + us-east-1 secondary) ---

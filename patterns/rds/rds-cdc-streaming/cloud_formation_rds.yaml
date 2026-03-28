@@ -2,7 +2,7 @@ Resources:
   DbSG0BE6ACB3:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: RDS Zero-ETL source instance security group
+      GroupDescription: RDS CDC source instance security group
       SecurityGroupEgress:
         - CidrIp: 255.255.255.255/32
           Description: Disallow all traffic
@@ -12,7 +12,7 @@ Resources:
       VpcId:
         Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
     Metadata:
-      aws:cdk:path: RdsRedshiftZeroEtl-Rds/DbSG/Resource
+      aws:cdk:path: RdsCdcStreamingRds/DbSG/Resource
   BastionToDb:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -27,7 +27,7 @@ Resources:
         Fn::ImportValue: SsmBastion:ExportsOutputFnGetAttBastionSGEBD2A3B1GroupId0BE655F5
       ToPort: 5432
     Metadata:
-      aws:cdk:path: RdsRedshiftZeroEtl-Rds/BastionToDb
+      aws:cdk:path: RdsCdcStreamingRds/BastionToDb
   ParameterGroup5E32DECB:
     Type: AWS::RDS::DBParameterGroup
     Properties:
@@ -35,13 +35,11 @@ Resources:
       Family: postgres17
       Parameters:
         rds.logical_replication: "1"
-        rds.replica_identity_full: "1"
-        session_replication_role: origin
         wal_sender_timeout: "0"
-        max_wal_senders: "20"
-        max_replication_slots: "20"
+        max_wal_senders: "10"
+        max_replication_slots: "10"
     Metadata:
-      aws:cdk:path: RdsRedshiftZeroEtl-Rds/ParameterGroup/Resource
+      aws:cdk:path: RdsCdcStreamingRds/ParameterGroup/Resource
   InstanceSubnetGroupF2CBA54F:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -51,8 +49,8 @@ Resources:
         - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
         - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
     Metadata:
-      aws:cdk:path: RdsRedshiftZeroEtl-Rds/Instance/SubnetGroup/Default
-  RdsRedshiftZeroEtlRdsInstanceSecret344F7A7C3fdaad7efa858a3daf9490cf0a702aeb:
+      aws:cdk:path: RdsCdcStreamingRds/Instance/SubnetGroup/Default
+  RdsCdcStreamingRdsInstanceSecret6A52BD383fdaad7efa858a3daf9490cf0a702aeb:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description:
@@ -68,17 +66,17 @@ Resources:
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Metadata:
-      aws:cdk:path: RdsRedshiftZeroEtl-Rds/Instance/Secret/Resource
+      aws:cdk:path: RdsCdcStreamingRds/Instance/Secret/Resource
   InstanceSecretAttachment83BEE581:
     Type: AWS::SecretsManager::SecretTargetAttachment
     Properties:
       SecretId:
-        Ref: RdsRedshiftZeroEtlRdsInstanceSecret344F7A7C3fdaad7efa858a3daf9490cf0a702aeb
+        Ref: RdsCdcStreamingRdsInstanceSecret6A52BD383fdaad7efa858a3daf9490cf0a702aeb
       TargetId:
         Ref: InstanceC1063A87
       TargetType: AWS::RDS::DBInstance
     Metadata:
-      aws:cdk:path: RdsRedshiftZeroEtl-Rds/Instance/Secret/Attachment/Resource
+      aws:cdk:path: RdsCdcStreamingRds/Instance/Secret/Attachment/Resource
   InstanceC1063A87:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -86,7 +84,7 @@ Resources:
       BackupRetentionPeriod: 1
       CopyTagsToSnapshot: true
       DBInstanceClass: db.t4g.micro
-      DBInstanceIdentifier: rds-zero-etl-source
+      DBInstanceIdentifier: rds-cdc-source
       DBName: demo
       DBParameterGroupName:
         Ref: ParameterGroup5E32DECB
@@ -99,7 +97,7 @@ Resources:
         Fn::Join:
           - ""
           - - "{{resolve:secretsmanager:"
-            - Ref: RdsRedshiftZeroEtlRdsInstanceSecret344F7A7C3fdaad7efa858a3daf9490cf0a702aeb
+            - Ref: RdsCdcStreamingRdsInstanceSecret6A52BD383fdaad7efa858a3daf9490cf0a702aeb
             - :SecretString:password::}}
       MasterUsername: postgres
       MultiAZ: false
@@ -112,13 +110,13 @@ Resources:
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Metadata:
-      aws:cdk:path: RdsRedshiftZeroEtl-Rds/Instance/Resource
+      aws:cdk:path: RdsCdcStreamingRds/Instance/Resource
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
       Analytics: v2:deflate64:H4sIAAAAAAAA/71UTW/bMAz9LdWxcL0iK3bILU2xIRiwBkm3SzEMjMS4amVJIKlkmeH/PvgrddZgwC47SabI98hH0pN8cnOdX1/Anq+0eblydpNXawH9ksGef1SoJ3m1Rp3IyuEThRQfK7WLWk3VpcqUQdZko9jgews4F/Yz5+6TbELyRk234Bjr79l860+A3hgWviBkrjMynFdLIChRkAZW9IX1qKbD7eEQsSftDN+QuE2kUtvk3PGzdSnhOdDYVGcqnlB8hNK6wwniicngFpKTr4zkocQ3INxbKrWx3jyEhWcBr1FNH9Wl+t4pcHd7Wld2BwIbYBy8Hytl++vCoBe7tUhDBr3vl4E++7+isPWFw0aAVRBomj6L0VkNo/6fEY5TjIGEVwhmhW3ALeiXFPnvyg46jGp6nbxd1Ou08SjclMbttXdccHAgaBoMHg8Y963IVJmc2NmvfjgzpQlbscHxaI51g7KWQFAMCXD31TMV8b3K1KYtZoXSIByFONWxNxKWYQduGZzVjTwGWSgcWg0cNtFLCoK6wxk2pyt02IO3O/fPqvyZxqUapnNEdRzNNWpCaTdQ06El/ozH5raPo4mkrsMrLGzwrzuRxs09E3YOG39qlwzOn4BAHzesowCN934JzPtAZk5WkCzMn8AXyGoqlPB8Kn2dw7rVWZcJl+ChQMqr7q9EKFl3PAAVKDMR0E8l+kaHLqRPRtr3Efj5sLpu3u6TxCR15oPB/Jnf7SY3+Yf8+uKZrb2i5MWWmK+68zchNx9amwUAAA==
     Metadata:
-      aws:cdk:path: RdsRedshiftZeroEtl-Rds/CDKMetadata/Default
+      aws:cdk:path: RdsCdcStreamingRds/CDKMetadata/Default
 Outputs:
   DbEndpoint:
     Value:
@@ -135,11 +133,25 @@ Outputs:
       Ref: InstanceSecretAttachment83BEE581
   DatabaseName:
     Value: demo
-  ExportsOutputRefInstanceC1063A87B325EA17:
+  ExportsOutputFnGetAttDbSG0BE6ACB3GroupIdE6F8FAFE:
     Value:
-      Ref: InstanceC1063A87
+      Fn::GetAtt:
+        - DbSG0BE6ACB3
+        - GroupId
     Export:
-      Name: RdsRedshiftZeroEtl-Rds:ExportsOutputRefInstanceC1063A87B325EA17
+      Name: RdsCdcStreamingRds:ExportsOutputFnGetAttDbSG0BE6ACB3GroupIdE6F8FAFE
+  ExportsOutputRefInstanceSecretAttachment83BEE581ABDE4357:
+    Value:
+      Ref: InstanceSecretAttachment83BEE581
+    Export:
+      Name: RdsCdcStreamingRds:ExportsOutputRefInstanceSecretAttachment83BEE581ABDE4357
+  ExportsOutputFnGetAttInstanceC1063A87EndpointAddress6BABBCD4:
+    Value:
+      Fn::GetAtt:
+        - InstanceC1063A87
+        - Endpoint.Address
+    Export:
+      Name: RdsCdcStreamingRds:ExportsOutputFnGetAttInstanceC1063A87EndpointAddress6BABBCD4
 Parameters:
   BootstrapVersion:
     Type: AWS::SSM::Parameter::Value<String>
