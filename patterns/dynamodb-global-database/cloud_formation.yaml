@@ -39,7 +39,7 @@ Resources:
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/61QwUrEMBD9lp2jpNEWEenVg4igshUvS5FpEsvspklJ0l1DyL9LW8GDIgie5g3vzZt5U/HyuuTlBk++EPJQaOp4agKKA8OTf5XR4GBlx9Mzdlq9VLsEYUYPOCio4QwYjOgCBbLmXkWoE5gvKsRxhg1kBt668LuiI63J9J+MU4M9on6ymkSEGqTywdm4MKMmgR7qXQKnerJmmcktg17bDnWjhDUSXbwzUr2rVUkz/uvduc0sAUp5+4PxP9hu1yzfo+SW3byZdevy+zz3j1MYp5CZsVLxvT8/Vpf8il9s9p6ocJMJNCi+XesHmC2+sNsBAAA=
+      Analytics: v2:deflate64:H4sIAAAAAAAA/61QwUrEMBD9lp2jpLGUxUOvHkQEla14WYpMmmyZ3TQpSbprCPl3aSt4UATB07zhvXkzbypebUtebvDii06eCk2CpyZgd2J48W8yGhysFDy9oNDqtdonCDN6xEFBDVfAYEQXKJA1DypCncB8USGOM2wgM/DWhd8VgrQm038yTg32jPrZauoi1CCVD87GhRk1deih3idwqidrlpncMui1Fagb1Vkj0cV7I9W7WpU047/endvMEqCUdz8Y/4Ptbs3yPUpu2e3BrFuX3+e5f5rCOIXMjJWKH/31udryG15ujp6ocJMJNCi+W+sHbXfEDdsBAAA=
     Metadata:
       aws:cdk:path: DynamodbGlobalDatabase/CDKMetadata/Default
 Outputs:

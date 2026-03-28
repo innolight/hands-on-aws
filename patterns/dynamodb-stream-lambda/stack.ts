@@ -21,11 +21,11 @@ export class DynamoDBLambdaStack extends cdk.Stack {
     // StreamViewType.NEW_AND_OLD_IMAGES:
     // Both the item before and after the change are sent to the stream.
     // This allows the Lambda to compare "diffs" (e.g., status changed from PENDING to PAID).
-    const table = new dynamodb.Table(this, 'OrdersTable', {
+    const table = new dynamodb.TableV2(this, 'OrdersTable', {
       tableName: 'orders-cdc-demo',
       partitionKey: { name: 'orderId', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
+      billing: dynamodb.Billing.onDemand(),
+      dynamoStream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
       // !! Change the following in production.
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });

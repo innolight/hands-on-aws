@@ -8,7 +8,7 @@ describe('DynamoDBLambdaStack', () => {
   const template = Template.fromStack(stack);
 
   test('DynamoDB table has stream enabled with NEW_AND_OLD_IMAGES', () => {
-    template.hasResourceProperties('AWS::DynamoDB::Table', {
+    template.hasResourceProperties('AWS::DynamoDB::GlobalTable', {
       TableName: 'orders-cdc-demo',
       StreamSpecification: { StreamViewType: 'NEW_AND_OLD_IMAGES' },
     });

@@ -28,7 +28,7 @@ export class DynamodbToS3Stack extends cdk.Stack {
       sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       billing: dynamodb.Billing.onDemand(),
       // PITR is mandatory for Zero-ETL — Glue uses it for the initial full-table export.
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
       // !! Change the following in production.
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });

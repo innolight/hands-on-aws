@@ -1,6 +1,6 @@
 Resources:
   OrdersTable315BB997:
-    Type: AWS::DynamoDB::Table
+    Type: AWS::DynamoDB::GlobalTable
     Properties:
       AttributeDefinitions:
         - AttributeName: orderId
@@ -9,6 +9,8 @@ Resources:
       KeySchema:
         - AttributeName: orderId
           KeyType: HASH
+      Replicas:
+        - Region: eu-central-1
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
       TableName: orders-cdc-demo
@@ -56,13 +58,11 @@ Resources:
               Fn::GetAtt:
                 - StreamDeadLetterQueueDA607735
                 - Arn
-          - Action: dynamodb:ListStreams
-            Effect: Allow
-            Resource: "*"
           - Action:
               - dynamodb:DescribeStream
               - dynamodb:GetRecords
               - dynamodb:GetShardIterator
+              - dynamodb:ListStreams
             Effect: Allow
             Resource:
               Fn::GetAtt:
@@ -124,7 +124,7 @@ Resources:
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/8VUS0/jMBD+LfiITBYB2kNvKZQVWvqg6QqtKlQ59jQYHDvY40KI8t9XdpMWFi3itqexvxnPfON5nCQnZ8fJ8QF7dkdcPB4pmSdNhow/UvbsVo2oNSuNyJNmwXIFy4ZgkBNWAhmQQ0JJxSxKlEb/hJoMGqL3KqyrcMxIS0kulZK6GBsRoFn6ezUbzVfz0c2vUbYglDi0wEoyIJPR7SqdXKym1xerq3H6Y5QRSiyUZsPUzCjJazIgAhxaU5P2jp6vdaTWUvfkkubGgw80n4J8Q/NzD/FVSxUrc8FW2gh4cMkkikuveUhv2ZB1d3zjFjTaujvfMy0U2D6g1yj3XyFLMB53rzbSGl2C7pHcaxH+J/wgvCBYzdTYCK/ARYuWEr79unBuWvp/2bR3VLIyaeYm9gRzzpcghrEBKis1lxVTKefG73xubcKDNNLu0yqZZgWIWBgZ/C+bd1id2s72LmTNhFiYWR+iL+ey6bSIjN9faSU17HTkkHxB+bnff2tj/4S06BYOHnfBFiZoPnD4CAuRIUMINXDvwn4VjjS2DFrqTlfMOUCXpEFQd5oMPX8EHDIHXZcnzfla981NRxvQmBlvOYxZVUldxFG3Bey6ZG/RV4SSEtBK7s6NXsuiw5yvKmMxO53qSyaVt3ABDqVm26qj9UBJzpDfZ/K178hcOuA4DOhUj6w1trd0GBaMLmbGya5vrtPFdmlYCJHiqyuEsgvnenLsJaqkLm6lFuZ5j8+BGyvSYr8d0NYpIpQVuv1iY0qBkq+R+SXjaPpxMn1q/UD5Mld/xwEd9pLobmupEKx7dxtpbutqPw2xiB9L0bZ0Di4isWNorGqGrJC6CE+mHiuPLQ2LK3lw3zYnZ8n35PjgwUl51I1+Mt/KP6TV66/yBQAA
+      Analytics: v2:deflate64:H4sIAAAAAAAA/8VUUU/jMAz+LZdHFHpooHvYW4GB0MHG0el4mNDkJl4JpElJnEGp+t9P6doNDh3i7Z7i2I79OZ/tUTI6OkgOvsGz3xfycV+rPGkyAvHI4dkvG1kbKK3Mk2YOucbfo0XDKEpTKJGN2R7jrAJHipQ1P7Fm44aZnYnqKooZaznLldbKFL1lEzgjh1CyMZtObpfp9HQ5uzxdXlyl55OMceawtGvQ11YrUbMxk+jJ2Zq1d/xkZc61zUF3sFrun3zS/AoYcNGwp3i+Afh5nO5VyzWUuYSlsRIffDLtjrNgRCxs0bBVL74Ji4Zc3cv3YKRGNyQMhtTuE1SJNtD21Vo5a0o0gyYPRm5+pmH4QugM6Csrg0bfebScCSuxl5uW/1807R1XUCbNjdXxs8H7UKI87qivnDJCVaBTIWzYxtz4xAdpB3soqwQDBcqOGBXjL5p3ujp1ve9drBqknNvrIcVA56LprUQg7i+MVga3NrbHvmD8PO6/rV3/xLL4Rh0jbpPNbbR8wPBRLWVGQBg58O/SflXdwdggaLk/XIL3SD5J48H9YXIcxCPSMXjsuzxpTlZmaG4+WaOhzAYn8AqqSpmiG3JX4LZLdh4DI5yVSE4Jf2LNSg1T7UNVWUfZ4cycgdLB4Sl6UgY2rJMLyFkOJO4z9Tp0ZK48CjqO2pmZOGfd4OkprhZTXFuv+r65TOeTbN4NdczUvbogLPt0fgAHL51JmeJWGWmfd/obFNbJtNhtB3J1SoRlRX630kBr1Oq1Q34GguwwTnYobRioUOb67zxo4l6S/W2lNKHz724TI1xd7aahI/EjFW3LOx4zgkKZIjrNAlWBWh5XVfLgv69HR8mP5ODbg1dqvx/25GZz/gG+EcxV4AUAAA==
     Metadata:
       aws:cdk:path: DynamoDBLambda/CDKMetadata/Default
 Outputs:

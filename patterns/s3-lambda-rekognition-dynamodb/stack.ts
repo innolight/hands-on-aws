@@ -35,10 +35,10 @@ export class S3LambdaRekognitionDynamodbStack extends cdk.Stack {
     // PAY_PER_REQUEST (on-demand) billing avoids provisioned capacity costs
     // for sporadic workloads. For high-throughput production use, PROVISIONED
     // with auto-scaling is more cost-effective.
-    const table = new dynamodb.Table(this, 'LabelsTable', {
+    const table = new dynamodb.TableV2(this, 'LabelsTable', {
       tableName: 'image-rekognition-labels',
       partitionKey: { name: 'imageKey', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      billing: dynamodb.Billing.onDemand(),
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
