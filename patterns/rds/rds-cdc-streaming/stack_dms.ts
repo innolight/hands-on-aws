@@ -33,6 +33,8 @@ export class RdsCdcStreamingDmsStack extends cdk.Stack {
       shardCount: 1,
       streamMode: kinesis.StreamMode.PROVISIONED,
       retentionPeriod: cdk.Duration.hours(24),
+      // !! Change below for production
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     // --- IAM role: allows DMS to write to Kinesis ---
@@ -57,6 +59,21 @@ export class RdsCdcStreamingDmsStack extends cdk.Stack {
       vpc: props.vpc,
       description: 'DMS replication instance security group',
       allowAllOutbound: true, // DMS also needs outbound to Kinesis (HTTPS) — allow all for simplicity
+    });
+
+    // --- Kinesis VPC Endpoint ---
+    // Interface VPC Endpoints allow services in Isolated subnets to talk to AWS public APIs
+    // without a NAT Gateway or Internet Gateway. Traffic stays on the AWS network.
+    //
+    // DMS Replication Instances (in isolated subnets) require this endpoint to verify
+    // the stream before starting a task and to write records to it.
+    //
+    // Cost: ~$7-22/mo (depending on AZs) — ~75% cheaper base rate than a NAT Gateway.
+    // Security: Traffic never leaves the private network; no open internet route needed.
+    new ec2.InterfaceVpcEndpoint(this, 'KinesisEndpoint', {
+      vpc: props.vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.KINESIS_STREAMS,
+      subnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
     });
 
     // Open RDS SG to DMS SG ingress. Using L1 to keep the SG rule in this stack's lifecycle,
@@ -84,12 +101,12 @@ export class RdsCdcStreamingDmsStack extends cdk.Stack {
     // - Provisioned supports custom CDC start point (needed for recovery after task failure)
     // - Direct control over memory and disk to avoid swap-induced lag accumulation
     //
-    // dms.t3.micro: cheapest instance, sufficient for low-TPS demo workloads.
+    // dms.t3.small: cheapest supported instance in most regions.
     // 50 GB storage: DMS uses disk for task logs and cached (swapped) CDC events.
     //   Monitor FreeStorageSpace; alert below 5 GB to avoid storage-full failures.
     // !! Scale to r5.large or larger for high-TPS production workloads.
     const replicationInstance = new dms.CfnReplicationInstance(this, 'ReplicationInstance', {
-      replicationInstanceClass: 'dms.t3.micro',
+      replicationInstanceClass: 'dms.t3.small',
       allocatedStorage: 50,
       replicationSubnetGroupIdentifier: replicationSubnetGroup.ref,
       vpcSecurityGroupIds: [dmsSG.securityGroupId],
@@ -118,6 +135,7 @@ export class RdsCdcStreamingDmsStack extends cdk.Stack {
       serverName: props.rdsInstance.dbInstanceEndpointAddress,
       port: 5432,
       databaseName: 'demo',
+      sslMode: 'require',
       // DMS reads credentials from the secret at task creation time — not at synth time.
       // IAM DB auth is not supported for CDC on RDS PostgreSQL.
       username: props.rdsSecret.secretValueFromJson('username').unsafeUnwrap(),

@@ -1,0 +1,207 @@
+Resources:
+  CdcStream54FACF02:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: rds-cdc-stream
+      RetentionPeriodHours: 24
+      ShardCount: 1
+      StreamEncryption:
+        Fn::If:
+          - AwsCdkKinesisEncryptedStreamsUnsupportedRegions
+          - Ref: AWS::NoValue
+          - EncryptionType: KMS
+            KeyId: alias/aws/kinesis
+      StreamModeDetails:
+        StreamMode: PROVISIONED
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/CdcStream/Resource
+  DmsKinesisRole1A68A97A:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: dms.amazonaws.com
+        Version: "2012-10-17"
+      Description: Allows DMS to write CDC events to Kinesis
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/DmsKinesisRole/Resource
+  DmsKinesisRoleDefaultPolicy87644CDE:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - kinesis:DescribeStream
+              - kinesis:ListShards
+              - kinesis:PutRecord
+              - kinesis:PutRecords
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - CdcStream54FACF02
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: DmsKinesisRoleDefaultPolicy87644CDE
+      Roles:
+        - Ref: DmsKinesisRole1A68A97A
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/DmsKinesisRole/DefaultPolicy/Resource
+  DmsSG1480D53B:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: DMS replication instance security group
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/DmsSG/Resource
+  DmsToDb:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: PostgreSQL from DMS replication instance
+      FromPort: 5432
+      GroupId:
+        Fn::ImportValue: RdsCdcStreamingRds:ExportsOutputFnGetAttDbSG0BE6ACB3GroupIdE6F8FAFE
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - DmsSG1480D53B
+          - GroupId
+      ToPort: 5432
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/DmsToDb
+  ReplicationSubnetGroup:
+    Type: AWS::DMS::ReplicationSubnetGroup
+    Properties:
+      ReplicationSubnetGroupDescription: Subnets for RDS CDC streaming DMS replication instance
+      SubnetIds:
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+        - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/ReplicationSubnetGroup
+  ReplicationInstance:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      AllocatedStorage: 50
+      MultiAZ: false
+      PubliclyAccessible: false
+      ReplicationInstanceClass: dms.t3.small
+      ReplicationSubnetGroupIdentifier:
+        Ref: ReplicationSubnetGroup
+      VpcSecurityGroupIds:
+        - Fn::GetAtt:
+            - DmsSG1480D53B
+            - GroupId
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/ReplicationInstance
+  SourceEndpoint:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      DatabaseName: demo
+      EndpointType: source
+      EngineName: postgres
+      ExtraConnectionAttributes: heartbeatEnable=true;heartbeatFrequency=5;heartbeatSchema=public;slotName=dms_cdc_slot;pluginName=pglogical
+      Password:
+        Fn::Join:
+          - ""
+          - - "{{resolve:secretsmanager:"
+            - Fn::ImportValue: RdsCdcStreamingRds:ExportsOutputRefInstanceSecretAttachment83BEE581ABDE4357
+            - :SecretString:password::}}
+      Port: 5432
+      ServerName:
+        Fn::ImportValue: RdsCdcStreamingRds:ExportsOutputFnGetAttInstanceC1063A87EndpointAddress6BABBCD4
+      SslMode: require
+      Username:
+        Fn::Join:
+          - ""
+          - - "{{resolve:secretsmanager:"
+            - Fn::ImportValue: RdsCdcStreamingRds:ExportsOutputRefInstanceSecretAttachment83BEE581ABDE4357
+            - :SecretString:username::}}
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/SourceEndpoint
+  TargetEndpoint:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointType: target
+      EngineName: kinesis
+      KinesisSettings:
+        IncludePartitionValue: true
+        IncludeTransactionDetails: true
+        MessageFormat: json
+        PartitionIncludeSchemaTable: true
+        ServiceAccessRoleArn:
+          Fn::GetAtt:
+            - DmsKinesisRole1A68A97A
+            - Arn
+        StreamArn:
+          Fn::GetAtt:
+            - CdcStream54FACF02
+            - Arn
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/TargetEndpoint
+  ReplicationTask:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationType: full-load-and-cdc
+      ReplicationInstanceArn:
+        Ref: ReplicationInstance
+      ReplicationTaskSettings: '{"TargetMetadata":{"TargetSchema":"","SupportLobs":true,"FullLobMode":false,"LobChunkSize":64,"LimitedSizeLobMode":true,"LobMaxSize":32},"FullLoadSettings":{"TargetTablePrepMode":"DO_NOTHING"},"Logging":{"EnableLogging":true,"LogComponents":[{"Id":"SOURCE_UNLOAD","Severity":"LOGGER_SEVERITY_DEFAULT"},{"Id":"TARGET_LOAD","Severity":"LOGGER_SEVERITY_DEFAULT"},{"Id":"TASK_MANAGER","Severity":"LOGGER_SEVERITY_DEFAULT"}]},"ControlTablesSettings":{"historyTimeslotInMinutes":5,"StatusTableEnabled":true,"SuspendedTablesTableEnabled":true},"ErrorBehavior":{"DataErrorPolicy":"LOG_ERROR","DataErrorEscalationPolicy":"SUSPEND_TABLE","DataErrorEscalationCount":50,"TableErrorPolicy":"SUSPEND_TABLE","TableErrorEscalationPolicy":"STOP_TASK","TableErrorEscalationCount":50,"RecoverableErrorCount":-1,"RecoverableErrorInterval":5,"RecoverableErrorThrottling":true,"RecoverableErrorThrottlingMax":1800,"ApplyErrorDeletePolicy":"IGNORE_RECORD","ApplyErrorInsertPolicy":"LOG_ERROR","ApplyErrorUpdatePolicy":"LOG_ERROR","ApplyErrorEscalationPolicy":"LOG_ERROR","ApplyErrorEscalationCount":0}}'
+      SourceEndpointArn:
+        Ref: SourceEndpoint
+      TableMappings: '{"rules":[{"rule-type":"selection","rule-id":"1","rule-name":"include-quotes","object-locator":{"schema-name":"public","table-name":"quotes"},"rule-action":"include"}]}'
+      TargetEndpointArn:
+        Ref: TargetEndpoint
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/ReplicationTask
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/42RQW8aMRCFf0vmGBkXoagHbpRG0R4SEIt6QVFl7Gnj4B2v7DEIWfvfK+8CoqBKPdn+3sx7Y3siJ09jOX5QhzjSZjdyditzzUrvhDrEn3lnCaONhQVUzSZD7DdvqkGYwiMIiB8qmLlPxGfQV7x6UyqWq8WPqq4Wb8/fQUBARmLraYnBenNqCNj4vXJL76w+whQMRg7+CN27mP+iIbkTVjUyr7zDTQYVY2rQfDvCNEMbLGnbKjfT+mqMoaY0zHSJ7HEnirsOtr1CGZQxa788+5wH2eTuvVeZlf6oyFnCiwaP8B9i73tr9++w/sJlZDHgYnTJWPui3EXfY2NqVowNEse/Yu9wnzdEdQL1ROYadQqWjy/Bp3aTYd/q03vevpsA5Zw/zJxbJN76RAamHBKefu3a5w5U9DtgjJ0wTZS53BlbZ7Uq5nXaEvKl70qpKLIijQU/k2m9Jb4pWau467oC556MLagcFonbxJ0gb1B+xi/7yZP8KscPn9HaUUjEtkG5GtY/iEd2/RMDAAA=
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingDms/CDKMetadata/Default
+Conditions:
+  AwsCdkKinesisEncryptedStreamsUnsupportedRegions:
+    Fn::Or:
+      - Fn::Equals:
+          - Ref: AWS::Region
+          - cn-north-1
+      - Fn::Equals:
+          - Ref: AWS::Region
+          - cn-northwest-1
+Outputs:
+  KinesisStreamName:
+    Value:
+      Ref: CdcStream54FACF02
+  KinesisStreamArn:
+    Value:
+      Fn::GetAtt:
+        - CdcStream54FACF02
+        - Arn
+  DmsTaskArn:
+    Value:
+      Ref: ReplicationTask
+  ReplicationInstanceArn:
+    Value:
+      Ref: ReplicationInstance
+  ExportsOutputFnGetAttCdcStream54FACF02ArnEA94CB2B:
+    Value:
+      Fn::GetAtt:
+        - CdcStream54FACF02
+        - Arn
+    Export:
+      Name: RdsCdcStreamingDms:ExportsOutputFnGetAttCdcStream54FACF02ArnEA94CB2B
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

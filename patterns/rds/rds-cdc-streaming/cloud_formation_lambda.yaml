@@ -1,0 +1,167 @@
+Resources:
+  DedupTable8CDC25BD:
+    Type: AWS::DynamoDB::GlobalTable
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: eventId
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: eventId
+          KeyType: HASH
+      Replicas:
+        - Region: eu-central-1
+      TableName: rds-cdc-dedup
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingLambda/DedupTable/Resource
+  CdcDlq4B518BFD:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: rds-cdc-dlq
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingLambda/CdcDlq/Resource
+  CdcProcessorServiceRole5E48ADE7:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingLambda/CdcProcessor/ServiceRole/Resource
+  CdcProcessorServiceRoleDefaultPolicy5B116A24:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - dynamodb:BatchGetItem
+              - dynamodb:BatchWriteItem
+              - dynamodb:ConditionCheckItem
+              - dynamodb:DeleteItem
+              - dynamodb:DescribeTable
+              - dynamodb:GetItem
+              - dynamodb:GetRecords
+              - dynamodb:GetShardIterator
+              - dynamodb:PutItem
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:UpdateItem
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - DedupTable8CDC25BD
+                - Arn
+          - Action:
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+              - sqs:SendMessage
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - CdcDlq4B518BFD
+                - Arn
+          - Action:
+              - kinesis:DescribeStream
+              - kinesis:DescribeStreamConsumer
+              - kinesis:DescribeStreamSummary
+              - kinesis:GetRecords
+              - kinesis:GetShardIterator
+              - kinesis:ListShards
+              - kinesis:ListStreams
+              - kinesis:SubscribeToShard
+            Effect: Allow
+            Resource:
+              Fn::ImportValue: RdsCdcStreamingDms:ExportsOutputFnGetAttCdcStream54FACF02ArnEA94CB2B
+        Version: "2012-10-17"
+      PolicyName: CdcProcessorServiceRoleDefaultPolicy5B116A24
+      Roles:
+        - Ref: CdcProcessorServiceRole5E48ADE7
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingLambda/CdcProcessor/ServiceRole/DefaultPolicy/Resource
+  CdcProcessorACC9A93D:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: 1caada19c4bfa50a18c0ad7c52e4c45f2380081b8c9775a35038956e5abba52a.zip
+      Environment:
+        Variables:
+          DEDUP_TABLE_NAME:
+            Ref: DedupTable8CDC25BD
+      FunctionName: rds-cdc-processor
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - CdcProcessorServiceRole5E48ADE7
+          - Arn
+      Runtime: nodejs20.x
+      Timeout: 30
+    DependsOn:
+      - CdcProcessorServiceRoleDefaultPolicy5B116A24
+      - CdcProcessorServiceRole5E48ADE7
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingLambda/CdcProcessor/Resource
+      aws:asset:path: asset.1caada19c4bfa50a18c0ad7c52e4c45f2380081b8c9775a35038956e5abba52a
+      aws:asset:is-bundled: true
+      aws:asset:property: Code
+  CdcProcessorKinesisEventSourceRdsCdcStreamingDmsCdcStream34DB41A0CFAB677A:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      BisectBatchOnFunctionError: true
+      DestinationConfig:
+        OnFailure:
+          Destination:
+            Fn::GetAtt:
+              - CdcDlq4B518BFD
+              - Arn
+      EventSourceArn:
+        Fn::ImportValue: RdsCdcStreamingDms:ExportsOutputFnGetAttCdcStream54FACF02ArnEA94CB2B
+      FunctionName:
+        Ref: CdcProcessorACC9A93D
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      MaximumRetryAttempts: 3
+      StartingPosition: TRIM_HORIZON
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingLambda/CdcProcessor/KinesisEventSource:RdsCdcStreamingDmsCdcStream34DB41A0/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/8VU30/cMAz+W8gjCh0CtAfeDgYb2uDY3WmTdkInN/GVQJqUxDkoVf/3Kbnm+CVNaHvYk13bsT/X9rdX7B3sFrtbcO93hLzd0aosuimBuOVw7xedbA3UVpZFN4NS44+9eccoahdQIztk24yzBhwpUtZ8xZYddsw8uahtojplPWel0lqZKntUjTP7Ta1wRORUGSi/cVjbFehLq5Vo2SGT6MnZlvVX/HhpPmtbgk5geu7vfNF9Dxhw3rG7KJ/BckhoIqxLdMrKd2VPuXquoS4lLIyVeOOLiyROgxEx27xjy0F9VgwNuXbQr8FIjS4XDCb2+qxtG2jzaqWcNTWabCmDkeu/1DF8IHQG9LmVQaNPET1nwkoc9K7n/xdNf8UV1EU3sTqOALwPNcqjtAaNU0aoBvRICBs2Odcx8cEowc5t1WCgQpkGo2L+effC1o7cEHsVuwYpZ/Yyl8jjnHeDlwjE9ZnRyuDGx7bZO5x/zvu33rRdsWm+Nsd6GygzGz1vEL41SzklIIwT8i/K/qM5oVsD67nfX4D3SL4YRcH9fnEUxC3SEXgcTqPojpcmXwQ/WaGhqQ1O4Dk0jTJVYglX4Wa1niLyGDnzFInDVJfWJ/qYqRo9Qd0M/hrJKeGPrVmqTBs+NI11NN0fm1NQOjj8hJ6UgfUqkQvIWQkkrqfqMa95qTwKOorWsTlxzroc+RoCO2Szydn54st4cvZrfJH4ItZLb88I66GozwlqeEg+Zaqfykh7n7HDwwSFdXJUPeMj146IsG7IP1EnaI1aPaYGTkGQzadqc4f5WENd6td10EQmzOS2VJrQ+RdfJ0a4tnm6tDTrtxPre57GPSWolKli0DhQE6jnkQaLG/9htXdQfCx2t268UjsDkRSTtfwNEAinxUgGAAA=
+    Metadata:
+      aws:cdk:path: RdsCdcStreamingLambda/CDKMetadata/Default
+Outputs:
+  FunctionName:
+    Value:
+      Ref: CdcProcessorACC9A93D
+  DLQUrl:
+    Value:
+      Ref: CdcDlq4B518BFD
+  DedupTableName:
+    Value:
+      Ref: DedupTable8CDC25BD
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

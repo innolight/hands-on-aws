@@ -72,9 +72,9 @@ describe('RdsCdcStreamingDmsStack', () => {
     });
   });
 
-  test('creates a DMS replication instance (t3.micro, 50 GB)', () => {
+  test('creates a DMS replication instance (t3.small, 50 GB)', () => {
     template.hasResourceProperties('AWS::DMS::ReplicationInstance', {
-      ReplicationInstanceClass: 'dms.t3.micro',
+      ReplicationInstanceClass: 'dms.t3.small',
       AllocatedStorage: 50,
       PubliclyAccessible: false,
       MultiAZ: false,

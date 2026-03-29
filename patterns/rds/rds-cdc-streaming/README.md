@@ -34,6 +34,17 @@ Change Data Capture from RDS PostgreSQL to Kinesis Data Streams via AWS DMS, con
 
 ---
 
+## Folder Structure
+
+This pattern is split into three stacks to separate lifecycle boundaries (Database → DMS → Consumer).
+
+- **[stack_rds.ts](./stack_rds.ts)** — defines the source RDS PostgreSQL instance and the Parameter Group that enables logical replication (`rds.logical_replication=1`).
+- **[stack_dms.ts](./stack_dms.ts)** — configures the DMS replication instance and the CDC task that streams `public.quotes` changes to Kinesis.
+- **[stack_lambda.ts](./stack_lambda.ts)** — defines the Kinesis Data Stream, the DynamoDB idempotency table, and the consumer Lambda function.
+- **[handler.ts](./handler.ts)** — the CDC processor logic; handles Kinesis decoding, DynamoDB-based deduplication, and poison-pill detection.
+
+---
+
 ## Cost
 
 Region: `eu-central-1`. Idle (no writes). Prices approximate.
@@ -41,19 +52,18 @@ Region: `eu-central-1`. Idle (no writes). Prices approximate.
 | Resource                  | Idle        | ~100 inserts/day | Cost driver               |
 | ------------------------- | ----------- | ---------------- | ------------------------- |
 | RDS t4g.micro (Single-AZ) | ~$13/mo     | ~$13/mo          | Instance-hour             |
-| DMS dms.t3.micro (50 GB)  | ~$15/mo     | ~$15/mo          | Instance-hour (always on) |
+| DMS dms.t3.small (50 GB)  | ~$25/mo     | ~$25/mo          | Instance-hour (always on) |
 | Kinesis 1 shard           | ~$1/mo      | ~$1/mo           | Shard-hour                |
 | Lambda                    | ~$0         | ~$0              | Invocation count          |
 | DynamoDB (on-demand)      | ~$0         | ~$0              | Request count             |
 | SQS DLQ                   | ~$0         | ~$0              | Message count             |
-| **Total**                 | **~$29/mo** | **~$29/mo**      | DMS instance dominates    |
+| **Total**                 | **~$39/mo** | **~$39/mo**      | DMS instance dominates    |
 
-**Cost driver:** DMS is always-on and billed per instance-hour regardless of write activity. This is why provisioned wins over Serverless for sustained CDC: Serverless charges ~$0.115/DCU-hr minimum (~$84/mo), 3× the provisioned cost for always-on workloads.
+**Cost driver:** DMS is always-on and billed per instance-hour regardless of write activity. We use `dms.t3.small` as it is the most widely available entry-level class. This is why provisioned wins over Serverless for sustained CDC: Serverless charges ~$0.115/DCU-hr minimum (~$84/mo), >2× the provisioned cost for always-on workloads.
 
 ---
 
 ## Notes
-
 ### Why provisioned DMS over Serverless?
 
 Serverless DMS is priced per DCU-hour and auto-scales — ideal for bursty migrations. For always-on CDC, provisioned is cheaper and provides features critical for production:
@@ -61,7 +71,18 @@ Serverless DMS is priced per DCU-hour and auto-scales — ideal for bursty migra
 - **Custom CDC start point** — after a task failure, you can resume from a specific LSN (log sequence number) rather than doing a full reload.
 - **Direct disk/memory control** — you choose storage (50 GB here) and can monitor swap usage to prevent lag accumulation before it compounds.
 
-### DMS heartbeat: why it matters
+### Why Kinesis VPC Endpoint instead of NAT Gateway?
+
+The DMS replication instance is placed in **Isolated Subnets** to ensure it can reach the RDS instance securely within the VPC. However, DMS must also verify and write to the Kinesis target stream, which normally requires internet access.
+
+This pattern uses a **Kinesis VPC Interface Endpoint** (`com.amazonaws.<region>.kinesis-streams`) instead of a NAT Gateway for two reasons:
+
+1.  **Cost:** A NAT Gateway costs ~$33/mo (in `eu-central-1`) plus data processing fees (~$0.045/GB). A VPC Endpoint costs ~$7-22/mo (depending on AZs) and has a 75% lower data processing fee (~$0.01/GB).
+2.  **Security:** Traffic to Kinesis stays entirely on the private AWS network and never traverses the public internet. It also eliminates the need to open up a general outbound internet route for the replication instance, maintaining the "Isolated" tier's security posture.
+
+---
+
+## Prerequisites
 
 The DMS source endpoint is configured with `heartbeatEnable=true`. Every 5 minutes, DMS writes a tiny heartbeat transaction to the `public` schema. This advances the replication slot's `restart_lsn` (the oldest WAL position PostgreSQL must retain).
 
@@ -156,6 +177,28 @@ If `wal_sender_timeout` is set to a value between 1–9999 ms, DMS fails immedia
 
 ---
 
+## Prerequisites
+
+AWS DMS requires two mandatory service roles to exist in your account: `dms-vpc-role` and `dms-cloudwatch-logs-role`.
+
+This is a **drawback of DMS's legacy design**: unlike modern AWS services (like Glue Zero-ETL) that use Service-Linked Roles or explicit role ARNs, DMS looks up these roles strictly by these **hardcoded names** at the account level. Attempting to manage these within a CDK stack often leads to "Role already exists" or race-condition errors during CloudFormation validation.
+
+To avoid these issues, you must create these roles **manually** once per account using the AWS CLI before deploying this pattern:
+
+```bash
+# 1. Create the VPC management role
+aws iam create-role --role-name dms-vpc-role \
+  --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"dms.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+aws iam attach-role-policy --role-name dms-vpc-role \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole
+
+# 2. Create the CloudWatch logs role
+aws iam create-role --role-name dms-cloudwatch-logs-role \
+  --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"dms.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+aws iam attach-role-policy --role-name dms-cloudwatch-logs-role \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonDMSCloudWatchLogsRole
+```
+
 ## Commands to play with stack
 
 ### Deploy
@@ -164,9 +207,20 @@ If `wal_sender_timeout` is set to a value between 1–9999 ms, DMS fails immedia
 cdk deploy VpcSubnets SsmBastion RdsCdcStreamingRds RdsCdcStreamingDms RdsCdcStreamingLambda
 ```
 
-After deploying `RdsCdcStreamingDms`, the DMS task starts automatically and runs the initial full load (snapshots existing rows), then switches to CDC. This takes a few minutes.
+After deploying, you must manually start the DMS task to begin the initial full load and CDC streaming.
 
 ### Interact
+
+Start the DMS task:
+
+```bash
+# Get the DMS Task ARN from stack outputs
+TASK_ARN=$(aws cloudformation describe-stacks --stack-name RdsCdcStreamingDms \
+  --query "Stacks[0].Outputs[?OutputKey=='DmsTaskArn'].OutputValue" --output text)
+
+# Start the task (Full Load + CDC)
+aws dms start-replication-task --replication-task-arn $TASK_ARN --start-replication-task-type start-replication
+```
 
 Open two SSM tunnels first (in separate terminals):
 
@@ -267,4 +321,91 @@ psql "host=localhost port=5432 dbname=demo user=postgres sslmode=require" \
 
 # Destroy CDC stacks in reverse order, then the bastion (cost → ~$0)
 cdk destroy RdsCdcStreamingLambda RdsCdcStreamingDms RdsCdcStreamingRds SsmBastion
+```
+
+---
+
+## Entity Diagram
+
+```mermaid
+flowchart TB
+    subgraph VpcSubnets["VpcSubnets (imported)"]
+        VPC["AWS::EC2::VPC"]
+        Subnet["AWS::EC2::Subnet\n(3x isolated)"]
+    end
+
+    subgraph SsmBastion["SsmBastion (imported)"]
+        BastionSG["AWS::EC2::SecurityGroup\n(Bastion)"]
+    end
+
+    subgraph RDS["RdsCdcStreamingRds"]
+        DbSG["AWS::EC2::SecurityGroup\n(DbSG)"]
+        BastionToDb["AWS::EC2::SecurityGroupIngress\n(BastionToDb)"]
+        SubnetGroup["AWS::RDS::DBSubnetGroup"]
+        Secret["AWS::SecretsManager::Secret"]
+        Attachment["AWS::SecretsManager::SecretTargetAttachment"]
+        ParameterGroup["AWS::RDS::DBParameterGroup"]
+        Instance["AWS::RDS::DBInstance"]
+    end
+
+    subgraph DMS["RdsCdcStreamingDms"]
+        DmsSG["AWS::EC2::SecurityGroup\n(DmsSG)"]
+        DmsToDb["AWS::EC2::SecurityGroupIngress\n(DmsToDb)"]
+        DmsKinesisRole["AWS::IAM::Role\n(DmsKinesisRole)"]
+        DmsPolicy["AWS::IAM::Policy\n(DefaultPolicy)"]
+        CdcStream["AWS::Kinesis::Stream\n(CdcStream)"]
+        ReplicationSubnetGroup["AWS::DMS::ReplicationSubnetGroup"]
+        ReplicationInstance["AWS::DMS::ReplicationInstance"]
+        SourceEndpoint["AWS::DMS::Endpoint\n(SourceEndpoint)"]
+        TargetEndpoint["AWS::DMS::Endpoint\n(TargetEndpoint)"]
+        ReplicationTask["AWS::DMS::ReplicationTask"]
+    end
+
+    subgraph LambdaStack["RdsCdcStreamingLambda"]
+        ServiceRole["AWS::IAM::Role\n(ServiceRole)"]
+        LambdaPolicy["AWS::IAM::Policy\n(DefaultPolicy)"]
+        DedupTable["AWS::DynamoDB::GlobalTable\n(DedupTable)"]
+        CdcDlq["AWS::SQS::Queue\n(CdcDlq)"]
+        CdcProcessor["AWS::Lambda::Function\n(CdcProcessor)"]
+        KinesisESM["AWS::Lambda::EventSourceMapping\n(KinesisEventSource)"]
+    end
+
+    VPC --> |contains| Subnet
+
+    DbSG --> |in| VPC
+    BastionToDb --> |added to| DbSG
+    BastionToDb --> |allows traffic from| BastionSG
+    SubnetGroup --> |placed in| Subnet
+    Attachment --> |links| Secret
+    Attachment --> |links to| Instance
+    Instance --> |uses| ParameterGroup
+    Instance --> |placed in| SubnetGroup
+    Instance --> |references| Secret
+    Instance --> |secured by| DbSG
+
+    DmsPolicy --> |allows access to| CdcStream
+    DmsPolicy --> |grants permissions to| DmsKinesisRole
+    DmsSG --> |in| VPC
+    DmsToDb --> |added to| DbSG
+    DmsToDb --> |allows traffic from| DmsSG
+    ReplicationSubnetGroup --> |placed in| Subnet
+    ReplicationInstance --> |references| ReplicationSubnetGroup
+    ReplicationInstance --> |references| DmsSG
+    SourceEndpoint --> |reads credentials from| Attachment
+    SourceEndpoint --> |references| Instance
+    TargetEndpoint --> |references| DmsKinesisRole
+    TargetEndpoint --> |references| CdcStream
+    ReplicationTask --> |references| ReplicationInstance
+    ReplicationTask --> |references| SourceEndpoint
+    ReplicationTask --> |references| TargetEndpoint
+
+    LambdaPolicy --> |allows stream read from| DedupTable
+    LambdaPolicy --> |allows send to| CdcDlq
+    LambdaPolicy --> |allows access to| CdcStream
+    LambdaPolicy --> |grants permissions to| ServiceRole
+    CdcProcessor --> |references| DedupTable
+    CdcProcessor --> |runs as| ServiceRole
+    KinesisESM --> |references| CdcDlq
+    KinesisESM --> |streams from| CdcStream
+    KinesisESM --> |invokes| CdcProcessor
 ```
