@@ -1,6 +1,7 @@
 # rds-redshift-zero-etl
 
-Continuously replicate RDS PostgreSQL data into Redshift for analytics, without any ETL pipeline.
+Continuously replicate RDS PostgreSQL databases into Redshift for analytics workload, without any ETL pipeline.
+Reduce operational burden and cost of building and operating complex ETL pipelines, and so you can focus on your business logics.
 
 ```
 RDS PostgreSQL 17.7              Zero-ETL               Redshift Provisioned
@@ -46,25 +47,34 @@ Region: eu-central-1. Workload: light demo writes.
 
 ## Notes
 
-**Post-deploy manual step (required)** CloudFormation creates the integration but cannot create the Redshift database for you. After both stacks deploy and the integration reaches `Active` state (~10–30 min). You need to connect to Redshift Query Editor v2, using 'master' user name and password from SecretManager to login, to run the `CREATE DATABASE demo FROM INTEGRATION`.
+### 1. Zero-ETL Configuration Requirements
 
-**Failure modes and production caveats**
+- **Mandatory RDS Parameters**: Source RDS PostgreSQL instance (v15.4+) must have `rds.logical_replication = 1` and `rds.replica_identity_full = 1`. Automated backups must be enabled.
+- **Mandatory Redshift Parameter**: `enable_case_sensitive_identifier` must be `true` on the Redshift cluster/namespace. PostgreSQL identifiers are case-sensitive; without this, schema/table mapping breaks.
+- **Mandatory `dataFilter`**: RDS (non-Aurora) integrations require an explicit filter (e.g., `"include: db.*.*"`) at creation.
+- **Inbound Authorization**: RDS (non-Aurora) requires an explicit resource policy on the Redshift cluster authorizing the inbound integration, even for same-account setups.
+- **Manual Step**: After the integration reaches `Active`, you must connect to Redshift (e.g., via Query Editor v2) to run `CREATE DATABASE demo FROM INTEGRATION '<id>'`.
 
-1. **Tables without primary keys are silently skipped.** Zero-ETL only replicates tables with a `PRIMARY KEY`. Tables without one are ignored — no error, no warning. Always define PKs on replicated tables.
+### 2. Features & Behavior
 
-2. **`enable_case_sensitive_identifier` must be `true` on the Redshift cluster.** PostgreSQL identifiers are case-sensitive; Redshift defaults to case-insensitive. Without this parameter, schema/table name mapping breaks and tables appear missing.
+- **DML Replication**: Near real-time sync for `INSERT`, `UPDATE`, and `DELETE`.
+- **DDL Replication**: Supports 80+ schema changes including adding/dropping columns, adding/renaming tables, and compatible data type changes.
+- See [Limitations](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/zero-etl.html#zero-etl.reqs-lims). Highlights:
+  - You can't perform a major version upgrade on the source RDS for PostgreSQL instance while it has an active zero-ETL integration.
+  - Can't create a zero-ETL integration from an RDS for PostgreSQL read replica instance.
+- **Latency**: Sub-minute latency is standard; typical sync occurs in under 15 seconds.
+- **Read-Only Target**: Replicated tables in Redshift are read-only. Use Materialized Views or `CREATE TABLE AS SELECT` for analytical transformations.
+- **History Mode** (since 02/2025): You can preserves historical changes in Redshift rather than just overwriting records. A game-changer for auditing.
+- **Multiple Sources**: Up to 50 different RDS/Aurora instances into a single Redshift data warehouse to create a "data hub"
+- **Automated Scaling**: If you use Redshift Serverless, the ingestion layer scales automatically to handle spikes in source database activity.
 
-3. **`dataFilter` is required for RDS PostgreSQL Zero-ETL** (unlike Aurora Zero-ETL). The filter selects which databases/schemas/tables to replicate. Format: `"include: db.*.*"` or `"exclude: db.*.*, include: db.schema.table"`. Without it, CloudFormation returns a 400 error at integration creation.
+### 3. Failure Modes & Production Operations
 
-4. **Integration stuck in "Creating".** Usually caused by (a) wrong parameter group (missing `rds.logical_replication=1`), or (b) automated backups disabled on the RDS instance. Check the integration status in the RDS console for the specific error. Note: unlike Aurora → Redshift, RDS (non-Aurora) → Redshift requires an explicit resource policy on the cluster authorizing the inbound integration even for same-account setups — the `RdsRedshiftZeroEtl-Integration` stack sets this via a custom resource before the integration is created.
-
-5. **Tables enter "ResyncRequired" state** after certain DDL operations on the source: adding a column at a specific position (instead of appending), adding a `TIMESTAMP` column with `CURRENT_TIMESTAMP` default, or performing multiple column changes in a single `ALTER TABLE`. Fix: resync the affected table from the Redshift console or via `ALTER DATABASE ... INTEGRATION REFRESH TABLES ...`.
-
-6. **Replicated tables are read-only in Redshift.** You cannot `INSERT`, `UPDATE`, `DELETE`, or `SELECT INTO` on the Zero-ETL–replicated tables. Use them as source data only; write analytical results to separate Redshift tables.
-
-7. **`rds.replica_identity_full = 1` increases WAL volume.** This parameter writes all column values to WAL on every UPDATE/DELETE, not just changed columns or PKs. On wide tables with high write rates this can meaningfully increase I/O. For production, consider setting `REPLICA IDENTITY FULL` per-table instead of globally.
-
-8. **Aurora-only restriction is lifted.** Standard RDS for PostgreSQL Zero-ETL became generally available in July 2025 (versions 15.11+, 16.7+, 17.3+). Earlier documentation saying "Aurora-only" is outdated.
+- **Missing Primary Keys**: Tables without a `PRIMARY KEY` are silently skipped (Event `REDSHIFT-INTEGRATION-EVENT-0004`). Always define PKs on replicated tables.
+- **Unsupported Data Types**: Tables containing unsupported types (e.g., certain geometry types) will fail to sync (Event `0005`). Use data filters to exclude these if necessary.
+- **Resync Triggers**: Certain DDL operations, like adding a column in the middle of a table (instead of appending) or performing complex `ALTER TABLE` commands, can trigger a table resynchronization, making the table temporarily unavailable in Redshift. Data seeding from the source to the target can take 20-25 minutes, leading to increased replica lag.
+- **WAL Volume Impact**: `rds.replica_identity_full = 1` writes all column values to WAL on every update, which can increase I/O on wide tables with high write rates. In production, consider setting `REPLICA IDENTITY FULL` per-table.
+- **Monitoring**: using the status of integration (Creating/Active/Syncing/Needs attention/Failed), and Redshift system tables (SVV_INTEGRATION_TABLE_STATE,...)
 
 ## Commands to play with stack
 
@@ -137,19 +147,6 @@ curl http://localhost:3000/redshift/query/<statement-id>
 ```bash
 aws rds describe-integrations \
   --query 'Integrations[?IntegrationName==`rds-to-redshift-provisioned`].[Status,Errors]' \
-  --output table
-```
-
-**Check replication lag (CloudWatch)**
-
-```bash
-aws cloudwatch get-metric-statistics \
-  --namespace AWS/Redshift \
-  --metric-name ZeroETLIntegrationReplicationLatency \
-  --period 60 \
-  --start-time $(date -u -v-5M +%FT%TZ) \
-  --end-time $(date -u +%FT%TZ) \
-  --statistics Average \
   --output table
 ```
 
