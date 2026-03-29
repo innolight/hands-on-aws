@@ -37,3 +37,23 @@ describe('integration: s3-events-notification', () => {
     expect(runPipeline(path.join(PATTERNS_DIR, 's3-events-notification'))).toMatchSnapshot();
   });
 });
+
+describe('integration: rds/rds-cdc-streaming (multi-stack)', () => {
+  it('matches snapshot', () => {
+    expect(runPipeline(path.join(PATTERNS_DIR, 'rds/rds-cdc-streaming'))).toMatchSnapshot();
+  });
+
+  it('captures SourceEndpoint reads credentials from SecretTargetAttachment', () => {
+    const output = runPipeline(path.join(PATTERNS_DIR, 'rds/rds-cdc-streaming'));
+    expect(output).toContain(
+      'AWS::DMS::Endpoint (SourceEndpoint) -> reads credentials from -> [RdsCdcStreamingRds (imported)] AWS::SecretsManager::SecretTargetAttachment',
+    );
+  });
+
+  it('captures SourceEndpoint references RDS DBInstance for server name', () => {
+    const output = runPipeline(path.join(PATTERNS_DIR, 'rds/rds-cdc-streaming'));
+    expect(output).toContain(
+      'AWS::DMS::Endpoint (SourceEndpoint) -> references -> [RdsCdcStreamingRds (imported)] AWS::RDS::DBInstance',
+    );
+  });
+});

@@ -57,6 +57,52 @@ exports[`integration: dynamodb-stream-lambda matches snapshot 1`] = `
 "
 `;
 
+exports[`integration: rds/rds-cdc-streaming (multi-stack) matches snapshot 1`] = `
+"# Imported: VpcSubnets
+[VpcSubnets (imported)] AWS::EC2::VPC -> contains -> [VpcSubnets (imported)] AWS::EC2::Subnet (3x isolated)
+
+# Stack: RdsCdcStreamingDms
+[RdsCdcStreamingDms] AWS::IAM::Policy (DefaultPolicy) -> allows access to -> [RdsCdcStreamingDms] AWS::Kinesis::Stream (CdcStream)
+[RdsCdcStreamingDms] AWS::IAM::Policy (DefaultPolicy) -> grants permissions to -> [RdsCdcStreamingDms] AWS::IAM::Role (DmsKinesisRole)
+[RdsCdcStreamingDms] AWS::EC2::SecurityGroup (DmsSG) -> in -> [VpcSubnets (imported)] AWS::EC2::VPC
+[RdsCdcStreamingDms] AWS::EC2::SecurityGroupIngress (DmsToDb) -> added to -> [RdsCdcStreamingRds (imported)] unknown (ExportsOutputFnGetAttDbSG0BE6A)
+[RdsCdcStreamingDms] AWS::EC2::SecurityGroupIngress (DmsToDb) -> allows traffic from -> [RdsCdcStreamingDms] AWS::EC2::SecurityGroup (DmsSG)
+[RdsCdcStreamingDms] AWS::DMS::ReplicationSubnetGroup (ReplicationSubnetGroup) -> placed in -> [VpcSubnets (imported)] AWS::EC2::Subnet (3x isolated)
+[RdsCdcStreamingDms] AWS::DMS::ReplicationInstance (ReplicationInstance) -> references -> [RdsCdcStreamingDms] AWS::DMS::ReplicationSubnetGroup (ReplicationSubnetGroup)
+[RdsCdcStreamingDms] AWS::DMS::ReplicationInstance (ReplicationInstance) -> references -> [RdsCdcStreamingDms] AWS::EC2::SecurityGroup (DmsSG)
+[RdsCdcStreamingDms] AWS::DMS::Endpoint (SourceEndpoint) -> reads credentials from -> [RdsCdcStreamingRds (imported)] AWS::SecretsManager::SecretTargetAttachment
+[RdsCdcStreamingDms] AWS::DMS::Endpoint (SourceEndpoint) -> references -> [RdsCdcStreamingRds (imported)] AWS::RDS::DBInstance
+[RdsCdcStreamingDms] AWS::DMS::Endpoint (TargetEndpoint) -> references -> [RdsCdcStreamingDms] AWS::IAM::Role (DmsKinesisRole)
+[RdsCdcStreamingDms] AWS::DMS::Endpoint (TargetEndpoint) -> references -> [RdsCdcStreamingDms] AWS::Kinesis::Stream (CdcStream)
+[RdsCdcStreamingDms] AWS::DMS::ReplicationTask (ReplicationTask) -> references -> [RdsCdcStreamingDms] AWS::DMS::ReplicationInstance (ReplicationInstance)
+[RdsCdcStreamingDms] AWS::DMS::ReplicationTask (ReplicationTask) -> references -> [RdsCdcStreamingDms] AWS::DMS::Endpoint (SourceEndpoint)
+[RdsCdcStreamingDms] AWS::DMS::ReplicationTask (ReplicationTask) -> references -> [RdsCdcStreamingDms] AWS::DMS::Endpoint (TargetEndpoint)
+
+# Stack: RdsCdcStreamingLambda
+[RdsCdcStreamingLambda] AWS::IAM::Policy (DefaultPolicy) -> allows stream read from -> [RdsCdcStreamingLambda] AWS::DynamoDB::GlobalTable (DedupTable)
+[RdsCdcStreamingLambda] AWS::IAM::Policy (DefaultPolicy) -> allows send to -> [RdsCdcStreamingLambda] AWS::SQS::Queue (CdcDlq)
+[RdsCdcStreamingLambda] AWS::IAM::Policy (DefaultPolicy) -> allows access to -> [RdsCdcStreamingDms (imported)] unknown (ExportsOutputFnGetAttCdcStream)
+[RdsCdcStreamingLambda] AWS::IAM::Policy (DefaultPolicy) -> grants permissions to -> [RdsCdcStreamingLambda] AWS::IAM::Role (ServiceRole)
+[RdsCdcStreamingLambda] AWS::Lambda::Function (CdcProcessor) -> references -> [RdsCdcStreamingLambda] AWS::DynamoDB::GlobalTable (DedupTable)
+[RdsCdcStreamingLambda] AWS::Lambda::Function (CdcProcessor) -> runs as -> [RdsCdcStreamingLambda] AWS::IAM::Role (ServiceRole)
+[RdsCdcStreamingLambda] AWS::Lambda::EventSourceMapping (KinesisEventSource:RdsCdcStreamingDmsCdcStream34DB41A0) -> references -> [RdsCdcStreamingLambda] AWS::SQS::Queue (CdcDlq)
+[RdsCdcStreamingLambda] AWS::Lambda::EventSourceMapping (KinesisEventSource:RdsCdcStreamingDmsCdcStream34DB41A0) -> streams from -> [RdsCdcStreamingDms (imported)] unknown (ExportsOutputFnGetAttCdcStream)
+[RdsCdcStreamingLambda] AWS::Lambda::EventSourceMapping (KinesisEventSource:RdsCdcStreamingDmsCdcStream34DB41A0) -> invokes -> [RdsCdcStreamingLambda] AWS::Lambda::Function (CdcProcessor)
+
+# Stack: RdsCdcStreamingRds
+[RdsCdcStreamingRds] AWS::EC2::SecurityGroup (DbSG) -> in -> [VpcSubnets (imported)] AWS::EC2::VPC
+[RdsCdcStreamingRds] AWS::EC2::SecurityGroupIngress (BastionToDb) -> added to -> [RdsCdcStreamingRds] AWS::EC2::SecurityGroup (DbSG)
+[RdsCdcStreamingRds] AWS::EC2::SecurityGroupIngress (BastionToDb) -> allows traffic from -> [SsmBastion (imported)] AWS::EC2::SecurityGroup (Bastion)
+[RdsCdcStreamingRds] AWS::RDS::DBSubnetGroup (SubnetGroup) -> placed in -> [VpcSubnets (imported)] AWS::EC2::Subnet (3x isolated)
+[RdsCdcStreamingRds] AWS::SecretsManager::SecretTargetAttachment (Attachment) -> links -> [RdsCdcStreamingRds] AWS::SecretsManager::Secret (Secret)
+[RdsCdcStreamingRds] AWS::SecretsManager::SecretTargetAttachment (Attachment) -> links to -> [RdsCdcStreamingRds] AWS::RDS::DBInstance (Instance)
+[RdsCdcStreamingRds] AWS::RDS::DBInstance (Instance) -> uses -> [RdsCdcStreamingRds] AWS::RDS::DBParameterGroup (ParameterGroup)
+[RdsCdcStreamingRds] AWS::RDS::DBInstance (Instance) -> placed in -> [RdsCdcStreamingRds] AWS::RDS::DBSubnetGroup (SubnetGroup)
+[RdsCdcStreamingRds] AWS::RDS::DBInstance (Instance) -> references -> [RdsCdcStreamingRds] AWS::SecretsManager::Secret (Secret)
+[RdsCdcStreamingRds] AWS::RDS::DBInstance (Instance) -> secured by -> [RdsCdcStreamingRds] AWS::EC2::SecurityGroup (DbSG)
+"
+`;
+
 exports[`integration: s3-events-notification matches snapshot 1`] = `
 "# Stack: S3EventsNotification
 [S3EventsNotification] AWS::SQS::Queue (Sqs) -> references -> [S3EventsNotification] AWS::SQS::Queue (SqsDlq)

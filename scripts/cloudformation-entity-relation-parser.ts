@@ -386,6 +386,9 @@ export function resolveLabel(rel: Relationship, sourceType: string, targetType: 
       return 'references';
     case 'DBClusterIdentifier':
       return 'member of';
+    case 'Password':
+    case 'Username':
+      return 'reads credentials from';
     case 'SecretId':
       return 'links';
     case 'TargetId':
@@ -453,6 +456,9 @@ export function inferImportedResource(exportName: string): { sourceStack: string
   if (/Namespace/i.test(fragment))
     return { sourceStack, type: 'AWS::ServiceDiscovery::PrivateDnsNamespace', qualifier: '' };
   if (/CapacityProvider/i.test(fragment)) return { sourceStack, type: 'AWS::ECS::CapacityProvider', qualifier: '' };
+  if (/SecretAttachment/i.test(fragment))
+    return { sourceStack, type: 'AWS::SecretsManager::SecretTargetAttachment', qualifier: '' };
+  if (/Secret/i.test(fragment)) return { sourceStack, type: 'AWS::SecretsManager::Secret', qualifier: '' };
   if (/Instance/i.test(fragment)) return { sourceStack, type: 'AWS::RDS::DBInstance', qualifier: '' };
   if (/OpenSearch|Domain/i.test(fragment))
     return { sourceStack, type: 'AWS::OpenSearchService::Domain', qualifier: '' };
