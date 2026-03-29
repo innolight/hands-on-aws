@@ -39,9 +39,9 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`rds-aurora-provisioned`](./patterns/rds/rds-aurora-provisioned): Aurora PostgreSQL — shared distributed storage, writer + up to 15 readers, custom endpoints
 - [x] [`rds-aurora-serverless-v2`](./patterns/rds/rds-aurora-serverless-v2): Aurora Serverless v2 — ACU-based autoscaling, mix serverless + provisioned instances
 - [x] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database — sub-second cross-region replication, Write Forwarding, managed failover
-- [ ] `rds-cdc-streaming`: RDS → DMS CDC → Kinesis → Lambda — row-level change capture to trigger downstream actions
+- [x] [`rds-cdc-streaming`](./patterns/rds/rds-cdc-streaming/): RDS → DMS CDC → Kinesis → Lambda — row-level change capture to trigger downstream actions
+- [x] [`rds-redshift-zero-etl`](./patterns/rds/rds-redshift-zero-etl/): Aurora → Redshift Zero-ETL — continuous replication to Redshift for analytics without impacting Aurora
 - [ ] `rds-opensearch`: RDS → OpenSearch Ingestion → OpenSearch — full-text and vector search over relational data
-- [ ] `rds-redshift-zero-etl`: Aurora → Redshift Zero-ETL — continuous replication to Redshift for analytics without impacting Aurora
 - [ ] `rds-data-lake`: RDS → DMS CDC → S3 (Parquet) — cheap long-term storage and batch analytics via Athena
 
 **Datastore** / OpenSearch:
