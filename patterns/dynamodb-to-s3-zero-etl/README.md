@@ -26,6 +26,12 @@ S3 Bucket (results)
 
 Data flow: `DynamoDB write → Zero-ETL (initial PITR snapshot + streaming CDC) → Glue Database → S3 Table Bucket (Iceberg) → Athena query`
 
+### Code Structure
+
+- [stack.ts](./stack.ts) — CDK stack defining DynamoDB Table (PITR enabled), Glue Zero-ETL Integration, S3 Table Bucket, and Athena WorkGroup
+- [demo_server.ts](./demo_server.ts) — Express server to interact with the pattern (seed data, poll integration status, run Athena queries)
+- [cloud_formation.yaml](./cloud_formation.yaml) — Synthesized CloudFormation template
+
 ## Cost
 
 Region: `eu-central-1` | Workload: ~10K items/month

@@ -23,6 +23,14 @@ RDS PostgreSQL 17.7              Zero-ETL               Redshift Provisioned
 - [Amazon Redshift](https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html) — columnar data warehouse (provisioned ra3.large)
 - [Redshift Data API](https://docs.aws.amazon.com/redshift/latest/mgmt/data-api.html) — query Redshift over HTTPS with IAM auth (no direct DB connection)
 
+**Folder Structure**:
+
+- [`stack_rds.ts`](./stack_rds.ts) — RDS PostgreSQL instance with logical replication enabled (see all [requirements](`logical_replication=1`))
+- [`stack_redshift_provisioned.ts`](./stack_redshift_provisioned.ts) — Redshift Provisioned single-node cluster
+- [`stack_integration.ts`](./stack_integration.ts) — the `CfnIntegration` resource linking RDS and Redshift, and a custom resource to authorize the integration
+- [`demo_server.ts`](./demo_server.ts) — Express server to seed the RDS database and query Redshift via Data API
+- `cloud_formation_*.yaml` — synthesized CloudFormation templates for inspection
+
 ## Cost
 
 Region: eu-central-1. Workload: light demo writes.
@@ -48,7 +56,7 @@ Region: eu-central-1. Workload: light demo writes.
 
 3. **`dataFilter` is required for RDS PostgreSQL Zero-ETL** (unlike Aurora Zero-ETL). The filter selects which databases/schemas/tables to replicate. Format: `"include: db.*.*"` or `"exclude: db.*.*, include: db.schema.table"`. Without it, CloudFormation returns a 400 error at integration creation.
 
-4. **Integration stuck in "Creating".** Usually caused by (a) wrong parameter group (missing `rds.logical_replication=1`), or (b) automated backups disabled on the RDS instance. Check the integration status in the RDS console for the specific error. Note: unlike Aurora → Redshift, RDS (non-Aurora) → Redshift requires an explicit resource policy on the cluster authorizing the inbound integration even for same-account setups — the `RdsRedshiftZeroEtlProvisioned` stack sets this via a custom resource before the integration is created.
+4. **Integration stuck in "Creating".** Usually caused by (a) wrong parameter group (missing `rds.logical_replication=1`), or (b) automated backups disabled on the RDS instance. Check the integration status in the RDS console for the specific error. Note: unlike Aurora → Redshift, RDS (non-Aurora) → Redshift requires an explicit resource policy on the cluster authorizing the inbound integration even for same-account setups — the `RdsRedshiftZeroEtl-Integration` stack sets this via a custom resource before the integration is created.
 
 5. **Tables enter "ResyncRequired" state** after certain DDL operations on the source: adding a column at a specific position (instead of appending), adding a `TIMESTAMP` column with `CURRENT_TIMESTAMP` default, or performing multiple column changes in a single `ALTER TABLE`. Fix: resync the affected table from the Redshift console or via `ALTER DATABASE ... INTEGRATION REFRESH TABLES ...`.
 
