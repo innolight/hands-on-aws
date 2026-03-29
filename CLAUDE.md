@@ -1,6 +1,11 @@
-# CLAUDE.md
+Guidance to AI Agents (Claude code, Gemini Cli, Codex) when working with code in this repository.
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Behavioural guidelines
+
+1. Think Before Coding: Explicitly state assumptions, surface tradeoffs, and ask questions rather than guessing or hiding confusion.
+2. Simplicity First: Write the minimum code needed to solve the problem. Avoid unrequested features, premature abstractions, and speculative flexibility.
+3. Surgical Changes: Modify only what is strictly required. Match the existing style, avoid unrelated refactoring, but clean up any dead code your changes create.
+4. Goal-Driven Execution: Define clear, verifiable success criteria (like tests) for every task, and outline step-by-step plans to verify progress.
 
 ## Commands
 
@@ -46,18 +51,13 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
 - `cloud_formation.yaml` (or `cloud_formation_<role>.yaml`) — synthesized CloudFormation output
 - Optionally: `demo_server.ts` (Express server to demo the pattern)
 
-**Stack naming:** Each stack file exports a `const <camelCase>StackName = '<PascalCase>'` string that is used as both the CDK construct id and the CloudFormation stack name. The exported name constant should match the file: `stack_compute.ts` → `ecsFargateComputeStackName = 'EcsFargateComputeStack'`.
+**Stack naming:** Each stack file exports a `const <camelCase>StackName = '<PascalCase>'` string that is used as both the CDK construct id and the CloudFormation stack name. The exported name constant should match the file: `stack_compute.ts` → `ecsFargateComputeStackName = 'EcsFargateComputeStack'`. For multi-stack patterns, use a shared `PatternName-Role` prefix with a hyphen separator so all stacks group together in the AWS Console: `stack_rds.ts` → `rdsRedshiftZeroEtlRdsStackName = 'RdsRedshiftZeroEtl-Rds'`.
 
 **Utils:** `utils/stackoutput.ts` exports `getStackOutputs(stackName)`, which uses the CloudFormation SDK to retrieve stack outputs by name. Demo servers use this to discover resource names/ARNs at runtime without hardcoding them.
 
 **Multi-step patterns:** Some patterns require deploying stacks in a specific order across regions (e.g., `s3-cross-region-replication` deploys a destination bucket to `eu-west-1` first, then a source bucket to the default region).
 
-**README.md structure** — each pattern README should follow this order:
-
-1. **Pattern Description** — ASCII architecture diagram followed by a bullet list of components and data flow; link each AWS service/concept to its official docs
-2. **Cost** — table with columns: Resource | Idle | ~N unit/month | Cost driver; include region and workload assumption in the header; state the dominant cost driver
-3. **Notes** — non-obvious decisions, production caveats, alternatives considered
-4. **Commands to play with stack** — deploy, interact (start demo server, curl commands to play with demo_server.ts), observe (logs), destroy, and `cdk synth` to capture CloudFormation yaml
+**README.md structure** — see [docs/pattern-readme-guide.md](docs/pattern-readme-guide.md) for the full guide. In brief: Title → Summary → Architecture diagram → Service links → Cost → Notes → Commands → Entity Relationship Diagram.
 
 **Capturing CloudFormation yaml:** use `cdk synth <StackName> --output .temp > cloud_formation.yaml` — NEVER append `2>&1` and AVOID npx cdk, use cdk directly. CDK prints logs and warnings to stderr; redirecting stderr into stdout with `2>&1` mixes them into the file and produces invalid YAML. stdout-only redirection (`>`) is always correct here.
 
@@ -89,66 +89,3 @@ This is an AWS CDK (TypeScript) monorepo for hands-on learning of AWS architectu
   A stack should not mix slow-changing shared infrastructure with fast-changing per-service resources. When in doubt, ask: "If I redeploy this stack, what's the blast radius?" If the answer includes resources unrelated to the change, split.
 
 - Datastore stacks (e.g., OpenSearch, ElastiCache) must not assume how they will be consumed. They expose security groups and resource identifiers as `public readonly` properties. Consumer/app stacks wire up access (SG ingress, IAM, etc.) separately using L1 `CfnSecurityGroupIngress` to avoid cross-stack mutation. Deploy order: shared infra → datastore → consumer app stacks.
-
-# Behavioural Guideline
-
-## 1. Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
