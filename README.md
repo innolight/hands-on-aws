@@ -16,38 +16,38 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`s3-lambda-rekognition-dynamodb`](./patterns/s3-lambda-rekognition-dynamodb): image processing pipeline and metadata storage
 - [x] [`s3-behind-sftp`](./patterns/s3-behind-sftp/): SFTP access to S3 using AWS Transfer
 - [x] [`s3-vectors-bucket`](./patterns/s3-vectors-bucket/): S3 Vector Bucket + Index for similarity search on food reviews
-- [ ] `s3-serverless-data-lake`: S3 (Storage) → AWS Glue (Data Catalog/Crawler) → Amazon Athena (Query Engine)
+- [ ] `s3-serverless-data-lake`: S3 (Storage) → AWS Glue (Data Catalog/Crawler) → Amazon Athena
 
 **Datastore** / Dynamodb:
 
 - [x] [`dynamodb-global-database`](./patterns/dynamodb-global-database/): Dynamodb Global Database (multi-write architecture)
 - [x] [`dynamodb-stream-lambda`](./patterns/dynamodb-stream-lambda): Dynamodb → Dynamodb Stream → Lambda
 - [ ] `dynamodb-to-s3-zero-etl`: Dynamodb → S3 with Zero-ETL
-- [ ] `dynamodb-kinesis-opensearch`: Dynamodb → Dynamodb Stream → Kinesis Stream → Kinesis Data Firehose → S3 | AWS OpenSearch
+- [ ] `dynamodb-kinesis-opensearch`: Dynamodb & Stream → Kinesis Stream → Kinesis Data Firehose → S3 | OpenSearch
 
 **Datastore** / Elasticache:
 
-- [x] [`elasticache-valkey-active-passive`](./patterns/elasticache-valkey-active-passive): ElastiCache Valkey replication group (1 primary + N replicas), RBAC, TLS, SSM port forwarding via ssm-bastion
-- [x] [`elasticache-valkey-cluster`](./patterns/elasticache-valkey-cluster): ElastiCache Valkey cluster mode (N shards × M replicas), hash-slot distribution with consistent hashing
-- [x] [`elasticache-valkey-serverless`](./patterns/elasticache-valkey-serverless): ElastiCache Valkey Serverless (auto-scaling, ECPU billing, no capacity planning), retry backoff + jitter, command pipelining
+- [x] [`elasticache-valkey-active-passive`](./patterns/elasticache-valkey-active-passive): ElastiCache Valkey replication group (1 primary + N replicas)
+- [x] [`elasticache-valkey-cluster`](./patterns/elasticache-valkey-cluster): ElastiCache Valkey cluster mode enabled (N shards × M replicas)
+- [x] [`elasticache-valkey-serverless`](./patterns/elasticache-valkey-serverless): ElastiCache Valkey Serverless (auto-scaling, ECPU billing)
 
 **Datastore** / RDS & Aurora Postgres:
 
-- [x] [`rds-postgres`](./patterns/rds/rds-postgres): Single-AZ → Multi-AZ failover, automated backups, PITR, Secrets Manager credential rotation, optional RDS Proxy connection pooling
-- [x] [`rds-read-replicas`](./patterns/rds/rds-read-replicas): Async read replicas (same-region + cross-region), manual promote to standalone for DR
-- [x] [`rds-readable-standbys`](./patterns/rds/rds-readable-standbys): Multi-AZ with 2 readable standbys — synchronous replication, <35s failover, reader endpoint
-- [x] [`rds-aurora-provisioned`](./patterns/rds/rds-aurora-provisioned): Aurora PostgreSQL — shared distributed storage, writer + up to 15 readers, custom endpoints
-- [x] [`rds-aurora-serverless-v2`](./patterns/rds/rds-aurora-serverless-v2): Aurora Serverless v2 — ACU-based autoscaling, mix serverless + provisioned instances
-- [x] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database — sub-second cross-region replication, Write Forwarding, managed failover
-- [x] [`rds-cdc-streaming`](./patterns/rds/rds-cdc-streaming/): RDS → DMS CDC → Kinesis → Lambda — row-level change capture to trigger downstream actions
-- [x] [`rds-redshift-zero-etl`](./patterns/rds/rds-redshift-zero-etl/): Aurora → Redshift Zero-ETL — continuous replication to Redshift for analytics without impacting Aurora
-- [x] `rds-opensearch`: RDS → OpenSearch Ingestion → OpenSearch — full-text and vector search over relational data
+- [x] [`rds-postgres`](./patterns/rds/rds-postgres): Multi-AZ failover (Hot Standby), automated backups, Secrets Manager, RDS Proxy
+- [x] [`rds-read-replicas`](./patterns/rds/rds-read-replicas): Async read replicas (same-region + cross-region)
+- [x] [`rds-readable-standbys`](./patterns/rds/rds-readable-standbys): Multi-AZ with 2 readable standbys - synchronous replication, <35s failover
+- [x] [`rds-aurora-provisioned`](./patterns/rds/rds-aurora-provisioned): Cloud Native PostgreSQL, writer + up to 15 readers, custom endpoints
+- [x] [`rds-aurora-serverless-v2`](./patterns/rds/rds-aurora-serverless-v2): Aurora Serverless - ACU-based autoscaling, serverless + provisioned mix
+- [x] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database - <1s cross-region replication, Write Forwarding, managed failover
+- [x] [`rds-cdc-streaming`](./patterns/rds/rds-cdc-streaming/): RDS → DMS CDC → Kinesis → Lambda — trigger actions on changes
+- [x] [`rds-redshift-zero-etl`](./patterns/rds/rds-redshift-zero-etl/): Aurora → Redshift Zero-ETL — continuous replication to Redshift for analytics
+- [x] `rds-opensearch`: RDS → OpenSearch Ingestion → OpenSearch for full-text and vector search
 - [ ] `rds-data-lake`: RDS → DMS CDC → S3 (Parquet) — cheap long-term storage and batch analytics via Athena
 
 **Datastore** / OpenSearch:
 
-- [x] [`opensearch-provisioned`](./patterns/opensearch-provisioned/): Managed OpenSearch domain — parameterized from single-node dev to Multi-AZ production (node count, AZ, dedicated masters)
-- [x] [`opensearch-serverless`](./patterns/opensearch-serverless): OpenSearch Serverless collection with OCU-based billing, zero capacity management
+- [x] [`opensearch-provisioned`](./patterns/opensearch-provisioned/): Managed OpenSearch domain - single-node to Multi-AZ cluster
+- [x] [`opensearch-serverless`](./patterns/opensearch-serverless): OpenSearch Serverless collection - OCU-based autoscaling
 
 Messaging & Event-Driven:
 
@@ -81,7 +81,7 @@ Infra / Others:
 - [ ] `waf-shield-ddos-protection`: AWS WAF + Shield for DDoS protection on CloudFront
 - [ ] `sagemaker-pipeline`: Building an end-to-end ML pipeline with AWS SageMaker and CDK
 - [ ] `glue-etl-job`: AWS Glue ETL job that processes and transforms data in S3 to different format
-- [ ] `vpc-endpoints-privatelink`: VPC Gateway endpoints (S3, DynamoDB) + Interface endpoints (SQS, Secrets Manager)
+- [ ] `vpc-endpoints-privatelink`: VPC Gateway endpoints (S3, DynamoDB) + Interface endpoints (SQS, ECR)
 
 ## Development
 
