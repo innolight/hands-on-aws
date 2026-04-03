@@ -49,18 +49,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`opensearch-provisioned`](./patterns/opensearch-provisioned/): Managed OpenSearch domain - single-node to Multi-AZ cluster
 - [x] [`opensearch-serverless`](./patterns/opensearch-serverless): OpenSearch Serverless collection - OCU-based autoscaling
 
-Messaging & Event-Driven:
-
-- [ ] `sqs-lambda`: SQS → Lambda with DLQ and batch processing
-- [ ] `step-functions-workflow`: Step Functions orchestrating multiple Lambdas
-- [ ] `eventbridge-sns-fanout`: EventBridge rule with content filtering → SNS → multiple SQS subscribers
-
-API & Auth:
-
-- [ ] `apigw-lambda-cognito`: API Gateway REST API + Lambda + Cognito User Pool authorizer
-- [ ] `apigw-websocket`: API Gateway WebSocket API + Lambda + DynamoDB connection tracking
-
-Infra / Running Containers on AWS:
+Infra / **Containers on AWS**:
 
 - [x] [`elastic-container-registry`](./patterns/containers/elastic-container-registry): ECR repository provisioning, Docker image build & push
 - [x] [`app-runner`](./patterns/containers/app-runner): App Runner — fully managed, source-to-URL container hosting
@@ -82,6 +71,14 @@ Infra / Others:
 - [ ] `sagemaker-pipeline`: Building an end-to-end ML pipeline with AWS SageMaker and CDK
 - [ ] `glue-etl-job`: AWS Glue ETL job that processes and transforms data in S3 to different format
 - [ ] `vpc-endpoints-privatelink`: VPC Gateway endpoints (S3, DynamoDB) + Interface endpoints (SQS, ECR)
+
+Infra / Inter-service communications:
+
+- [ ] `sqs-lambda`: SQS → Lambda with DLQ and batch processing
+- [ ] `step-functions-workflow`: Step Functions for serverless statemachine orchestration of multiple Lambdas
+- [ ] `eventbridge-sns-fanout`: EventBridge rule with content filtering → SNS → multiple SQS subscribers
+- [ ] `apigw-lambda-cognito`: API Gateway REST API + Lambda + Cognito User Pool authorizer
+- [ ] `apigw-websocket`: API Gateway WebSocket API + Lambda + DynamoDB connection tracking
 
 ## Development
 
