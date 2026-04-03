@@ -129,6 +129,15 @@ import {
   RdsCdcStreamingLambdaStack,
   rdsCdcStreamingLambdaStackName,
 } from '../patterns/rds/rds-cdc-streaming/stack_lambda';
+import { RdsOpensearchRdsStack, rdsOpensearchRdsStackName } from '../patterns/rds/rds-opensearch/stack_rds';
+import {
+  RdsOpensearchOpenSearchStack,
+  rdsOpensearchOpenSearchStackName,
+} from '../patterns/rds/rds-opensearch/stack_opensearch';
+import {
+  RdsOpensearchPipelineStack,
+  rdsOpensearchPipelineStackName,
+} from '../patterns/rds/rds-opensearch/stack_pipeline';
 
 const app = new cdk.App();
 
@@ -418,6 +427,32 @@ const cdcDmsStack = new RdsCdcStreamingDmsStack(app, rdsCdcStreamingDmsStackName
 new RdsCdcStreamingLambdaStack(app, rdsCdcStreamingLambdaStackName, {
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
   stream: cdcDmsStack.stream,
+});
+
+// --- rds-opensearch ---
+// Deploy order: RdsOpensearchRds → RdsOpensearchOpenSearch → RdsOpensearchPipeline
+// Teardown order (reverse): RdsOpensearchPipeline → RdsOpensearchOpenSearch → RdsOpensearchRds
+// Before destroying, verify no replication slots are holding WAL:
+//   SELECT slot_name, active FROM pg_replication_slots;
+const rdsOpensearchRdsStack = new RdsOpensearchRdsStack(app, rdsOpensearchRdsStackName, {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+  vpc: vpcStack.vpc,
+  bastionSG: bastionStack.bastionSG,
+});
+
+const rdsOpensearchOsStack = new RdsOpensearchOpenSearchStack(app, rdsOpensearchOpenSearchStackName, {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+  vpc: vpcStack.vpc,
+});
+
+new RdsOpensearchPipelineStack(app, rdsOpensearchPipelineStackName, {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+  vpc: vpcStack.vpc,
+  rdsInstance: rdsOpensearchRdsStack.instance,
+  rdsSecret: rdsOpensearchRdsStack.secret,
+  rdsSG: rdsOpensearchRdsStack.dbSG,
+  opensearchDomain: rdsOpensearchOsStack.domain,
+  opensearchDomainSG: rdsOpensearchOsStack.domainSG,
 });
 
 // --- rds-aurora-global (cross-region: eu-central-1 primary + us-east-1 secondary) ---

@@ -41,7 +41,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database — sub-second cross-region replication, Write Forwarding, managed failover
 - [x] [`rds-cdc-streaming`](./patterns/rds/rds-cdc-streaming/): RDS → DMS CDC → Kinesis → Lambda — row-level change capture to trigger downstream actions
 - [x] [`rds-redshift-zero-etl`](./patterns/rds/rds-redshift-zero-etl/): Aurora → Redshift Zero-ETL — continuous replication to Redshift for analytics without impacting Aurora
-- [ ] `rds-opensearch`: RDS → OpenSearch Ingestion → OpenSearch — full-text and vector search over relational data
+- [x] `rds-opensearch`: RDS → OpenSearch Ingestion → OpenSearch — full-text and vector search over relational data
 - [ ] `rds-data-lake`: RDS → DMS CDC → S3 (Parquet) — cheap long-term storage and batch analytics via Athena
 
 **Datastore** / OpenSearch:

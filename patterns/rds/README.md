@@ -286,12 +286,12 @@ Secondary regions accept writes and forward them to the primary over the replica
 
 Beyond deploying a topology, RDS and Aurora serve as the **source of truth** that feeds downstream systems. These patterns cover the four main data distribution paths. All are implementable via CDK (L1 constructs) — see CDK notes per pattern.
 
-| Use Case | Path | Zero-ETL Tech | Key Alternative |
-|---|---|---|---|
-| Actions / Emails | RDS → DMS → Kinesis → Lambda → SES | DMS CDC | Activity Streams (audit-only) |
-| Search | RDS → OpenSearch Ingestion → OpenSearch | OSI JDBC poll | pg_vector (in-DB) |
-| Analytics / BI | **RDS / Aurora** → Redshift Zero-ETL | `CfnIntegration` | Federated Query (no movement) |
-| Data Lake | RDS → DMS → S3 (Parquet) | DMS CDC | Snapshot Export (batch) |
+| Use Case         | Path                                    | Zero-ETL Tech    | Key Alternative               |
+| ---------------- | --------------------------------------- | ---------------- | ----------------------------- |
+| Actions / Emails | RDS → DMS → Kinesis → Lambda → SES      | DMS CDC          | Activity Streams (audit-only) |
+| Search           | RDS → OpenSearch Ingestion → OpenSearch | OSI CDC (WAL)    | pg_vector (in-DB)             |
+| Analytics / BI   | **RDS / Aurora** → Redshift Zero-ETL    | `CfnIntegration` | Federated Query (no movement) |
+| Data Lake        | RDS → DMS → S3 (Parquet)                | DMS CDC          | Snapshot Export (batch)       |
 
 ---
 
@@ -322,20 +322,21 @@ Capture row-level changes from RDS and stream them to downstream consumers.
 Keep an OpenSearch index in sync with your RDS data for full-text or vector search.
 
 ```
-┌──────────────┐    ┌────────────────────────────┐    ┌────────────────────┐
-│  RDS / Aurora│◀───│  OpenSearch Ingestion (OSI) │───▶│  Amazon OpenSearch │
-│  PostgreSQL  │    │  JDBC source (polls)        │    │  Service           │
-└──────────────┘    └────────────────────────────┘    └────────────────────┘
-                         pull on schedule                 full-text / vector
-                         (not true CDC)                   search queries
+┌──────────────┐   WAL (logical    ┌────────────────────────────┐    ┌────────────────────┐
+│  RDS / Aurora│   replication)    │  OpenSearch Ingestion (OSI) │───▶│  Amazon OpenSearch │
+│  PostgreSQL  │──────────────────▶│  rds source plugin (CDC)    │    │  Service           │
+└──────────────┘                   └────────────────────────────┘    └────────────────────┘
+       │                                  ▼                              full-text / vector
+       └──snapshot export──▶ S3     initial full load                    search queries
+                                    + continuous CDC
 ```
 
 - **Use case**: Fuzzy search, typo-tolerance, semantic/vector ranking over data stored in RDS. SQL `LIKE` and `tsvector` lack the ranking and aggregation features of OpenSearch.
-- **Why OSI**: OpenSearch Ingestion has a managed JDBC source plugin that polls RDS on a schedule and syncs changes to OpenSearch — no custom sync code needed.
-- **Caveat**: OSI JDBC is **poll-based**, not true CDC. It tracks changes via a timestamp or sequence column. It **cannot detect hard deletes** — rows deleted from RDS remain in the index unless your schema uses soft deletes (e.g., `deleted_at` column).
-- **CDK**: `aws-osis` — `CfnPipeline` (L1). The pipeline logic (JDBC source URL, credentials, OpenSearch sink) is passed as a Data Prepper YAML string in `pipelineConfigurationBody`.
+- **Why OSI**: OpenSearch Ingestion has a native `rds` source plugin that performs **true CDC via logical replication** — no custom sync code, no polling. It takes an initial snapshot (exported via S3), bulk-indexes it, then tails the WAL continuously. INSERTs, UPDATEs, and DELETEs are all detected.
+- **Prerequisite**: Enable logical replication on the RDS parameter group (`rds.logical_replication = 1`). Tables must have primary keys.
+- **CDK**: `aws-osis` — `CfnPipeline` (L1). The pipeline logic (rds source with `stream: true`, OpenSearch sink) is passed as a Data Prepper YAML string in `pipelineConfigurationBody`.
 - **Alternative**: **pg_vector** — store and query vector embeddings directly inside PostgreSQL using the `pgvector` extension. No data movement, but lacks advanced full-text ranking and scales with your DB instance, not independently.
-- **Explored in**: [`rds-opensearch`](./rds-opensearch) _(Planned)_
+- **Explored in**: [`rds-opensearch`](./rds-opensearch)
 
 ---
 
@@ -378,21 +379,21 @@ Stream row-level changes from RDS into S3 for cheap long-term storage and batch 
 - **Output format**: DMS writes **Parquet or CSV** — Iceberg is not natively supported. For Iceberg table format, write Parquet via DMS then convert with a Glue ETL job.
 - **CDK**: `aws-dms` — `CfnEndpoint` (`engineName: 's3'`, `s3Settings`), `CfnReplicationTask`. Set `glueCatalogGeneration: true` in `s3Settings` to auto-register the schema in Glue for Athena queries. All L1.
 - **Alternative**: **RDS Export to S3** — exports the entire DB as Parquet snapshots. Much simpler to set up but batch-only (daily at best, no continuous CDC).
-- **Explored in**: [`rds-data-lake`](./rds-data-lake) _(Planned)_
+- **Explored in**: [`rds-data-lake`](./rds-data-lake)
 
 ---
 
 ## Sub-Patterns
 
-| Pattern                                                  | Topology                                  | Status  |
-| -------------------------------------------------------- | ----------------------------------------- | ------- |
-| [`rds-postgres`](./rds-postgres)                         | Single-AZ + Multi-AZ + RDS Proxy          | Done    |
-| [`rds-read-replicas`](./rds-read-replicas)               | Async read replicas, cross-region DR      | Done    |
-| [`rds-readable-standbys`](./rds-readable-standbys)       | Multi-AZ with 2 readable standbys         | Done    |
-| [`rds-aurora-provisioned`](./rds-aurora-provisioned)     | Aurora writer + readers, custom endpoints | Done    |
-| [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling      | Done    |
-| [`rds-aurora-global`](./rds-aurora-global)               | Aurora Global Database + Write Forwarding | Done    |
-| [`rds-cdc-streaming`](./rds-cdc-streaming)               | DMS CDC → Kinesis → Lambda (+ dedup)      | Done    |
-| [`rds-opensearch`](./rds-opensearch)                     | OpenSearch Ingestion from RDS             | Planned |
-| [`rds-redshift-zero-etl`](./rds-redshift-zero-etl)       | RDS PostgreSQL → Redshift Zero-ETL        | Done    |
-| [`rds-data-lake`](./rds-data-lake)                       | DMS CDC → S3 (Parquet)                    | Planned |
+| Pattern                                                  | Topology                                   | Status |
+| -------------------------------------------------------- | ------------------------------------------ | ------ |
+| [`rds-postgres`](./rds-postgres)                         | Single-AZ + Multi-AZ + RDS Proxy           | Done   |
+| [`rds-read-replicas`](./rds-read-replicas)               | Async read replicas, cross-region DR       | Done   |
+| [`rds-readable-standbys`](./rds-readable-standbys)       | Multi-AZ with 2 readable standbys          | Done   |
+| [`rds-aurora-provisioned`](./rds-aurora-provisioned)     | Aurora writer + readers, custom endpoints  | Done   |
+| [`rds-aurora-serverless-v2`](./rds-aurora-serverless-v2) | Aurora Serverless v2 ACU autoscaling       | Done   |
+| [`rds-aurora-global`](./rds-aurora-global)               | Aurora Global Database + Write Forwarding  | Done   |
+| [`rds-cdc-streaming`](./rds-cdc-streaming)               | DMS CDC → Kinesis → Lambda (+ dedup)       | Done   |
+| [`rds-opensearch`](./rds-opensearch)                     | OSI CDC (logical replication → OpenSearch) | Done   |
+| [`rds-redshift-zero-etl`](./rds-redshift-zero-etl)       | RDS PostgreSQL → Redshift Zero-ETL         | Done   |
+| [`rds-data-lake`](./rds-data-lake)                       | DMS CDC → S3 (Parquet)                     | Done   |

@@ -1,0 +1,534 @@
+Resources:
+  SnapshotBucketKeyBFB2D484:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Created by RdsOpensearchPipeline/SnapshotBucket
+      EnableKeyRotation: true
+      KeyPolicy:
+        Statement:
+          - Action: kms:*
+            Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::495599779087:root
+            Resource: "*"
+        Version: "2012-10-17"
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/SnapshotBucket/Key/Resource
+  SnapshotBucketB2BF31D3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID:
+                Fn::GetAtt:
+                  - ExportKey5FACB7E0
+                  - Arn
+              SSEAlgorithm: aws:kms
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: aws-cdk:auto-delete-objects
+          Value: "true"
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/SnapshotBucket/Resource
+  SnapshotBucketPolicy022DC250:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: SnapshotBucketB2BF31D3
+      PolicyDocument:
+        Statement:
+          - Action: s3:*
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+            Effect: Deny
+            Principal:
+              AWS: "*"
+            Resource:
+              - Fn::GetAtt:
+                  - SnapshotBucketB2BF31D3
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - SnapshotBucketB2BF31D3
+                        - Arn
+                    - /*
+          - Action:
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:List*
+              - s3:PutBucketPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::GetAtt:
+                  - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+                  - Arn
+            Resource:
+              - Fn::GetAtt:
+                  - SnapshotBucketB2BF31D3
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - SnapshotBucketB2BF31D3
+                        - Arn
+                    - /*
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/SnapshotBucket/Policy/Resource
+  SnapshotBucketAutoDeleteObjectsCustomResource359999A8:
+    Type: Custom::S3AutoDeleteObjects
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F
+          - Arn
+      BucketName:
+        Ref: SnapshotBucketB2BF31D3
+    DependsOn:
+      - SnapshotBucketPolicy022DC250
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/SnapshotBucket/AutoDeleteObjectsCustomResource/Default
+  CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role
+  CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-495599779087-eu-central-1
+        S3Key: faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip
+      Timeout: 900
+      MemorySize: 128
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+          - Arn
+      Runtime: nodejs22.x
+      Description:
+        Fn::Join:
+          - ""
+          - - "Lambda function for auto-deleting objects in "
+            - Ref: SnapshotBucketB2BF31D3
+            - " S3 bucket."
+    DependsOn:
+      - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler
+      aws:asset:path: asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6
+      aws:asset:property: Code
+  ExportKey5FACB7E0:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Encrypts RDS snapshot exports for OSI initial full load
+      EnableKeyRotation: true
+      KeyPolicy:
+        Statement:
+          - Action: kms:*
+            Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::495599779087:root
+            Resource: "*"
+        Version: "2012-10-17"
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/ExportKey/Resource
+  ExportRoleB9ACA3CD:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: export.rds.amazonaws.com
+        Version: "2012-10-17"
+      Description: Allows RDS snapshot export service to write to the OSI snapshot bucket
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/ExportRole/Resource
+  ExportRoleDefaultPolicy63A60127:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:Abort*
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:GetObject*
+              - s3:List*
+              - s3:PutObject
+              - s3:PutObjectLegalHold
+              - s3:PutObjectRetention
+              - s3:PutObjectTagging
+              - s3:PutObjectVersionTagging
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - SnapshotBucketB2BF31D3
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - SnapshotBucketB2BF31D3
+                        - Arn
+                    - /*
+          - Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - SnapshotBucketKeyBFB2D484
+                - Arn
+          - Action: s3:DeleteObject*
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ""
+                - - Fn::GetAtt:
+                      - SnapshotBucketB2BF31D3
+                      - Arn
+                  - /*
+          - Action:
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - ExportKey5FACB7E0
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: ExportRoleDefaultPolicy63A60127
+      Roles:
+        - Ref: ExportRoleB9ACA3CD
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/ExportRole/DefaultPolicy/Resource
+  PipelineRoleDCFDBB91:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: osis-pipelines.amazonaws.com
+        Version: "2012-10-17"
+      Description: Allows OSI pipeline to read from RDS and write to OpenSearch
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/PipelineRole/Resource
+  PipelineRoleDefaultPolicy77A82A74:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:Abort*
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:GetObject*
+              - s3:List*
+              - s3:PutObject
+              - s3:PutObjectLegalHold
+              - s3:PutObjectRetention
+              - s3:PutObjectTagging
+              - s3:PutObjectVersionTagging
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - SnapshotBucketB2BF31D3
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - SnapshotBucketB2BF31D3
+                        - Arn
+                    - /*
+          - Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - SnapshotBucketKeyBFB2D484
+                - Arn
+          - Action: s3:DeleteObject*
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ""
+                - - Fn::GetAtt:
+                      - SnapshotBucketB2BF31D3
+                      - Arn
+                  - /*
+          - Action: kms:Decrypt
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - ExportKey5FACB7E0
+                - Arn
+          - Action: secretsmanager:GetSecretValue
+            Effect: Allow
+            Resource:
+              Fn::ImportValue: RdsOpensearchRds:ExportsOutputRefInstanceSecretAttachment83BEE581ABDE4357
+            Sid: ReadRdsSecret
+          - Action:
+              - rds:AddTagsToResource
+              - rds:CreateDBSnapshot
+              - rds:DescribeDBInstances
+              - rds:DescribeDBSnapshots
+              - rds:DescribeExportTasks
+              - rds:StartExportTask
+            Effect: Allow
+            Resource:
+              - Fn::Join:
+                  - ""
+                  - - "arn:aws:rds:eu-central-1:495599779087:db:"
+                    - Fn::ImportValue: RdsOpensearchRds:ExportsOutputRefInstanceC1063A87B325EA17
+              - Fn::Join:
+                  - ""
+                  - - arn:aws:rds:eu-central-1:495599779087:snapshot/
+                    - Fn::ImportValue: RdsOpensearchRds:ExportsOutputRefInstanceC1063A87B325EA17
+                    - "*"
+            Sid: RdsSnapshotExport
+          - Action: iam:PassRole
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - ExportRoleB9ACA3CD
+                - Arn
+            Sid: PassExportRole
+          - Action:
+              - es:ESHttpDelete
+              - es:ESHttpGet
+              - es:ESHttpPost
+              - es:ESHttpPut
+            Effect: Allow
+            Resource:
+              - Fn::ImportValue: RdsOpensearchOpenSearch:ExportsOutputFnGetAttDomain66AC69E0ArnA2ECE2E0
+              - Fn::Join:
+                  - ""
+                  - - Fn::ImportValue: RdsOpensearchOpenSearch:ExportsOutputFnGetAttDomain66AC69E0ArnA2ECE2E0
+                    - /*
+            Sid: OpenSearchWrite
+          - Action:
+              - ec2:AttachNetworkInterface
+              - ec2:CreateNetworkInterface
+              - ec2:CreateNetworkInterfacePermission
+              - ec2:DeleteNetworkInterface
+              - ec2:DeleteNetworkInterfacePermission
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeSubnets
+              - ec2:DescribeVpcs
+              - ec2:DetachNetworkInterface
+            Effect: Allow
+            Resource: "*"
+            Sid: OsiVpcNetworking
+          - Action: ec2:CreateTags
+            Condition:
+              StringEquals:
+                aws:RequestTag/OSISManaged: "true"
+            Effect: Allow
+            Resource: arn:aws:ec2:*:495599779087:network-interface/*
+            Sid: OsiTagNetworkInterface
+        Version: "2012-10-17"
+      PolicyName: PipelineRoleDefaultPolicy77A82A74
+      Roles:
+        - Ref: PipelineRoleDCFDBB91
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/PipelineRole/DefaultPolicy/Resource
+  PipelineSG9DF6B9DE:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: OSI pipeline security group
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: PostgreSQL to RDS source
+          FromPort: 5432
+          IpProtocol: tcp
+          ToPort: 5432
+        - CidrIp: 0.0.0.0/0
+          Description: HTTPS to OpenSearch domain
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      VpcId:
+        Fn::ImportValue: VpcSubnets:ExportsOutputRefVpc8378EB38272D6E3A
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/PipelineSG/Resource
+  PipelineToRds:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: PostgreSQL from OSI pipeline
+      FromPort: 5432
+      GroupId:
+        Fn::ImportValue: RdsOpensearchRds:ExportsOutputFnGetAttDbSG0BE6ACB3GroupIdE6F8FAFE
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - PipelineSG9DF6B9DE
+          - GroupId
+      ToPort: 5432
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/PipelineToRds
+  PipelineToOpenSearch:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: HTTPS from OSI pipeline
+      FromPort: 443
+      GroupId:
+        Fn::ImportValue: RdsOpensearchOpenSearch:ExportsOutputFnGetAttDomainSG1DB71FADGroupIdA7C3AABC
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - PipelineSG9DF6B9DE
+          - GroupId
+      ToPort: 443
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/PipelineToOpenSearch
+  Pipeline:
+    Type: AWS::OSIS::Pipeline
+    Properties:
+      MaxUnits: 4
+      MinUnits: 1
+      PipelineConfigurationBody:
+        Fn::Sub:
+          - |-
+            version: "2"
+            rds-opensearch-pipeline:
+              source:
+                rds:
+                  db_identifier: "${DbIdentifier}"
+                  engine: postgresql
+                  database: "demo"
+                  tables:
+                    include:
+                      - "public.articles"
+                  s3_bucket: "${SnapshotBucket}"
+                  s3_region: "${Region}"
+                  s3_prefix: "rds-snapshots"
+                  export:
+                    kms_key_id: "${KmsKeyId}"
+                    iam_role_arn: "${ExportRoleArn}"
+                  stream: true
+                  aws:
+                    sts_role_arn: "${PipelineRoleArn}"
+                    region: "${Region}"
+                  authentication:
+                    username: "${{aws_secrets:rds_secret:username}}"
+                    password: "${{aws_secrets:rds_secret:password}}"
+              sink:
+                - opensearch:
+                    hosts:
+                      - "https://${DomainEndpoint}"
+                    index: "${getMetadata(\"table_name\")}"
+                    index_type: custom
+                    document_id: "${getMetadata(\"primary_key\")}"
+                    action: "${getMetadata(\"opensearch_action\")}"
+                    document_version: "${getMetadata(\"document_version\")}"
+                    document_version_type: "external"
+                    aws:
+                      sts_role_arn: "${PipelineRoleArn}"
+                      region: "${Region}"
+              extension:
+                aws:
+                  secrets:
+                    rds_secret:
+                      secret_id: "${SecretArn}"
+                      region: "${Region}"
+                      sts_role_arn: "${PipelineRoleArn}"
+                      refresh_interval: PT1H
+          - DbIdentifier:
+              Fn::ImportValue: RdsOpensearchRds:ExportsOutputRefInstanceC1063A87B325EA17
+            SnapshotBucket:
+              Ref: SnapshotBucketB2BF31D3
+            Region: eu-central-1
+            KmsKeyId:
+              Ref: ExportKey5FACB7E0
+            ExportRoleArn:
+              Fn::GetAtt:
+                - ExportRoleB9ACA3CD
+                - Arn
+            PipelineRoleArn:
+              Fn::GetAtt:
+                - PipelineRoleDCFDBB91
+                - Arn
+            DomainEndpoint:
+              Fn::ImportValue: RdsOpensearchOpenSearch:ExportsOutputFnGetAttDomain66AC69E0DomainEndpoint34F0DAB2
+            SecretArn:
+              Fn::ImportValue: RdsOpensearchRds:ExportsOutputRefInstanceSecretAttachment83BEE581ABDE4357
+      PipelineName: rds-opensearch-cdc
+      VpcOptions:
+        SecurityGroupIds:
+          - Fn::GetAtt:
+              - PipelineSG9DF6B9DE
+              - GroupId
+        SubnetIds:
+          - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet1SubnetE48C57379FE391D3
+          - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet2Subnet16364B914643ED68
+          - Fn::ImportValue: VpcSubnets:ExportsOutputRefVpcIsolatedSubnet3Subnet6840A2D4F9E008CF
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/Pipeline
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/+1VTYvbMBD9LavjoqghXXrwLdmWEtKSEO8thCKPJqkSWXL1kWCE/3uxFC/bhpYtS2EPexJ+b0bvSaMZT9jkbszGN/zsRiCOIyUrFkvP4Uj52X2L7j2LswBH9JtIKmXguAqVkjAFQOdIQW4JJajBto2XRpOCLL6WCdoZC1iWX0jhbUBKLNbmxNXKKAktKYhA561pCSU8ePMRFXpcVgcE73JKt6X3O53FaV5ycu8kfSb5p2GZ7+ixdiwusI8U6MDKwVx2yyuFC2zXxvOMJzn6D8F/Pk62s8C2o5LXLK6Nwk0k3LlQo5i1pIiksVKDbLiaApig/UUrx/QJU3i00NErV71TLsSDWQ37DC42sdsm1nsO3+daSY2PHLklzyD/vu9L2LcbSOxbyjNTUiP1b4Fe2r5/IkPxHkzPXNX0Ghai9NxjjbqfK09kXwq/LjevBk5VG+YwwoTFEiFY6dvP1oRmE8mpgUu7X49brpQ5T5VaBl+ZoAUpdlw5vIh92lt0bh3SnUYCXOcezkiey2C0xjQ8hr9T0PJHwLkYJkcq3fZ/bJnO/stxr4C5ToIdNU461l+VbLAX7Oh9cN7Ua3QmWMD0ZlIHXIDf+JU1JynQzrhDOnUOfen5Xup9n7MMvgm+o9oIZAf37jS5Yx/Y+ObgpBzZoL2ska3z+hOQ3jR7AggAAA==
+    Metadata:
+      aws:cdk:path: RdsOpensearchPipeline/CDKMetadata/Default
+Outputs:
+  PipelineName:
+    Value: rds-opensearch-cdc
+  PipelineArn:
+    Value:
+      Fn::GetAtt:
+        - Pipeline
+        - PipelineArn
+  SnapshotBucketName:
+    Value:
+      Ref: SnapshotBucketB2BF31D3
+  PipelineRoleArn:
+    Value:
+      Fn::GetAtt:
+        - PipelineRoleDCFDBB91
+        - Arn
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
