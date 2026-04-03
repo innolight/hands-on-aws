@@ -23,7 +23,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`dynamodb-global-database`](./patterns/dynamodb-global-database/): Dynamodb Global Database (multi-write architecture)
 - [x] [`dynamodb-stream-lambda`](./patterns/dynamodb-stream-lambda): Dynamodb → Dynamodb Stream → Lambda
 - [ ] `dynamodb-to-s3-zero-etl`: Dynamodb → S3 with Zero-ETL
-- [ ] `dynamodb-kinesis-opensearch`: Dynamodb & Stream → Kinesis Stream → Kinesis Data Firehose → S3 | OpenSearch
+- [ ] `dynamodb-kinesis-opensearch`: Dynamodb & Stream → Kinesis Stream & Data Firehose → S3 | OpenSearch
 
 **Datastore** / Elasticache:
 
@@ -38,7 +38,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 - [x] [`rds-readable-standbys`](./patterns/rds/rds-readable-standbys): Multi-AZ with 2 readable standbys - synchronous replication, <35s failover
 - [x] [`rds-aurora-provisioned`](./patterns/rds/rds-aurora-provisioned): Cloud Native PostgreSQL, writer + up to 15 readers, custom endpoints
 - [x] [`rds-aurora-serverless-v2`](./patterns/rds/rds-aurora-serverless-v2): Aurora Serverless - ACU-based autoscaling, serverless + provisioned mix
-- [x] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database - <1s cross-region replication, Write Forwarding, managed failover
+- [x] [`rds-aurora-global`](./patterns/rds/rds-aurora-global): Aurora Global Database - <1s cross-region replication, Write Forwarding
 - [x] [`rds-cdc-streaming`](./patterns/rds/rds-cdc-streaming/): RDS → DMS CDC → Kinesis → Lambda — trigger actions on changes
 - [x] [`rds-redshift-zero-etl`](./patterns/rds/rds-redshift-zero-etl/): Aurora → Redshift Zero-ETL — continuous replication to Redshift for analytics
 - [x] `rds-opensearch`: RDS → OpenSearch Ingestion → OpenSearch for full-text and vector search
@@ -52,7 +52,7 @@ Discover AWS patterns in folder [patterns](./patterns):
 Messaging & Event-Driven:
 
 - [ ] `sqs-lambda`: SQS → Lambda with DLQ and batch processing
-- [ ] `step-functions-workflow`: Step Functions orchestrating multiple Lambdas (validate → process → notify), error handling & retries
+- [ ] `step-functions-workflow`: Step Functions orchestrating multiple Lambdas
 - [ ] `eventbridge-sns-fanout`: EventBridge rule with content filtering → SNS → multiple SQS subscribers
 
 API & Auth:
@@ -74,8 +74,8 @@ Infra / Running Containers on AWS:
 
 Infra / Others:
 
-- [x] [`vpc-subnets`](./patterns/vpc-subnets): VPC with 3-tier subnet layout (public / private / isolated) across 3 AZs, configurable NAT Gateways
-- [x] [`ssm-bastion`](./patterns/ssm-bastion): EC2 bastion accessible via SSM Session Manager (no SSH, no inbound rules) — used for port forwarding to isolated resources
+- [x] [`vpc-subnets`](./patterns/vpc-subnets): VPC 3-tier subnet layout (public/private/isolated) across 3 AZs, NAT Gateways
+- [x] [`ssm-bastion`](./patterns/ssm-bastion): EC2 instance for SSM Session Manager - secure port forwarding to isolated resources without SSH
 - [ ] `event-bridge-lambda-job`: Lightweight job with event bridge triggering lambda function using cron schedule
 - [ ] `msk-lambda`: Kafka cluster setup via Amazon Managed Streaming for Kafka (MSK), Lambda consumer
 - [ ] `waf-shield-ddos-protection`: AWS WAF + Shield for DDoS protection on CloudFront
